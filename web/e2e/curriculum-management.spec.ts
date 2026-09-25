@@ -1,8 +1,9 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 
-// Drag-and-drop reordering in a real browser (components/SortableList.tsx). Self-contained: it
-// registers its own user and builds its own course through the API, so it needs no seed data.
-const PASSWORD = "reorder-e2e-password";
+// Reordering (components/SortableList.tsx) and collapsing (components/Collapsible.tsx) in a real
+// browser. Self-contained: each test registers its own user and builds its own course through the
+// API, so it needs no seed data.
+const PASSWORD = "curriculum-e2e-password";
 
 type Course = { id: string; chapters: string[]; concept: string; items: string[] };
 
@@ -92,4 +93,41 @@ test("chapters move with the keyboard, questions with the mouse, and the order i
   await page.getByLabel("Search questions").fill("question");
   await expect(page.getByRole("button", { name: /^Reorder / })).toHaveCount(0);
   await expect(page.getByText("Clear the search to reorder these questions.")).toBeVisible();
+});
+
+test("chapters, topics and concepts collapse one by one, and stay collapsed after a reload", async ({ page, request }) => {
+  const email = `collapse-${Date.now()}@example.com`;
+  const { course } = await setUp(request, email);
+  await signIn(page, email);
+
+  // The question manager: collapse a single chapter.
+  await page.goto(`/courses/${course.id}/questions`);
+  const main = page.locator(".workspace-main");
+  const firstQuestion = main.getByText("First question?");
+  await expect(firstQuestion).toBeVisible();
+  await main.getByRole("button", { name: "Collapse Alpha" }).click();
+  await expect(firstQuestion).toBeHidden();
+  await expect(main.getByRole("button", { name: "Expand Alpha" })).toHaveAttribute("aria-expanded", "false");
+  await page.reload();
+  await expect(main.getByRole("button", { name: "Expand Alpha" })).toBeVisible();
+  await expect(firstQuestion).toBeHidden();
+  // A search never hides its results inside a collapsed section.
+  await page.getByLabel("Search questions").fill("First");
+  await expect(firstQuestion).toBeVisible();
+  await page.getByLabel("Search questions").fill("");
+  await expect(firstQuestion).toBeHidden();
+  await main.getByRole("button", { name: "Expand all" }).click();
+  await expect(firstQuestion).toBeVisible();
+  // A single concept collapses on its own and says how much it holds.
+  await main.getByRole("button", { name: "Collapse Concept" }).click();
+  await expect(firstQuestion).toBeHidden();
+  await expect(main.getByText("3 questions")).toBeVisible();
+
+  // The course tree: collapsing a chapter hides its topics...
+  const tree = page.getByRole("navigation", { name: "Curriculum" });
+  await tree.getByRole("button", { name: "Collapse Alpha" }).click();
+  await expect(tree.getByRole("link", { name: "Topic" })).toBeHidden();
+  // ...but the branch of the page you open stays visible.
+  await page.goto(`/courses/${course.id}/concepts/${course.concept}`);
+  await expect(tree.getByRole("link", { name: "Concept" })).toBeVisible();
 });

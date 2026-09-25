@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import { SortableList } from "./SortableList";
 
-// Dragging itself needs real layout, so it's covered in the browser (e2e/reorder.spec.ts).
+// Dragging itself needs real layout, so it's covered in the browser (e2e/curriculum-management.spec.ts).
 const items = [
   { id: "a", title: "Alpha" },
   { id: "b", title: "Beta" },

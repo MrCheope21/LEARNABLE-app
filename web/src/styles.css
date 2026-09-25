@@ -274,3 +274,19 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .drag-handle:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
 .question-list.sortable-list .sortable-row { padding: 0.25rem 0.5rem; }
 .question-list.sortable-list .sortable-content { display: block; }
+
+/* Collapsible sections (components/Collapsible.tsx) */
+.collapse-toggle { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; min-height: 0; padding: 0; border: none; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
+.collapse-toggle:hover { color: var(--text); background: var(--surface-2); }
+.collapse-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.collapse-toggle svg { transition: transform 0.15s ease; }
+.collapse-toggle.expanded svg { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .collapse-toggle svg { transition: none; } }
+.collapse-spacer { flex: none; width: 24px; }
+.tree-row { display: flex; align-items: center; gap: 0.1rem; min-width: 0; }
+.tree-row > a { flex: 1; min-width: 0; }
+.tree .tree-row .tree-chapter { margin-top: 0; }
+.tree > ul > li { margin-top: 0.3rem; }
+.section-heading { display: flex; align-items: center; gap: 0.35rem; }
+.section-heading > h2, .section-heading > h3 { margin: 0; }
+.tree ul ul ul { padding-left: 1.55rem; }

@@ -97,7 +97,14 @@ This is not the phone UI stretched out.
   Space, arrows, Space), with screen-reader announcements. The new order shows at once and is
   saved with one `PUT …-order` call; on failure the list returns to the server's order. Dragging
   questions is off while a search hides part of the list, since the server needs every item.
-  Checked in a browser by `e2e/reorder.spec.ts`.
+  Checked in a browser by `e2e/curriculum-management.spec.ts`.
+- **Collapsing:** every section that holds others collapses on its own, via a chevron
+  (`components/Collapsible.tsx`): chapters and topics in the course tree, and chapter, topic and
+  concept groups in "Manage questions" (plus Collapse all / Expand all; a collapsed concept shows
+  its question count). What's collapsed is remembered per course in this browser (localStorage,
+  optional). The tree branch of the page you open always shows, and a search never hides its
+  results in a collapsed section. Collapsed content stays mounted, only `hidden`, so an open
+  editor keeps its state.
 - **Wide curriculum views:** sortable lists for chapters, topics and concepts, a table for progress; material management
   inline on the chapter page; the proposal editor shows every topic at once with reorder, move
   between topics, merge, delete and add.
