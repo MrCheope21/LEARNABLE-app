@@ -2,8 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { Schemas } from "../../api/client";
-import { courses, learningItems } from "../../api/endpoints";
+import { courses, learningItems, reorder } from "../../api/endpoints";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
+import { SortableList } from "../../components/SortableList";
 import { memoryStateLabel } from "../../components/labels";
 import { Breadcrumbs } from "./Consolidate";
 import { courseProgressKey, outlineKey } from "./CourseLayout";
@@ -91,7 +92,7 @@ export function QuestionsPage() {
       <Breadcrumbs courseId={courseId} current="Questions" />
       <header className="page-header">
         <h1>Questions</h1>
-        <p className="hint">Select questions to delete, pause, resume or move them; edit one to fix its wording or expected answer.</p>
+        <p className="hint">Select questions to delete, pause, resume or move them; drag ⠿ to reorder them; edit one to fix its title, wording or expected answer.</p>
       </header>
 
       <div className="toolbar">
@@ -173,23 +174,29 @@ export function QuestionsPage() {
                                   />
                                   <Link to={`/courses/${courseId}/concepts/${concept.id}`}>{concept.title}</Link>
                                 </label>
-                                <ul className="question-list">
-                                  {conceptItems.map((item) => (
-                                    <li key={item.id}>
-                                      <QuestionRow
-                                        item={item}
-                                        selected={selected.has(item.id)}
-                                        onSelect={(on) => toggle([item.id], on)}
-                                        editing={editing === item.id}
-                                        onEdit={() => setEditing(editing === item.id ? null : item.id)}
-                                        onSaved={() => {
-                                          setEditing(null);
-                                          refresh();
-                                        }}
-                                      />
-                                    </li>
-                                  ))}
-                                </ul>
+                                <SortableList
+                                  className="question-list"
+                                  items={conceptItems}
+                                  itemLabel={(item) => item.questions[0]?.text ?? item.title}
+                                  disabledReason={filter.trim() ? "Clear the search to reorder these questions." : undefined}
+                                  onReorder={async (ids) => {
+                                    await reorder.learningItems(concept.id, ids);
+                                    refresh();
+                                  }}
+                                  renderItem={(item) => (
+                                    <QuestionRow
+                                      item={item}
+                                      selected={selected.has(item.id)}
+                                      onSelect={(on) => toggle([item.id], on)}
+                                      editing={editing === item.id}
+                                      onEdit={() => setEditing(editing === item.id ? null : item.id)}
+                                      onSaved={() => {
+                                        setEditing(null);
+                                        refresh();
+                                      }}
+                                    />
+                                  )}
+                                />
                               </div>
                             );
                           })}

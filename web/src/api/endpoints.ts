@@ -70,6 +70,20 @@ export const courses = {
     ),
 };
 
+/** Drag and drop: a parent's children in their new order, each exactly once (else 422). */
+export const reorder = {
+  chapters: (courseId: Id, ids: Id[]) =>
+    call(api.PUT("/api/v1/courses/{course_id}/chapter-order", { params: { path: { course_id: courseId } }, body: { ids } })),
+  topics: (chapterId: Id, ids: Id[]) =>
+    call(api.PUT("/api/v1/chapters/{chapter_id}/topic-order", { params: { path: { chapter_id: chapterId } }, body: { ids } })),
+  concepts: (topicId: Id, ids: Id[]) =>
+    call(api.PUT("/api/v1/topics/{topic_id}/concept-order", { params: { path: { topic_id: topicId } }, body: { ids } })),
+  learningItems: (conceptId: Id, ids: Id[]) =>
+    call(
+      api.PUT("/api/v1/concepts/{concept_id}/learning-item-order", { params: { path: { concept_id: conceptId } }, body: { ids } }),
+    ),
+};
+
 export type ConceptAction = "activate" | "mark-studied" | "pause" | "resume" | "deactivate" | "complete";
 
 export const concepts = {

@@ -91,7 +91,14 @@ This is not the phone UI stretched out.
   points. Every course, chapter, topic and concept title has "Rename". Material can be uploaded
   as a file or pasted as text (sent as a Markdown file, as study material or as questions and
   answers), and originals can be downloaded.
-- **Wide curriculum views:** tables for chapters, concepts and progress; material management
+- **Reordering:** chapters (course page), topics (chapter page), concepts (topic page) and
+  questions within a concept ("Manage questions") are drag-and-drop lists
+  (`components/SortableList.tsx`, @dnd-kit): mouse, touch, or keyboard (focus the ⠿ handle,
+  Space, arrows, Space), with screen-reader announcements. The new order shows at once and is
+  saved with one `PUT …-order` call; on failure the list returns to the server's order. Dragging
+  questions is off while a search hides part of the list, since the server needs every item.
+  Checked in a browser by `e2e/reorder.spec.ts`.
+- **Wide curriculum views:** sortable lists for chapters, topics and concepts, a table for progress; material management
   inline on the chapter page; the proposal editor shows every topic at once with reorder, move
   between topics, merge, delete and add.
 - **Study workspace:** the question and your answer in the centre. The source passage opens in

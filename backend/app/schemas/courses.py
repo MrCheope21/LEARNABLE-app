@@ -14,6 +14,12 @@ LanguageCode = Annotated[str, Field(pattern=r"^[a-z]{2}(-[A-Z]{2})?$")]
 Order = Annotated[int, Field(ge=0)]
 
 
+class OrderUpdate(InputModel):
+    """A parent's children in their new order (drag and drop): every child exactly once."""
+
+    ids: list[UUID] = Field(min_length=1, max_length=10_000)
+
+
 class CourseCreate(InputModel):
     title: Title
     description: Description = ""

@@ -27,6 +27,7 @@ from app.schemas.courses import (
     CourseCreate,
     CourseRead,
     CourseUpdate,
+    OrderUpdate,
     TopicCreate,
     TopicRead,
     TopicUpdate,
@@ -98,6 +99,13 @@ def update_chapter(
     return service.update_chapter(db, user.id, chapter_id, payload)
 
 
+@router.put("/courses/{course_id}/chapter-order", status_code=status.HTTP_204_NO_CONTENT)
+def reorder_chapters(
+    course_id: uuid.UUID, payload: OrderUpdate, db: Session = DB, user: User = CurrentUser
+) -> None:
+    service.reorder_chapters(db, user.id, course_id, payload.ids)
+
+
 @router.delete("/chapters/{chapter_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_chapter(chapter_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> None:
     service.delete_chapter(db, user.id, chapter_id)
@@ -115,6 +123,13 @@ def create_topic(
     chapter_id: uuid.UUID, payload: TopicCreate, db: Session = DB, user: User = CurrentUser
 ) -> Topic:
     return service.create_topic(db, user.id, chapter_id, payload)
+
+
+@router.put("/chapters/{chapter_id}/topic-order", status_code=status.HTTP_204_NO_CONTENT)
+def reorder_topics(
+    chapter_id: uuid.UUID, payload: OrderUpdate, db: Session = DB, user: User = CurrentUser
+) -> None:
+    service.reorder_topics(db, user.id, chapter_id, payload.ids)
 
 
 @router.patch("/topics/{topic_id}", response_model=TopicRead)
@@ -147,6 +162,20 @@ def create_concept(
 def get_concept(concept_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> Concept:
     """One Concept, e.g. to follow its Learning Item generation after activation."""
     return service.get_owned_concept(db, user.id, concept_id)
+
+
+@router.put("/topics/{topic_id}/concept-order", status_code=status.HTTP_204_NO_CONTENT)
+def reorder_concepts(
+    topic_id: uuid.UUID, payload: OrderUpdate, db: Session = DB, user: User = CurrentUser
+) -> None:
+    service.reorder_concepts(db, user.id, topic_id, payload.ids)
+
+
+@router.put("/concepts/{concept_id}/learning-item-order", status_code=status.HTTP_204_NO_CONTENT)
+def reorder_learning_items(
+    concept_id: uuid.UUID, payload: OrderUpdate, db: Session = DB, user: User = CurrentUser
+) -> None:
+    service.reorder_learning_items(db, user.id, concept_id, payload.ids)
 
 
 @router.patch("/concepts/{concept_id}", response_model=ConceptRead)
