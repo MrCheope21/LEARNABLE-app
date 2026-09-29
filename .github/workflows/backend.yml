@@ -1,0 +1,124 @@
+name: Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "!backend/**/*.md"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "!backend/**/*.md"
+      - ".github/workflows/backend.yml"
+  workflow_dispatch:
+    inputs:
+      check_ai_secrets:
+        description: "Only report which AI provider secrets/variables exist (names, never values)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  # Presence check for the real-AI configuration: prints ✓/○ per NAME, never a value, and
+  # calls no AI provider. Runs only on a manual dispatch with check_ai_secrets.
+  ai-secrets:
+    if: github.event_name == 'workflow_dispatch' && inputs.check_ai_secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Report configured names
+        working-directory: .
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY != '' }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY != '' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY != '' }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY != '' }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY != '' }}
+          COHERE_API_KEY: ${{ secrets.COHERE_API_KEY != '' }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY != '' }}
+          TENCENT_TOKENHUB_API_KEY: ${{ secrets.TENCENT_TOKENHUB_API_KEY != '' }}
+          SILICONFLOW_API_KEY: ${{ secrets.SILICONFLOW_API_KEY != '' }}
+          VAR_CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID != '' }}
+          VAR_ALIBABA_WORKSPACE_ID: ${{ vars.ALIBABA_WORKSPACE_ID != '' }}
+          VAR_ALIBABA_FREE_ONLY_CONFIRMED: ${{ vars.ALIBABA_FREE_ONLY_CONFIRMED }}
+          VAR_TENCENT_FREE_ONLY_CONFIRMED: ${{ vars.TENCENT_FREE_ONLY_CONFIRMED }}
+          VAR_AI_FREE_MODELS: ${{ vars.AI_FREE_MODELS }}
+        run: |
+          echo "Secrets (presence only):"
+          for name in GROQ_API_KEY MISTRAL_API_KEY GEMINI_API_KEY OPENROUTER_API_KEY \
+                      CLOUDFLARE_API_TOKEN NVIDIA_API_KEY COHERE_API_KEY DASHSCOPE_API_KEY \
+                      TENCENT_TOKENHUB_API_KEY SILICONFLOW_API_KEY; do
+            if [ "${!name}" = "true" ]; then echo "  ✓ $name"; else echo "  ○ $name"; fi
+          done
+          echo "Variables (not secret):"
+          for name in CLOUDFLARE_ACCOUNT_ID ALIBABA_WORKSPACE_ID; do
+            var="VAR_$name"
+            if [ "${!var}" = "true" ]; then echo "  ✓ $name"; else echo "  ○ $name"; fi
+          done
+          echo "  ALIBABA_FREE_ONLY_CONFIRMED=${VAR_ALIBABA_FREE_ONLY_CONFIRMED:-<unset>}"
+          echo "  TENCENT_FREE_ONLY_CONFIRMED=${VAR_TENCENT_FREE_ONLY_CONFIRMED:-<unset>}"
+          echo "  AI_FREE_MODELS=${VAR_AI_FREE_MODELS:-<unset>}"
+
+  test:
+    if: github.event_name != 'workflow_dispatch' || !inputs.check_ai_secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        # Same image as docker-compose.yml, so CI and local Docker test the same database.
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: learnable_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d learnable_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.lock
+
+      - name: Install dependencies
+        # The lock file: CI runs the exact versions that were tested, not whatever is newest today.
+        run: pip install -r requirements-dev.lock
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Check formatting
+        run: ruff format --check .
+
+      - name: Type check
+        run: mypy
+
+      - name: Tests (SQLite)
+        run: pytest
+
+      - name: Tests (PostgreSQL)
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/learnable_test
+        run: pytest

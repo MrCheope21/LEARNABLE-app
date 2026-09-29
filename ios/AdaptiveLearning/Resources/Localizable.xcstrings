@@ -1,0 +1,2306 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%@: %@": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: %@"
+          }
+        }
+      }
+    },
+    "%lld min": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min"
+          }
+        }
+      }
+    },
+    "%lld of %lld": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld di %lld"
+          }
+        }
+      }
+    },
+    "%lld of %lld concepts active": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld concetti attivi su %lld"
+          }
+        }
+      }
+    },
+    "%lld of %lld concepts active · mastery %@": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld concetti attivi su %lld · padronanza %@"
+          }
+        }
+      }
+    },
+    "%lld proposed concepts were left out because they couldn't be tied to your material.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld concetti proposti sono stati esclusi perché non collegabili al tuo materiale."
+          }
+        }
+      }
+    },
+    "(existing topic)": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(argomento esistente)"
+          }
+        }
+      }
+    },
+    "Accept Curriculum": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accetta il programma"
+          }
+        }
+      }
+    },
+    "Activate": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attiva"
+          }
+        }
+      }
+    },
+    "Active": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attivo"
+          }
+        }
+      }
+    },
+    "Add": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi"
+          }
+        }
+      }
+    },
+    "Add Chapter": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi capitolo"
+          }
+        }
+      }
+    },
+    "Add Concept": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi concetto"
+          }
+        }
+      }
+    },
+    "Add a chapter, then add study material to it.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi un capitolo, poi caricaci il materiale di studio."
+          }
+        }
+      }
+    },
+    "Again": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Di nuovo"
+          }
+        }
+      }
+    },
+    "All Study Material": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tutto il materiale di studio"
+          }
+        }
+      }
+    },
+    "Already Applied": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Già applicata"
+          }
+        }
+      }
+    },
+    "Already exists": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esiste già"
+          }
+        }
+      }
+    },
+    "An account with this email already exists.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esiste già un account con questa email."
+          }
+        }
+      }
+    },
+    "Analyze New Material": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analizza il nuovo materiale"
+          }
+        }
+      }
+    },
+    "Answered: %lld": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risposte: %lld"
+          }
+        }
+      }
+    },
+    "At least 12 characters.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Almeno 12 caratteri."
+          }
+        }
+      }
+    },
+    "Can't reach the server. Check your connection and try again.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile raggiungere il server. Controlla la connessione e riprova."
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annulla"
+          }
+        }
+      }
+    },
+    "Change App Language": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambia la lingua dell'app"
+          }
+        }
+      }
+    },
+    "Chapter Material": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Materiale del capitolo"
+          }
+        }
+      }
+    },
+    "Chapter title": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titolo del capitolo"
+          }
+        }
+      }
+    },
+    "Chapters": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capitoli"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiudi"
+          }
+        }
+      }
+    },
+    "Common trap": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trappola comune"
+          }
+        }
+      }
+    },
+    "Completed": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completato"
+          }
+        }
+      }
+    },
+    "Concept title": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titolo del concetto"
+          }
+        }
+      }
+    },
+    "Concepts": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concetti"
+          }
+        }
+      }
+    },
+    "Concepts active": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concetti attivi"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continua"
+          }
+        }
+      }
+    },
+    "Continue Learning": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continua a imparare"
+          }
+        }
+      }
+    },
+    "Core": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fondamentale"
+          }
+        }
+      }
+    },
+    "Correct": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corretta"
+          }
+        }
+      }
+    },
+    "Couldn't Load": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caricamento non riuscito"
+          }
+        }
+      }
+    },
+    "Couldn't save your sign-in on this device. Please try again.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile salvare l'accesso su questo dispositivo. Riprova."
+          }
+        }
+      }
+    },
+    "Course": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corso"
+          }
+        }
+      }
+    },
+    "Courses": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corsi"
+          }
+        }
+      }
+    },
+    "Create": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea"
+          }
+        }
+      }
+    },
+    "Create Account": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea account"
+          }
+        }
+      }
+    },
+    "Create a course and activate some concepts first.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea un corso e attiva prima qualche concetto."
+          }
+        }
+      }
+    },
+    "Create a course and start learning to see your progress.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea un corso e inizia a studiare per vedere i tuoi progressi."
+          }
+        }
+      }
+    },
+    "Create a course in the Courses tab to get started.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea un corso nella scheda Corsi per iniziare."
+          }
+        }
+      }
+    },
+    "Create a course to start building your curriculum.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea un corso per iniziare a costruire il tuo programma di studio."
+          }
+        }
+      }
+    },
+    "Create an account": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea un account"
+          }
+        }
+      }
+    },
+    "Curriculum": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Programma"
+          }
+        }
+      }
+    },
+    "Curriculum Progress": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avanzamento del programma"
+          }
+        }
+      }
+    },
+    "Deactivate": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattiva"
+          }
+        }
+      }
+    },
+    "Delete chapter": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina capitolo"
+          }
+        }
+      }
+    },
+    "Delete concept": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina concetto"
+          }
+        }
+      }
+    },
+    "Delete topic": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina argomento"
+          }
+        }
+      }
+    },
+    "Disagree with the grade?": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non sei d'accordo con la valutazione?"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fine"
+          }
+        }
+      }
+    },
+    "Due": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da ripassare"
+          }
+        }
+      }
+    },
+    "Due now": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da ripassare ora"
+          }
+        }
+      }
+    },
+    "Due now: %lld · New to learn: %lld": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da ripassare: %lld · Nuovi: %lld"
+          }
+        }
+      }
+    },
+    "Due: %lld · New: %lld · Active concepts: %lld": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da ripassare: %lld · Nuovi: %lld · Concetti attivi: %lld"
+          }
+        }
+      }
+    },
+    "Easy": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Facile"
+          }
+        }
+      }
+    },
+    "Edit anything below. Nothing is activated: you choose what to study afterwards.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifica pure qui sotto. Nulla viene attivato: scegli tu dopo cosa studiare."
+          }
+        }
+      }
+    },
+    "Email": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email"
+          }
+        }
+      }
+    },
+    "Estimated time": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tempo stimato"
+          }
+        }
+      }
+    },
+    "Evaluating…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valutazione in corso…"
+          }
+        }
+      }
+    },
+    "Evaluation: %@": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valutazione: %@"
+          }
+        }
+      }
+    },
+    "Every chapter, topic and concept needs a title.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ogni capitolo, argomento e concetto deve avere un titolo."
+          }
+        }
+      }
+    },
+    "Good": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bene"
+          }
+        }
+      }
+    },
+    "Graded by you": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valutata da te"
+          }
+        }
+      }
+    },
+    "Hard": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Difficile"
+          }
+        }
+      }
+    },
+    "Home": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
+          }
+        }
+      }
+    },
+    "How much of the material you have studied and activated.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quanta parte del materiale hai studiato e attivato."
+          }
+        }
+      }
+    },
+    "How well did you know it?": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quanto bene la sapevi?"
+          }
+        }
+      }
+    },
+    "How well you retain what you train. Mastery is an estimate from your reviews, not a measurement.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quanto bene ricordi ciò che alleni. La padronanza è una stima basata sui ripassi, non una misura."
+          }
+        }
+      }
+    },
+    "I already have an account": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ho già un account"
+          }
+        }
+      }
+    },
+    "I didn't know it": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non la sapevo"
+          }
+        }
+      }
+    },
+    "I knew it": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sapevo"
+          }
+        }
+      }
+    },
+    "I knew it easily": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sapevo con facilità"
+          }
+        }
+      }
+    },
+    "I knew it, with difficulty": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sapevo, con fatica"
+          }
+        }
+      }
+    },
+    "I'm ready: test me": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sono pronto: interrogami"
+          }
+        }
+      }
+    },
+    "Import": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa"
+          }
+        }
+      }
+    },
+    "Import your study material: PDF, Word, PowerPoint, text or Markdown.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa il tuo materiale di studio: PDF, Word, PowerPoint, testo o Markdown."
+          }
+        }
+      }
+    },
+    "In review": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In ripasso"
+          }
+        }
+      }
+    },
+    "In training": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In allenamento"
+          }
+        }
+      }
+    },
+    "Incorrect email or password.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email o password non corretti."
+          }
+        }
+      }
+    },
+    "Informational": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informativo"
+          }
+        }
+      }
+    },
+    "Items in training": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elementi in allenamento"
+          }
+        }
+      }
+    },
+    "Key points": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Punti chiave"
+          }
+        }
+      }
+    },
+    "Language": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lingua"
+          }
+        }
+      }
+    },
+    "Lapses": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimenticanze"
+          }
+        }
+      }
+    },
+    "Lapses: %lld": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dimenticanze: %lld"
+          }
+        }
+      }
+    },
+    "Learn": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impara"
+          }
+        }
+      }
+    },
+    "Learn Now (%lld)": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impara ora (%lld)"
+          }
+        }
+      }
+    },
+    "Learning": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In apprendimento"
+          }
+        }
+      }
+    },
+    "Learning Items": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elementi di apprendimento"
+          }
+        }
+      }
+    },
+    "Learning items couldn't be prepared.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile preparare gli elementi di apprendimento."
+          }
+        }
+      }
+    },
+    "Level": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livello"
+          }
+        }
+      }
+    },
+    "Level %lld": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Livello %lld"
+          }
+        }
+      }
+    },
+    "Loading question…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caricamento della domanda…"
+          }
+        }
+      }
+    },
+    "Mark as Studied": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segna come studiato"
+          }
+        }
+      }
+    },
+    "Marked hard": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segnate difficili"
+          }
+        }
+      }
+    },
+    "Mastered": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Padroneggiato"
+          }
+        }
+      }
+    },
+    "Mastery": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Padronanza"
+          }
+        }
+      }
+    },
+    "Mastery %@": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Padronanza %@"
+          }
+        }
+      }
+    },
+    "Mastery (estimate)": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Padronanza (stima)"
+          }
+        }
+      }
+    },
+    "Mastery (estimate): %@": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Padronanza (stima): %@"
+          }
+        }
+      }
+    },
+    "Mastery and progress appear here once you start reviewing.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Padronanza e progressi compariranno qui quando inizierai a ripassare."
+          }
+        }
+      }
+    },
+    "Memory": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memoria"
+          }
+        }
+      }
+    },
+    "Memory Progress": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avanzamento della memoria"
+          }
+        }
+      }
+    },
+    "Misconception": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Errore concettuale"
+          }
+        }
+      }
+    },
+    "Misconceptions": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Errori concettuali"
+          }
+        }
+      }
+    },
+    "Needs source review": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da verificare sulle fonti"
+          }
+        }
+      }
+    },
+    "Needs your grade": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serve la tua valutazione"
+          }
+        }
+      }
+    },
+    "New": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuovi"
+          }
+        }
+      }
+    },
+    "New / Learning / In review / Mastered": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuovi / In apprendimento / In ripasso / Padroneggiati"
+          }
+        }
+      }
+    },
+    "New Chapter": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuovo capitolo"
+          }
+        }
+      }
+    },
+    "New Course": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuovo corso"
+          }
+        }
+      }
+    },
+    "New material": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Materiale nuovo"
+          }
+        }
+      }
+    },
+    "New to learn": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuovi da imparare"
+          }
+        }
+      }
+    },
+    "Next 7 days": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prossimi 7 giorni"
+          }
+        }
+      }
+    },
+    "Next review": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prossimo ripasso"
+          }
+        }
+      }
+    },
+    "Next review: %@": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prossimo ripasso: %@"
+          }
+        }
+      }
+    },
+    "No Active Review": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun ripasso in corso"
+          }
+        }
+      }
+    },
+    "No Courses Yet": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun corso"
+          }
+        }
+      }
+    },
+    "No Progress Yet": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ancora nessun progresso"
+          }
+        }
+      }
+    },
+    "No Proposal": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna proposta"
+          }
+        }
+      }
+    },
+    "No concepts in this topic.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun concetto in questo argomento."
+          }
+        }
+      }
+    },
+    "No courses yet. Create one in the Courses tab.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun corso. Creane uno nella scheda Corsi."
+          }
+        }
+      }
+    },
+    "No questions match this practice right now.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al momento nessuna domanda corrisponde a questa esercitazione."
+          }
+        }
+      }
+    },
+    "No source passages.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun passaggio di origine."
+          }
+        }
+      }
+    },
+    "No topics yet. Add study material to this chapter, then analyze it.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ancora nessun argomento. Aggiungi materiale a questo capitolo, poi analizzalo."
+          }
+        }
+      }
+    },
+    "Not correct": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non corretta"
+          }
+        }
+      }
+    },
+    "Not in training": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non in allenamento"
+          }
+        }
+      }
+    },
+    "Not memorized yet: you'll see it again in this session.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non ancora memorizzata: la rivedrai in questa sessione."
+          }
+        }
+      }
+    },
+    "Not studied": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non studiato"
+          }
+        }
+      }
+    },
+    "Nothing is due right now. Come back later.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niente da ripassare adesso. Torna più tardi."
+          }
+        }
+      }
+    },
+    "Nothing new to learn. Activate a concept to add new material.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niente di nuovo da imparare. Attiva un concetto per aggiungere materiale."
+          }
+        }
+      }
+    },
+    "Nothing to Review": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niente da ripassare"
+          }
+        }
+      }
+    },
+    "Nothing to Study": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niente da studiare"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "Opens the source passage": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apre il passaggio di origine"
+          }
+        }
+      }
+    },
+    "Optional": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Facoltativo"
+          }
+        }
+      }
+    },
+    "Overdue": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In ritardo"
+          }
+        }
+      }
+    },
+    "Page %lld": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagina %lld"
+          }
+        }
+      }
+    },
+    "Pages: %lld · Passages: %lld": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagine: %lld · Passaggi: %lld"
+          }
+        }
+      }
+    },
+    "Partly correct": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parzialmente corretta"
+          }
+        }
+      }
+    },
+    "Passages: %lld": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passaggi: %lld"
+          }
+        }
+      }
+    },
+    "Password": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password"
+          }
+        }
+      }
+    },
+    "Pause": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metti in pausa"
+          }
+        }
+      }
+    },
+    "Paused": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In pausa"
+          }
+        }
+      }
+    },
+    "Practice": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esercitazione"
+          }
+        }
+      }
+    },
+    "Practice Hard Questions": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esercitati sulle domande difficili"
+          }
+        }
+      }
+    },
+    "Practice doesn't change your review schedule.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'esercitazione non modifica il calendario dei ripassi."
+          }
+        }
+      }
+    },
+    "Preparing learning items…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparazione degli elementi di apprendimento…"
+          }
+        }
+      }
+    },
+    "Processing failed": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elaborazione non riuscita"
+          }
+        }
+      }
+    },
+    "Processing…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elaborazione…"
+          }
+        }
+      }
+    },
+    "Progress": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Progressi"
+          }
+        }
+      }
+    },
+    "Proposed Curriculum": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Programma proposto"
+          }
+        }
+      }
+    },
+    "Questions": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domande"
+          }
+        }
+      }
+    },
+    "Reference": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riferimento"
+          }
+        }
+      }
+    },
+    "Reference answer and sources": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risposta di riferimento e fonti"
+          }
+        }
+      }
+    },
+    "Reject Proposal": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rifiuta la proposta"
+          }
+        }
+      }
+    },
+    "Relearning": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In riapprendimento"
+          }
+        }
+      }
+    },
+    "Resume": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riprendi"
+          }
+        }
+      }
+    },
+    "Review": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ripasso"
+          }
+        }
+      }
+    },
+    "Review Load": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carico di ripasso"
+          }
+        }
+      }
+    },
+    "Reviews": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ripassi"
+          }
+        }
+      }
+    },
+    "Reviews aren't available yet. They arrive with the review engine.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I ripassi non sono ancora disponibili. Arriveranno con il motore di ripasso."
+          }
+        }
+      }
+    },
+    "Session Complete": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sessione completata"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impostazioni"
+          }
+        }
+      }
+    },
+    "Sign In": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accedi"
+          }
+        }
+      }
+    },
+    "Sign Out": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esci"
+          }
+        }
+      }
+    },
+    "Skip for now": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salta per ora"
+          }
+        }
+      }
+    },
+    "Skip this question": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salta questa domanda"
+          }
+        }
+      }
+    },
+    "Some of the information entered isn't valid.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alcune delle informazioni inserite non sono valide."
+          }
+        }
+      }
+    },
+    "Something went wrong": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si è verificato un problema"
+          }
+        }
+      }
+    },
+    "Something went wrong on the server. Please try again.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si è verificato un errore sul server. Riprova."
+          }
+        }
+      }
+    },
+    "Something went wrong. Please try again.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qualcosa è andato storto. Riprova."
+          }
+        }
+      }
+    },
+    "Source": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fonte"
+          }
+        }
+      }
+    },
+    "Sources": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fonti"
+          }
+        }
+      }
+    },
+    "Start Review": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inizia il ripasso"
+          }
+        }
+      }
+    },
+    "Start a review session to begin.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvia una sessione di ripasso per iniziare."
+          }
+        }
+      }
+    },
+    "State": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stato"
+          }
+        }
+      }
+    },
+    "Studied": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Studiato"
+          }
+        }
+      }
+    },
+    "Study Material": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Materiale di studio"
+          }
+        }
+      }
+    },
+    "Submit": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia"
+          }
+        }
+      }
+    },
+    "Supporting": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Di supporto"
+          }
+        }
+      }
+    },
+    "That action isn't possible in the current state.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa azione non è possibile nello stato attuale."
+          }
+        }
+      }
+    },
+    "The AI couldn't propose a curriculum.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'IA non è riuscita a proporre un programma."
+          }
+        }
+      }
+    },
+    "The AI gave an unusable response. Please try again.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'IA ha dato una risposta inutilizzabile. Riprova."
+          }
+        }
+      }
+    },
+    "The AI is reading your material…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'IA sta leggendo il tuo materiale…"
+          }
+        }
+      }
+    },
+    "The AI is temporarily unavailable. Please try again later.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'IA è temporaneamente non disponibile. Riprova più tardi."
+          }
+        }
+      }
+    },
+    "The AI isn't set up on the server yet.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'IA non è ancora configurata sul server."
+          }
+        }
+      }
+    },
+    "The AI proposes topics and concepts from material not analyzed yet. You review the proposal before anything changes.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'IA propone argomenti e concetti dal materiale non ancora analizzato. Rivedi la proposta prima che cambi qualcosa."
+          }
+        }
+      }
+    },
+    "The answer couldn't be evaluated.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile valutare la risposta."
+          }
+        }
+      }
+    },
+    "The app follows your device language. You can choose Italian or English for this app in the Settings app.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'app segue la lingua del dispositivo. Puoi scegliere l'italiano o l'inglese per questa app nell'app Impostazioni."
+          }
+        }
+      }
+    },
+    "The course material doesn't cover this well enough to grade it.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il materiale del corso non tratta questo punto abbastanza da poterlo valutare."
+          }
+        }
+      }
+    },
+    "The file couldn't be read.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile leggere il file."
+          }
+        }
+      }
+    },
+    "The material this concept came from was deleted. Keep, edit or delete it.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il materiale da cui proviene questo concetto è stato eliminato. Tienilo, modificalo o eliminalo."
+          }
+        }
+      }
+    },
+    "The material was long: this covers its first %lld of %lld passages.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il materiale era lungo: questa proposta copre i primi %lld passaggi su %lld."
+          }
+        }
+      }
+    },
+    "The server sent an unexpected response.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il server ha inviato una risposta inattesa."
+          }
+        }
+      }
+    },
+    "There's no new study material to analyze in this chapter. Add material first.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In questo capitolo non c'è nuovo materiale da analizzare. Aggiungi prima del materiale."
+          }
+        }
+      }
+    },
+    "This concept has no source material to build learning items from.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo concetto non ha materiale di origine da cui creare elementi di apprendimento."
+          }
+        }
+      }
+    },
+    "This file is already in the course.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo file è già presente nel corso."
+          }
+        }
+      }
+    },
+    "This file is too large (max 50 MB).": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il file è troppo grande (massimo 50 MB)."
+          }
+        }
+      }
+    },
+    "This file type isn't supported. Use PDF, Word, PowerPoint, text or Markdown files.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tipo di file non supportato. Usa file PDF, Word, PowerPoint, di testo o Markdown."
+          }
+        }
+      }
+    },
+    "This item no longer exists.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo elemento non esiste più."
+          }
+        }
+      }
+    },
+    "Title": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titolo"
+          }
+        }
+      }
+    },
+    "Today": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oggi"
+          }
+        }
+      }
+    },
+    "Tomorrow": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Domani"
+          }
+        }
+      }
+    },
+    "Topic title": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titolo dell'argomento"
+          }
+        }
+      }
+    },
+    "Topics": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Argomenti"
+          }
+        }
+      }
+    },
+    "Try Again": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riprova"
+          }
+        }
+      }
+    },
+    "Try the evaluation again": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riprova la valutazione"
+          }
+        }
+      }
+    },
+    "Uncertain": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incerta"
+          }
+        }
+      }
+    },
+    "Unknown": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sconosciuto"
+          }
+        }
+      }
+    },
+    "Upcoming Reviews": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prossimi ripassi"
+          }
+        }
+      }
+    },
+    "Uploading…": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caricamento…"
+          }
+        }
+      }
+    },
+    "Use at least 12 characters for your password.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa almeno 12 caratteri per la password."
+          }
+        }
+      }
+    },
+    "Weak Areas": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Punti deboli"
+          }
+        }
+      }
+    },
+    "Weak Concepts": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concetti deboli"
+          }
+        }
+      }
+    },
+    "What the material says": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cosa dice il materiale"
+          }
+        }
+      }
+    },
+    "What was missing": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cosa mancava"
+          }
+        }
+      }
+    },
+    "What you got right": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cosa hai risposto correttamente"
+          }
+        }
+      }
+    },
+    "You're all caught up.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sei in pari."
+          }
+        }
+      }
+    },
+    "Your Courses": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I tuoi corsi"
+          }
+        }
+      }
+    },
+    "Your answer": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La tua risposta"
+          }
+        }
+      }
+    },
+    "Your session has expired. Please sign in again.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sessione è scaduta. Accedi di nuovo."
+          }
+        }
+      }
+    },
+    "p. %lld": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "p. %lld"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

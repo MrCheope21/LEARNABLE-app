@@ -1,0 +1,125 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, type FormEvent } from "react";
+import { Link, useParams } from "react-router-dom";
+import { courses, dashboard, progress } from "../../api/endpoints";
+import { EditableTitle } from "../../components/EditableTitle";
+import { ErrorBanner, QueryState } from "../../components/QueryState";
+import { CurriculumBlock, MemoryBlock, ReviewLoadBlock } from "../../components/ProgressBlocks";
+import { percent } from "../../components/labels";
+import { CourseCover, LearnButton, Metric, ReviewButton } from "../courses/CourseParts";
+import { studyLink } from "../study/StudyPage";
+import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
+
+export function CourseOverview() {
+  const { courseId = "" } = useParams();
+  const queryClient = useQueryClient();
+  const courseProgress = useQuery({ queryKey: courseProgressKey(courseId), queryFn: () => progress.course(courseId) });
+  const outline = useQuery({ queryKey: outlineKey(courseId), queryFn: () => courses.outline(courseId) });
+  const summary = useQuery({ queryKey: ["course-summary", courseId], queryFn: () => dashboard.courseSummary(courseId) });
+  const [title, setTitle] = useState("");
+  const addChapter = useMutation({
+    mutationFn: () => courses.createChapter(courseId, title.trim(), outline.data?.length ?? 0),
+    onSuccess: () => {
+      setTitle("");
+      void queryClient.invalidateQueries({ queryKey: outlineKey(courseId) });
+      void queryClient.invalidateQueries({ queryKey: courseProgressKey(courseId) });
+    },
+  });
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (title.trim()) addChapter.mutate();
+  };
+
+  return (
+    <div className="page">
+      <QueryState query={courseProgress}>
+        {(data) => (
+          <>
+            {summary.data && (
+              <section className="card course-header" aria-labelledby="course-title">
+                <CourseCover id={summary.data.id} title={summary.data.title} />
+                <div className="course-body">
+                  <EditableTitle
+                    title={summary.data.title}
+                    description={summary.data.description}
+                    label="course"
+                    headingId="course-title"
+                    onSave={async (values) => {
+                      await courses.update(courseId, values);
+                      refreshTitles(queryClient, courseId);
+                    }}
+                  />
+                  {summary.data.learn.concept && (
+                    <p className="course-next">
+                      {summary.data.learn.kind === "resume" ? "Continue" : "Next"}: <strong>{summary.data.learn.concept.title}</strong>
+                    </p>
+                  )}
+                  <Metric done={summary.data.concepts_studied} total={summary.data.concepts_total} label="concepts studied" />
+                  <Metric done={summary.data.items_introduced} total={summary.data.items_trained} label="learning items introduced" />
+                </div>
+                <div className="course-actions">
+                  <ReviewButton courseId={courseId} due={summary.data.due_now} />
+                  <LearnButton courseId={courseId} learn={summary.data.learn} />
+                  <Link className="button" to={studyLink(courseId, "PRACTICE", { mode: "MARKED_HARD" })}>
+                    Practice hard questions
+                  </Link>
+                </div>
+              </section>
+            )}
+            <div className="stat-grid">
+              <ReviewLoadBlock load={data.review_load} />
+              <CurriculumBlock curriculum={data.curriculum} />
+              <MemoryBlock memory={data.memory} />
+            </div>
+            <section className="card">
+              <h2>Chapters</h2>
+              {data.chapters.length === 0 ? (
+                <p className="hint">Add a chapter, then add study material to it.</p>
+              ) : (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Chapter</th>
+                      <th scope="col">Concepts active</th>
+                      <th scope="col">Mastery (estimate)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.chapters.map((chapter) => (
+                      <tr key={chapter.id}>
+                        <td>
+                          <Link to={`/courses/${courseId}/chapters/${chapter.id}`}>{chapter.title}</Link>
+                        </td>
+                        <td>
+                          {chapter.curriculum.active} of {chapter.curriculum.concepts}
+                        </td>
+                        <td>{percent(chapter.memory.mastery)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              <form className="inline-form" onSubmit={submit}>
+                <label className="sr-only" htmlFor="chapter-title">
+                  New chapter title
+                </label>
+                <input
+                  id="chapter-title"
+                  placeholder="New chapter title"
+                  value={title}
+                  maxLength={200}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+                <button type="submit" disabled={!title.trim() || addChapter.isPending}>
+                  Add chapter
+                </button>
+              </form>
+              <ErrorBanner error={addChapter.error} />
+            </section>
+          </>
+        )}
+      </QueryState>
+    </div>
+  );
+}

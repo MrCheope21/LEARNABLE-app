@@ -1,0 +1,895 @@
+import Foundation
+@testable import AdaptiveLearning
+
+/// Real responses captured from the backend (AI_PROVIDER=mock, the scripts/seed_demo.py flow).
+/// Decoding these proves the app's models match the actual API, not a remembered contract.
+enum Fixtures {
+    static let courses = #"""
+[
+  {
+    "id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "title": "Diritto bancario",
+    "description": "",
+    "language": "it",
+    "paused": false,
+    "created_at": "2026-09-24T11:50:49.587Z",
+    "updated_at": "2026-09-24T11:50:49.587Z"
+  }
+]
+"""#
+
+    static let upload = #"""
+{
+  "id": "636103df-6edf-4dab-8dc5-7a537118ff8c",
+  "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+  "chapter_id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+  "filename": "banca.md",
+  "mime_type": "text/markdown",
+  "kind": "MARKDOWN",
+  "size_bytes": 156,
+  "sha256": "d8bfd5e3be9df76d7d48a0965b6b5641fa1de561dacab1b648fb4da80fffbacc",
+  "status": "PROCESSING",
+  "error_message": null,
+  "page_count": null,
+  "chunk_count": 0,
+  "source_created_at": null,
+  "analyzed_at": null,
+  "created_at": "2026-09-24T11:50:49.632Z",
+  "updated_at": "2026-09-24T11:50:49.632Z"
+}
+"""#
+
+    static let documents = #"""
+[
+  {
+    "id": "636103df-6edf-4dab-8dc5-7a537118ff8c",
+    "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "chapter_id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+    "filename": "banca.md",
+    "mime_type": "text/markdown",
+    "kind": "MARKDOWN",
+    "size_bytes": 156,
+    "sha256": "d8bfd5e3be9df76d7d48a0965b6b5641fa1de561dacab1b648fb4da80fffbacc",
+    "status": "READY",
+    "error_message": null,
+    "page_count": null,
+    "chunk_count": 1,
+    "source_created_at": null,
+    "analyzed_at": null,
+    "created_at": "2026-09-24T11:50:49.632Z",
+    "updated_at": "2026-09-24T11:50:49.643Z"
+  }
+]
+"""#
+
+    static let proposalGenerating = #"""
+{
+  "id": "87b2a4c1-b356-4ca3-8f4a-39808a1c8bc5",
+  "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+  "chapter_id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+  "status": "GENERATING",
+  "error_message": null,
+  "chapters": null,
+  "topics": null,
+  "document_ids": [],
+  "passages_used": 0,
+  "passages_total": 0,
+  "dropped_concepts": 0,
+  "ai_provider": null,
+  "ai_model": null,
+  "ai_model_version": null,
+  "prompt_version": null,
+  "created_at": "2026-09-24T11:50:49.668Z",
+  "updated_at": "2026-09-24T11:50:49.668Z",
+  "applied_at": null
+}
+"""#
+
+    static let proposalReady = #"""
+{
+  "id": "87b2a4c1-b356-4ca3-8f4a-39808a1c8bc5",
+  "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+  "chapter_id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+  "status": "READY",
+  "error_message": null,
+  "chapters": null,
+  "topics": [
+    {
+      "title": "Il deposito bancario",
+      "description": "",
+      "existing_topic_id": null,
+      "concepts": [
+        {
+          "title": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+          "description": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del denaro. Il depositante ha diritto alla restituzione.",
+          "existing_concept_id": null,
+          "sources": [
+            {
+              "chunk_id": "66261ec7-5701-495d-b0f4-c18509bae5d7",
+              "document_id": "636103df-6edf-4dab-8dc5-7a537118ff8c",
+              "document_name": "banca.md",
+              "page_number": null,
+              "section": "Il deposito bancario"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "document_ids": [
+    "636103df-6edf-4dab-8dc5-7a537118ff8c"
+  ],
+  "passages_used": 1,
+  "passages_total": 1,
+  "dropped_concepts": 0,
+  "ai_provider": "mock",
+  "ai_model": "mock",
+  "ai_model_version": "mock-1",
+  "prompt_version": "mock_chapter_curriculum_v1",
+  "created_at": "2026-09-24T11:50:49.668Z",
+  "updated_at": "2026-09-24T11:50:49.684Z",
+  "applied_at": null
+}
+"""#
+
+    static let outline = #"""
+[
+  {
+    "id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+    "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "title": "Contratti",
+    "description": "",
+    "order": 0,
+    "paused": false,
+    "topics": [
+      {
+        "id": "0269e751-beb6-4047-af40-0e1664f5f5f9",
+        "chapter_id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+        "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+        "title": "Il deposito bancario",
+        "description": "",
+        "order": 0,
+        "paused": false,
+        "concepts": [
+          {
+            "id": "6cc280fc-6515-4f03-b6b2-ed6a5e25b04b",
+            "topic_id": "0269e751-beb6-4047-af40-0e1664f5f5f9",
+            "chapter_id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+            "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+            "title": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+            "description": "",
+            "order": 0,
+            "study_state": "NOT_STUDIED",
+            "needs_source_review": false,
+            "item_generation_status": "NONE",
+            "item_generation_error": null,
+            "is_reviewable": false
+          }
+        ]
+      }
+    ]
+  }
+]
+"""#
+
+    static let conceptActivated = #"""
+{
+  "id": "6cc280fc-6515-4f03-b6b2-ed6a5e25b04b",
+  "topic_id": "0269e751-beb6-4047-af40-0e1664f5f5f9",
+  "chapter_id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+  "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+  "title": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+  "description": "",
+  "order": 0,
+  "study_state": "ACTIVE",
+  "needs_source_review": false,
+  "item_generation_status": "GENERATING",
+  "item_generation_error": null,
+  "is_reviewable": true
+}
+"""#
+
+    static let concept = #"""
+{
+  "id": "6cc280fc-6515-4f03-b6b2-ed6a5e25b04b",
+  "topic_id": "0269e751-beb6-4047-af40-0e1664f5f5f9",
+  "chapter_id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+  "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+  "title": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+  "description": "",
+  "order": 0,
+  "study_state": "ACTIVE",
+  "needs_source_review": false,
+  "item_generation_status": "READY",
+  "item_generation_error": null,
+  "is_reviewable": true
+}
+"""#
+
+    static let learningItems = #"""
+[
+  {
+    "id": "83d6de89-825f-4723-887d-b8e2319d1eb2",
+    "concept_id": "6cc280fc-6515-4f03-b6b2-ed6a5e25b04b",
+    "topic_id": "0269e751-beb6-4047-af40-0e1664f5f5f9",
+    "chapter_id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+    "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "title": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+    "objective": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…: Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+    "expected_knowledge": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del denaro. Il depositante ha diritto alla restituzione.",
+    "essential_points": [
+      "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+      "Il depositante ha diritto alla restituzione."
+    ],
+    "role": "CORE_TRAINABLE",
+    "in_training": true,
+    "difficulty": 3,
+    "order": 0,
+    "paused": false,
+    "review_state": {
+      "state": "NEW",
+      "level": 0,
+      "due_at": null,
+      "last_reviewed_at": null,
+      "review_count": 0,
+      "successful_review_count": 0,
+      "failed_review_count": 0,
+      "lapse_count": 0,
+      "hard_count": 0,
+      "marked_hard": false
+    },
+    "questions": [
+      {
+        "id": "083c2e46-462b-47a4-bddd-f5f3484e6098",
+        "question_type": "RECALL",
+        "text": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…?",
+        "times_asked": 0,
+        "last_asked_at": null
+      },
+      {
+        "id": "d94fed7f-0d88-4811-b178-45be62b75171",
+        "question_type": "EXPLANATION",
+        "text": "Explain: Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+        "times_asked": 0,
+        "last_asked_at": null
+      }
+    ],
+    "ai_provider": "mock",
+    "ai_model": "mock",
+    "prompt_version": "mock_learning_items_v1",
+    "created_at": "2026-09-24T11:50:49.737Z",
+    "updated_at": "2026-09-24T11:50:49.742Z"
+  }
+]
+"""#
+
+    static let itemSources = #"""
+[
+  {
+    "id": "66261ec7-5701-495d-b0f4-c18509bae5d7",
+    "document_id": "636103df-6edf-4dab-8dc5-7a537118ff8c",
+    "position": 0,
+    "page_number": null,
+    "section": "Il deposito bancario",
+    "paragraph_start": 0,
+    "paragraph_end": 0,
+    "text": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del denaro. Il depositante ha diritto alla restituzione."
+  }
+]
+"""#
+
+    static let chunk = #"""
+{
+  "id": "66261ec7-5701-495d-b0f4-c18509bae5d7",
+  "document_id": "636103df-6edf-4dab-8dc5-7a537118ff8c",
+  "position": 0,
+  "page_number": null,
+  "section": "Il deposito bancario",
+  "paragraph_start": 0,
+  "paragraph_end": 0,
+  "text": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del denaro. Il depositante ha diritto alla restituzione."
+}
+"""#
+
+    static let session = #"""
+{
+  "id": "c91ceaee-cb32-473a-92a3-4680b41e0455",
+  "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+  "intent": "LEARN",
+  "selection_mode": "NEW",
+  "affects_schedule": true,
+  "chapter_id": null,
+  "topic_id": null,
+  "total": 1,
+  "position": 0,
+  "started_at": "2026-09-24T11:50:49.798Z",
+  "ended_at": null
+}
+"""#
+
+    static let cardLearn = #"""
+{
+  "session": {
+    "id": "c91ceaee-cb32-473a-92a3-4680b41e0455",
+    "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "intent": "LEARN",
+    "selection_mode": "NEW",
+    "affects_schedule": true,
+    "chapter_id": null,
+    "topic_id": null,
+    "total": 1,
+    "position": 0,
+    "started_at": "2026-09-24T11:50:49.798Z",
+    "ended_at": null
+  },
+  "done": false,
+  "card": {
+    "learning_item_id": "83d6de89-825f-4723-887d-b8e2319d1eb2",
+    "concept_id": "6cc280fc-6515-4f03-b6b2-ed6a5e25b04b",
+    "concept_title": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+    "question": {
+      "id": "083c2e46-462b-47a4-bddd-f5f3484e6098",
+      "question_type": "RECALL",
+      "text": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…?"
+    },
+    "introduction": {
+      "title": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+      "objective": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…: Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+      "expected_knowledge": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del denaro. Il depositante ha diritto alla restituzione.",
+      "essential_points": [
+        "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+        "Il depositante ha diritto alla restituzione."
+      ],
+      "sources": [
+        {
+          "chunk_id": "66261ec7-5701-495d-b0f4-c18509bae5d7",
+          "document_id": "636103df-6edf-4dab-8dc5-7a537118ff8c",
+          "document_name": "banca.md",
+          "page_number": null,
+          "section": "Il deposito bancario"
+        }
+      ]
+    },
+    "pending_answer_id": null
+  }
+}
+"""#
+
+    static let answerResult = #"""
+{
+  "answer_id": "91260f2b-0128-4c08-ba3d-b21f15eda0cc",
+  "learning_item_id": "83d6de89-825f-4723-887d-b8e2319d1eb2",
+  "question_formulation_id": "083c2e46-462b-47a4-bddd-f5f3484e6098",
+  "intent": "LEARN",
+  "text": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del… Il depositante ha diritto alla restituzione.",
+  "evaluation": {
+    "id": "89a20983-5f53-40ab-ac93-74989e93fe84",
+    "status": "COMPLETED",
+    "error_message": null,
+    "classification": "CORRECT",
+    "correctness": 1.0,
+    "completeness": 1.0,
+    "conceptual_understanding": 1.0,
+    "precision": 0.9,
+    "confidence": 0.9,
+    "correct_points": [
+      "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+      "Il depositante ha diritto alla restituzione."
+    ],
+    "missing_points": [],
+    "misconceptions": [],
+    "source_corrections": [],
+    "context_sufficient": true,
+    "feedback": "Mock evaluation (keyword overlap).",
+    "ai_provider": "mock",
+    "ai_model": "mock",
+    "ai_model_version": "mock-1",
+    "prompt_version": "mock_evaluation_v1",
+    "created_at": "2026-09-24T11:50:49.904Z"
+  },
+  "resolved_outcome": "GOOD",
+  "resolver_version": "outcome_resolver_v1",
+  "override_outcome": null,
+  "final_outcome": "GOOD",
+  "needs_self_grade": false,
+  "schedule": {
+    "previous_state": "NEW",
+    "previous_level": 0,
+    "previous_due_at": null,
+    "next_state": "LEARNING",
+    "next_level": 1,
+    "next_due_at": "2026-09-24T15:50:49.838Z",
+    "lateness_seconds": 0
+  },
+  "reference": {
+    "expected_knowledge": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del denaro. Il depositante ha diritto alla restituzione.",
+    "essential_points": [
+      "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+      "Il depositante ha diritto alla restituzione."
+    ],
+    "sources": [
+      {
+        "chunk_id": "66261ec7-5701-495d-b0f4-c18509bae5d7",
+        "document_id": "636103df-6edf-4dab-8dc5-7a537118ff8c",
+        "document_name": "banca.md",
+        "page_number": null,
+        "section": "Il deposito bancario"
+      }
+    ]
+  },
+  "session": {
+    "id": "c91ceaee-cb32-473a-92a3-4680b41e0455",
+    "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "intent": "LEARN",
+    "selection_mode": "NEW",
+    "affects_schedule": true,
+    "chapter_id": null,
+    "topic_id": null,
+    "total": 1,
+    "position": 1,
+    "started_at": "2026-09-24T11:50:49.798Z",
+    "ended_at": "2026-09-24T11:50:49.839Z"
+  }
+}
+"""#
+
+    static let cardDone = #"""
+{
+  "session": {
+    "id": "c91ceaee-cb32-473a-92a3-4680b41e0455",
+    "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "intent": "LEARN",
+    "selection_mode": "NEW",
+    "affects_schedule": true,
+    "chapter_id": null,
+    "topic_id": null,
+    "total": 1,
+    "position": 1,
+    "started_at": "2026-09-24T11:50:49.798Z",
+    "ended_at": "2026-09-24T11:50:49.839Z"
+  },
+  "done": true,
+  "card": null
+}
+"""#
+
+    static let override = #"""
+{
+  "answer_id": "91260f2b-0128-4c08-ba3d-b21f15eda0cc",
+  "learning_item_id": "83d6de89-825f-4723-887d-b8e2319d1eb2",
+  "question_formulation_id": "083c2e46-462b-47a4-bddd-f5f3484e6098",
+  "intent": "LEARN",
+  "text": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del… Il depositante ha diritto alla restituzione.",
+  "evaluation": {
+    "id": "89a20983-5f53-40ab-ac93-74989e93fe84",
+    "status": "COMPLETED",
+    "error_message": null,
+    "classification": "CORRECT",
+    "correctness": 1.0,
+    "completeness": 1.0,
+    "conceptual_understanding": 1.0,
+    "precision": 0.9,
+    "confidence": 0.9,
+    "correct_points": [
+      "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+      "Il depositante ha diritto alla restituzione."
+    ],
+    "missing_points": [],
+    "misconceptions": [],
+    "source_corrections": [],
+    "context_sufficient": true,
+    "feedback": "Mock evaluation (keyword overlap).",
+    "ai_provider": "mock",
+    "ai_model": "mock",
+    "ai_model_version": "mock-1",
+    "prompt_version": "mock_evaluation_v1",
+    "created_at": "2026-09-24T11:50:49.904Z"
+  },
+  "resolved_outcome": "GOOD",
+  "resolver_version": "outcome_resolver_v1",
+  "override_outcome": "HARD",
+  "final_outcome": "HARD",
+  "needs_self_grade": false,
+  "schedule": {
+    "previous_state": "NEW",
+    "previous_level": 0,
+    "previous_due_at": null,
+    "next_state": "LEARNING",
+    "next_level": 1,
+    "next_due_at": "2026-09-24T15:50:49.838Z",
+    "lateness_seconds": 0
+  },
+  "reference": {
+    "expected_knowledge": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del denaro. Il depositante ha diritto alla restituzione.",
+    "essential_points": [
+      "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+      "Il depositante ha diritto alla restituzione."
+    ],
+    "sources": [
+      {
+        "chunk_id": "66261ec7-5701-495d-b0f4-c18509bae5d7",
+        "document_id": "636103df-6edf-4dab-8dc5-7a537118ff8c",
+        "document_name": "banca.md",
+        "page_number": null,
+        "section": "Il deposito bancario"
+      }
+    ]
+  },
+  "session": {
+    "id": "c91ceaee-cb32-473a-92a3-4680b41e0455",
+    "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "intent": "LEARN",
+    "selection_mode": "NEW",
+    "affects_schedule": true,
+    "chapter_id": null,
+    "topic_id": null,
+    "total": 1,
+    "position": 1,
+    "started_at": "2026-09-24T11:50:49.798Z",
+    "ended_at": "2026-09-24T11:50:49.839Z"
+  }
+}
+"""#
+
+    static let answerDetail = #"""
+{
+  "answer_id": "91260f2b-0128-4c08-ba3d-b21f15eda0cc",
+  "learning_item_id": "83d6de89-825f-4723-887d-b8e2319d1eb2",
+  "question_formulation_id": "083c2e46-462b-47a4-bddd-f5f3484e6098",
+  "intent": "LEARN",
+  "text": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del… Il depositante ha diritto alla restituzione.",
+  "evaluation": {
+    "id": "89a20983-5f53-40ab-ac93-74989e93fe84",
+    "status": "COMPLETED",
+    "error_message": null,
+    "classification": "CORRECT",
+    "correctness": 1.0,
+    "completeness": 1.0,
+    "conceptual_understanding": 1.0,
+    "precision": 0.9,
+    "confidence": 0.9,
+    "correct_points": [
+      "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+      "Il depositante ha diritto alla restituzione."
+    ],
+    "missing_points": [],
+    "misconceptions": [],
+    "source_corrections": [],
+    "context_sufficient": true,
+    "feedback": "Mock evaluation (keyword overlap).",
+    "ai_provider": "mock",
+    "ai_model": "mock",
+    "ai_model_version": "mock-1",
+    "prompt_version": "mock_evaluation_v1",
+    "created_at": "2026-09-24T11:50:49.904Z"
+  },
+  "resolved_outcome": "GOOD",
+  "resolver_version": "outcome_resolver_v1",
+  "override_outcome": "HARD",
+  "final_outcome": "HARD",
+  "needs_self_grade": false,
+  "schedule": null,
+  "reference": {
+    "expected_knowledge": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del denaro. Il depositante ha diritto alla restituzione.",
+    "essential_points": [
+      "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+      "Il depositante ha diritto alla restituzione."
+    ],
+    "sources": [
+      {
+        "chunk_id": "66261ec7-5701-495d-b0f4-c18509bae5d7",
+        "document_id": "636103df-6edf-4dab-8dc5-7a537118ff8c",
+        "document_name": "banca.md",
+        "page_number": null,
+        "section": "Il deposito bancario"
+      }
+    ]
+  },
+  "session": {
+    "id": "c91ceaee-cb32-473a-92a3-4680b41e0455",
+    "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "intent": "LEARN",
+    "selection_mode": "NEW",
+    "affects_schedule": true,
+    "chapter_id": null,
+    "topic_id": null,
+    "total": 1,
+    "position": 1,
+    "started_at": "2026-09-24T11:50:49.798Z",
+    "ended_at": "2026-09-24T11:50:49.839Z"
+  },
+  "evaluations": [
+    {
+      "id": "89a20983-5f53-40ab-ac93-74989e93fe84",
+      "status": "COMPLETED",
+      "error_message": null,
+      "classification": "CORRECT",
+      "correctness": 1.0,
+      "completeness": 1.0,
+      "conceptual_understanding": 1.0,
+      "precision": 0.9,
+      "confidence": 0.9,
+      "correct_points": [
+        "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+        "Il depositante ha diritto alla restituzione."
+      ],
+      "missing_points": [],
+      "misconceptions": [],
+      "source_corrections": [],
+      "context_sufficient": true,
+      "feedback": "Mock evaluation (keyword overlap).",
+      "ai_provider": "mock",
+      "ai_model": "mock",
+      "ai_model_version": "mock-1",
+      "prompt_version": "mock_evaluation_v1",
+      "created_at": "2026-09-24T11:50:49.904Z"
+    }
+  ],
+  "override_note": "Unsure",
+  "overridden_at": "2026-09-24T11:50:49.928Z",
+  "created_at": "2026-09-24T11:50:49.830Z"
+}
+"""#
+
+    static let answerFailed = #"""
+{
+  "answer_id": "48055ea1-9dc4-45e1-ba8c-06717f9a4d3f",
+  "learning_item_id": "83d6de89-825f-4723-887d-b8e2319d1eb2",
+  "question_formulation_id": "d94fed7f-0d88-4811-b178-45be62b75171",
+  "intent": "PRACTICE",
+  "text": "Non ricordo",
+  "evaluation": {
+    "id": "3da8d05e-1ef7-489e-8c11-e21ec0501f74",
+    "status": "FAILED",
+    "error_message": "The AI provider took too long to answer.",
+    "classification": null,
+    "correctness": null,
+    "completeness": null,
+    "conceptual_understanding": null,
+    "precision": null,
+    "confidence": null,
+    "correct_points": [],
+    "missing_points": [],
+    "misconceptions": [],
+    "source_corrections": [],
+    "context_sufficient": null,
+    "feedback": "",
+    "ai_provider": null,
+    "ai_model": null,
+    "ai_model_version": null,
+    "prompt_version": null,
+    "created_at": "2026-09-24T11:50:49.977Z"
+  },
+  "resolved_outcome": null,
+  "resolver_version": null,
+  "override_outcome": null,
+  "final_outcome": null,
+  "needs_self_grade": true,
+  "schedule": null,
+  "reference": {
+    "expected_knowledge": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del denaro. Il depositante ha diritto alla restituzione.",
+    "essential_points": [
+      "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+      "Il depositante ha diritto alla restituzione."
+    ],
+    "sources": [
+      {
+        "chunk_id": "66261ec7-5701-495d-b0f4-c18509bae5d7",
+        "document_id": "636103df-6edf-4dab-8dc5-7a537118ff8c",
+        "document_name": "banca.md",
+        "page_number": null,
+        "section": "Il deposito bancario"
+      }
+    ]
+  },
+  "session": {
+    "id": "3fe4ba3f-06db-47f1-a0dd-419118f56bb5",
+    "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "intent": "PRACTICE",
+    "selection_mode": "COURSE_ORDER",
+    "affects_schedule": false,
+    "chapter_id": null,
+    "topic_id": null,
+    "total": 1,
+    "position": 0,
+    "started_at": "2026-09-24T11:50:49.955Z",
+    "ended_at": null
+  }
+}
+"""#
+
+    static let cardPending = #"""
+{
+  "session": {
+    "id": "3fe4ba3f-06db-47f1-a0dd-419118f56bb5",
+    "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+    "intent": "PRACTICE",
+    "selection_mode": "COURSE_ORDER",
+    "affects_schedule": false,
+    "chapter_id": null,
+    "topic_id": null,
+    "total": 1,
+    "position": 0,
+    "started_at": "2026-09-24T11:50:49.955Z",
+    "ended_at": null
+  },
+  "done": false,
+  "card": {
+    "learning_item_id": "83d6de89-825f-4723-887d-b8e2319d1eb2",
+    "concept_id": "6cc280fc-6515-4f03-b6b2-ed6a5e25b04b",
+    "concept_title": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+    "question": {
+      "id": "083c2e46-462b-47a4-bddd-f5f3484e6098",
+      "question_type": "RECALL",
+      "text": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…?"
+    },
+    "introduction": null,
+    "pending_answer_id": "48055ea1-9dc4-45e1-ba8c-06717f9a4d3f"
+  }
+}
+"""#
+
+    static let emptyPoolError = #"""
+{
+  "error_type": "conflict",
+  "message": "There is nothing to study in this selection right now.",
+  "details": {
+    "reason": "empty_pool"
+  }
+}
+"""#
+
+    static let progress = #"""
+{
+  "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+  "curriculum": {
+    "concepts": 1,
+    "not_studied": 0,
+    "studied": 0,
+    "active": 1,
+    "paused": 0,
+    "completed": 0
+  },
+  "memory": {
+    "items_trained": 1,
+    "new": 0,
+    "learning": 1,
+    "review": 0,
+    "relearning": 0,
+    "mastered": 0,
+    "marked_hard": 1,
+    "mastery": 0.125
+  },
+  "review_load": {
+    "due_now": 0,
+    "overdue": 0,
+    "later_today": 1,
+    "tomorrow": 0,
+    "next_7_days": 0,
+    "later": 0,
+    "new_to_learn": 0
+  },
+  "chapters": [
+    {
+      "id": "d0d785dc-f0e6-44b2-9cb9-b06156a63bd6",
+      "title": "Contratti",
+      "curriculum": {
+        "concepts": 1,
+        "not_studied": 0,
+        "studied": 0,
+        "active": 1,
+        "paused": 0,
+        "completed": 0
+      },
+      "memory": {
+        "items_trained": 1,
+        "new": 0,
+        "learning": 1,
+        "review": 0,
+        "relearning": 0,
+        "mastered": 0,
+        "marked_hard": 1,
+        "mastery": 0.125
+      },
+      "topics": [
+        {
+          "id": "0269e751-beb6-4047-af40-0e1664f5f5f9",
+          "title": "Il deposito bancario",
+          "curriculum": {
+            "concepts": 1,
+            "not_studied": 0,
+            "studied": 0,
+            "active": 1,
+            "paused": 0,
+            "completed": 0
+          },
+          "memory": {
+            "items_trained": 1,
+            "new": 0,
+            "learning": 1,
+            "review": 0,
+            "relearning": 0,
+            "mastered": 0,
+            "marked_hard": 1,
+            "mastery": 0.125
+          },
+          "concepts": [
+            {
+              "id": "6cc280fc-6515-4f03-b6b2-ed6a5e25b04b",
+              "title": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+              "study_state": "ACTIVE",
+              "memory": {
+                "items_trained": 1,
+                "new": 0,
+                "learning": 1,
+                "review": 0,
+                "relearning": 0,
+                "mastered": 0,
+                "marked_hard": 1,
+                "mastery": 0.125
+              },
+              "misconceptions": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+"""#
+
+    static let reviewLoad = #"""
+{
+  "due_now": 0,
+  "overdue": 0,
+  "later_today": 1,
+  "tomorrow": 0,
+  "next_7_days": 0,
+  "later": 0,
+  "new_to_learn": 0
+}
+"""#
+
+    static let home = #"""
+{
+  "totals": {
+    "due_now": 0,
+    "overdue": 0,
+    "later_today": 1,
+    "tomorrow": 0,
+    "next_7_days": 0,
+    "later": 0,
+    "new_to_learn": 0
+  },
+  "courses": [
+    {
+      "course_id": "d120de53-2588-450d-bee1-7a6139d323f2",
+      "title": "Diritto bancario",
+      "review_load": {
+        "due_now": 0,
+        "overdue": 0,
+        "later_today": 1,
+        "tomorrow": 0,
+        "next_7_days": 0,
+        "later": 0,
+        "new_to_learn": 0
+      },
+      "active_concepts": 1,
+      "mastery": 0.125,
+      "weak_concepts": [
+        {
+          "id": "6cc280fc-6515-4f03-b6b2-ed6a5e25b04b",
+          "title": "Il deposito bancario e il contratto con cui la banca acquista la proprieta del…",
+          "lapses": 0,
+          "marked_hard": 1
+        }
+      ]
+    }
+  ]
+}
+"""#
+
+    static func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
+        try JSONDecoder.apiDecoder.decode(T.self, from: Data(json.utf8))
+    }
+}

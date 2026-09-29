@@ -1,0 +1,88 @@
+# XcodeGen project spec — the source of truth for the Xcode project. Run `xcodegen generate`
+# in this directory (CI does this on every build) to produce AdaptiveLearning.xcodeproj and
+# AdaptiveLearning/App/Info.plist; neither is committed.
+name: AdaptiveLearning
+options:
+  bundleIdPrefix: com.adaptivelearning
+  developmentLanguage: en
+  deploymentTarget:
+    iOS: "17.0"
+configs:
+  Debug: debug
+  Release: release
+targets:
+  AdaptiveLearning:
+    type: application
+    platform: iOS
+    sources:
+      - path: AdaptiveLearning
+        # Folder notes are docs, not app resources — several README.md files would otherwise be
+        # copied into the bundle under the same name and fail the build.
+        excludes:
+          - "**/*.md"
+    info:
+      path: AdaptiveLearning/App/Info.plist
+      properties:
+        CFBundleDisplayName: Adaptive Learning
+        # Languages the app ships (docs/PROJECT_SPEC.md §69); iOS offers exactly these in the
+        # per-app language setting. Strings live in Resources/Localizable.xcstrings.
+        CFBundleLocalizations: [en, it]
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        # Plain HTTP only to local-network hosts (the dev backend at localhost:8000); every other
+        # connection still requires HTTPS.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.adaptivelearning.app
+        # Swift 5 language mode (Xcode accepts only major versions here, not "5.10").
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: false
+  AdaptiveLearningTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AdaptiveLearningTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        SWIFT_VERSION: "5.0"
+        # Hosted in the app, so tests can read the app bundle (e.g. compiled translations).
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AdaptiveLearning.app/AdaptiveLearning"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+    dependencies:
+      - target: AdaptiveLearning
+  # End-to-end acceptance run against a live backend (.github/workflows/ios-e2e.yml). Kept out of
+  # the default scheme: it needs the seeded server running on localhost:8000.
+  AdaptiveLearningUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: AdaptiveLearningUITests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        SWIFT_VERSION: "5.0"
+        TEST_TARGET_NAME: AdaptiveLearning
+    dependencies:
+      - target: AdaptiveLearning
+schemes:
+  AdaptiveLearningE2E:
+    build:
+      targets:
+        AdaptiveLearning: all
+        AdaptiveLearningUITests: [test]
+    test:
+      targets:
+        - AdaptiveLearningUITests
+  AdaptiveLearning:
+    build:
+      targets:
+        AdaptiveLearning: all
+        AdaptiveLearningTests: [test]
+    test:
+      targets:
+        - AdaptiveLearningTests

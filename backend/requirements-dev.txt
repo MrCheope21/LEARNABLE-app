@@ -1,0 +1,9 @@
+-r requirements.txt
+pytest>=8.3
+httpx>=0.27
+ruff>=0.8
+mypy>=1.13
+# Builds real PDFs (with text and bookmarks) for the extraction tests.
+fpdf2>=2.8
+# Throwaway local PostgreSQL for `pytest --postgres`; no system install or Docker needed.
+pgserver>=0.1.4

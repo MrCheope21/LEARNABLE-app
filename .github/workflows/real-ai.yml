@@ -1,0 +1,307 @@
+name: Real AI validation
+
+# Benchmarks or inspects real runtime AI providers (docs/FREE_AI_ROUTING.md §8). Manual only.
+# The cost policy is pinned to FREE_ONLY: only free-only-eligible models can be called, so this
+# workflow cannot reach a paid endpoint. Ordinary CI never sees these secrets and keeps using
+# the deterministic MockAIProvider.
+#
+# The backend reads only generic AI_* settings. This workflow maps GitHub secrets onto them:
+# the selected provider's secret becomes AI_API_KEY (single-provider runs), or each secret
+# becomes its AI_<PROVIDER>_API_KEY (provider "router": the whole free chain with fallback).
+# Model IDs and routes aren't secrets: repository Variables override the defaults below.
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Provider (router = the configured free chain, with fallback)"
+        type: choice
+        options:
+          - groq
+          - mistral
+          - gemini
+          - cloudflare
+          - openrouter
+          - nvidia
+          - cohere
+          - alibaba_model_studio
+          - tencent_tokenhub
+          - siliconflow
+          - router
+        default: groq
+      operation:
+        description: "What to run"
+        type: choice
+        options:
+          - verify
+          - list-models
+          - evaluation
+          - questions
+          - learning_items
+          - concept_extraction
+          - curriculum
+          - all
+        default: verify
+      model:
+        description: "Model ID for this run (blank: repository variable or default)"
+        type: string
+        default: ""
+      repeat:
+        description: "Evaluation runs per case (score consistency)"
+        type: choice
+        options: ["1", "2", "3"]
+        default: "1"
+      strict:
+        description: "Fail when the evaluation approval bar is missed"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-ai-${{ inputs.provider }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      AI_COST_POLICY: FREE_ONLY
+      AI_DATA_POLICY: development
+      PROVIDER: ${{ inputs.provider }}
+      OPERATION: ${{ inputs.operation }}
+      # Name of the chosen provider's GitHub secret: for messages only, never a value.
+      CREDENTIAL_NAME: >-
+        ${{ inputs.provider == 'groq' && 'GROQ_API_KEY'
+        || inputs.provider == 'mistral' && 'MISTRAL_API_KEY'
+        || inputs.provider == 'gemini' && 'GEMINI_API_KEY'
+        || inputs.provider == 'cloudflare' && 'CLOUDFLARE_API_TOKEN'
+        || inputs.provider == 'openrouter' && 'OPENROUTER_API_KEY'
+        || inputs.provider == 'nvidia' && 'NVIDIA_API_KEY'
+        || inputs.provider == 'cohere' && 'COHERE_API_KEY'
+        || inputs.provider == 'alibaba_model_studio' && 'DASHSCOPE_API_KEY'
+        || inputs.provider == 'tencent_tokenhub' && 'TENCENT_TOKENHUB_API_KEY'
+        || inputs.provider == 'siliconflow' && 'SILICONFLOW_API_KEY'
+        || 'the provider secrets' }}
+      MODEL: >-
+        ${{ inputs.model
+        || inputs.provider == 'groq' && (vars.GROQ_MODEL || 'openai/gpt-oss-120b')
+        || inputs.provider == 'mistral' && (vars.MISTRAL_MODEL || 'mistral-small-latest')
+        || inputs.provider == 'gemini' && (vars.GEMINI_MODEL || 'gemini-2.5-flash')
+        || inputs.provider == 'cloudflare' && (vars.CLOUDFLARE_MODEL || '@cf/zai-org/glm-4.7-flash')
+        || inputs.provider == 'openrouter' && (vars.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free')
+        || inputs.provider == 'nvidia' && vars.NVIDIA_MODEL
+        || inputs.provider == 'cohere' && (vars.COHERE_MODEL || 'command-a-03-2025')
+        || inputs.provider == 'alibaba_model_studio' && (vars.ALIBABA_MODEL || 'qwen3.8-27b')
+        || inputs.provider == 'tencent_tokenhub' && (vars.TENCENT_TOKENHUB_MODEL || 'glm-5.3-flash')
+        || inputs.provider == 'siliconflow' && (vars.SILICONFLOW_MODEL || 'THUDM/GLM-Z1-9B-0414')
+        || '' }}
+      AI_CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      AI_ALIBABA_WORKSPACE_ID: ${{ vars.ALIBABA_WORKSPACE_ID }}
+      # Set these variables to true ONLY after enabling the protection in the provider console:
+      # without it a free quota rolls over into paid use, so the models stay out of FREE_ONLY.
+      AI_ALIBABA_FREE_ONLY_CONFIRMED: ${{ vars.ALIBABA_FREE_ONLY_CONFIRMED || 'false' }}
+      AI_TENCENT_FREE_ONLY_CONFIRMED: ${{ vars.TENCENT_FREE_ONLY_CONFIRMED || 'false' }}
+      # Owner-verified free models (e.g. NVIDIA Free Endpoints) and approved evaluators.
+      AI_FREE_MODELS: ${{ vars.AI_FREE_MODELS }}
+      AI_EVALUATION_APPROVED_MODELS: ${{ vars.AI_EVALUATION_APPROVED_MODELS }}
+      AI_TIMEOUT: ${{ vars.AI_TIMEOUT || '120' }}
+      AI_MAX_TOKENS: ${{ vars.AI_MAX_TOKENS || '8192' }}
+      # Required by the settings loader; this job starts no server and signs no tokens.
+      AUTH_SECRET: real-ai-validation-only-not-used-for-signing-0000
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.lock
+
+      - name: Check configuration (presence only)
+        env:
+          SELECTED_KEY: >-
+            ${{ inputs.provider == 'groq' && secrets.GROQ_API_KEY
+            || inputs.provider == 'mistral' && secrets.MISTRAL_API_KEY
+            || inputs.provider == 'gemini' && secrets.GEMINI_API_KEY
+            || inputs.provider == 'cloudflare' && secrets.CLOUDFLARE_API_TOKEN
+            || inputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY
+            || inputs.provider == 'nvidia' && secrets.NVIDIA_API_KEY
+            || inputs.provider == 'cohere' && secrets.COHERE_API_KEY
+            || inputs.provider == 'alibaba_model_studio' && secrets.DASHSCOPE_API_KEY
+            || inputs.provider == 'tencent_tokenhub' && secrets.TENCENT_TOKENHUB_API_KEY
+            || inputs.provider == 'siliconflow' && secrets.SILICONFLOW_API_KEY
+            || '' }}
+          HAS_GROQ: ${{ secrets.GROQ_API_KEY != '' }}
+          HAS_MISTRAL: ${{ secrets.MISTRAL_API_KEY != '' }}
+          HAS_GEMINI: ${{ secrets.GEMINI_API_KEY != '' }}
+          HAS_OPENROUTER: ${{ secrets.OPENROUTER_API_KEY != '' }}
+          HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+          HAS_NVIDIA: ${{ secrets.NVIDIA_API_KEY != '' }}
+          HAS_COHERE: ${{ secrets.COHERE_API_KEY != '' }}
+          HAS_DASHSCOPE: ${{ secrets.DASHSCOPE_API_KEY != '' }}
+          HAS_TENCENT_TOKENHUB: ${{ secrets.TENCENT_TOKENHUB_API_KEY != '' }}
+          HAS_SILICONFLOW: ${{ secrets.SILICONFLOW_API_KEY != '' }}
+        run: |
+          echo "Configured provider secrets:"
+          for name in GROQ MISTRAL GEMINI OPENROUTER CLOUDFLARE NVIDIA COHERE DASHSCOPE TENCENT_TOKENHUB SILICONFLOW; do
+            var="HAS_$name"
+            if [ "${!var}" = "true" ]; then echo "  ✓ $name"; else echo "  ○ $name"; fi
+          done
+          if [ "$PROVIDER" = "router" ]; then
+            if [ "$OPERATION" = "list-models" ] || [ "$OPERATION" = "verify" ]; then
+              echo "::error::$OPERATION needs a single provider, not router."
+              exit 1
+            fi
+            if ! env | grep -q '^HAS_.*=true$'; then
+              echo "::error::No provider secret is configured in GitHub Actions Secrets."
+              exit 1
+            fi
+            exit 0
+          fi
+          if [ -z "$SELECTED_KEY" ]; then
+            echo "::error::$CREDENTIAL_NAME is not configured in GitHub Actions Secrets."
+            exit 1
+          fi
+          if [ "$PROVIDER" = "cloudflare" ] && [ -z "$AI_CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID is not configured in GitHub Actions Variables."
+            exit 1
+          fi
+          if [ "$OPERATION" != "list-models" ] && [ -z "$MODEL" ]; then
+            echo "::error::No model for $PROVIDER: pass the model input or set the ${PROVIDER^^}_MODEL variable."
+            exit 1
+          fi
+          echo "Provider: $PROVIDER, model: ${MODEL:-n/a}, operation: $OPERATION, policy: $AI_COST_POLICY"
+          case "$PROVIDER" in
+            alibaba_model_studio)
+              echo "Alibaba 'Free Quota Only' confirmed: $AI_ALIBABA_FREE_ONLY_CONFIRMED (ALIBABA_FREE_ONLY_CONFIRMED)" ;;
+            tencent_tokenhub)
+              echo "TokenHub payment disabled confirmed: $AI_TENCENT_FREE_ONLY_CONFIRMED (TENCENT_FREE_ONLY_CONFIRMED)" ;;
+          esac
+
+      - name: Install backend
+        run: pip install -r requirements.lock
+
+      - name: List models
+        if: inputs.operation == 'list-models'
+        env:
+          AI_PROVIDER: ${{ inputs.provider }}
+          AI_MODEL: listing
+          AI_API_KEY: >-
+            ${{ inputs.provider == 'groq' && secrets.GROQ_API_KEY
+            || inputs.provider == 'mistral' && secrets.MISTRAL_API_KEY
+            || inputs.provider == 'gemini' && secrets.GEMINI_API_KEY
+            || inputs.provider == 'cloudflare' && secrets.CLOUDFLARE_API_TOKEN
+            || inputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY
+            || inputs.provider == 'nvidia' && secrets.NVIDIA_API_KEY
+            || inputs.provider == 'cohere' && secrets.COHERE_API_KEY
+            || inputs.provider == 'alibaba_model_studio' && secrets.DASHSCOPE_API_KEY
+            || inputs.provider == 'tencent_tokenhub' && secrets.TENCENT_TOKENHUB_API_KEY
+            || inputs.provider == 'siliconflow' && secrets.SILICONFLOW_API_KEY
+            || '' }}
+        run: |
+          set -o pipefail
+          python scripts/list_models.py | tee models.txt
+
+      - name: Verify (auth, model discovery, structured-output smoke)
+        if: inputs.operation == 'verify'
+        env:
+          AI_PROVIDER: ${{ inputs.provider }}
+          AI_API_KEY: >-
+            ${{ inputs.provider == 'groq' && secrets.GROQ_API_KEY
+            || inputs.provider == 'mistral' && secrets.MISTRAL_API_KEY
+            || inputs.provider == 'gemini' && secrets.GEMINI_API_KEY
+            || inputs.provider == 'cloudflare' && secrets.CLOUDFLARE_API_TOKEN
+            || inputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY
+            || inputs.provider == 'nvidia' && secrets.NVIDIA_API_KEY
+            || inputs.provider == 'cohere' && secrets.COHERE_API_KEY
+            || inputs.provider == 'alibaba_model_studio' && secrets.DASHSCOPE_API_KEY
+            || inputs.provider == 'tencent_tokenhub' && secrets.TENCENT_TOKENHUB_API_KEY
+            || inputs.provider == 'siliconflow' && secrets.SILICONFLOW_API_KEY
+            || '' }}
+        # A pass approves nothing: evaluators are approved only through the benchmark.
+        run: |
+          set -o pipefail
+          export AI_MODEL="$MODEL"
+          python scripts/verify_provider.py --credential-name "$CREDENTIAL_NAME" \
+            --json verify.json | tee verify.txt
+
+      - name: Benchmark (single provider)
+        if: inputs.operation != 'list-models' && inputs.operation != 'verify' && inputs.provider != 'router'
+        env:
+          AI_PROVIDER: ${{ inputs.provider }}
+          AI_API_KEY: >-
+            ${{ inputs.provider == 'groq' && secrets.GROQ_API_KEY
+            || inputs.provider == 'mistral' && secrets.MISTRAL_API_KEY
+            || inputs.provider == 'gemini' && secrets.GEMINI_API_KEY
+            || inputs.provider == 'cloudflare' && secrets.CLOUDFLARE_API_TOKEN
+            || inputs.provider == 'openrouter' && secrets.OPENROUTER_API_KEY
+            || inputs.provider == 'nvidia' && secrets.NVIDIA_API_KEY
+            || inputs.provider == 'cohere' && secrets.COHERE_API_KEY
+            || inputs.provider == 'alibaba_model_studio' && secrets.DASHSCOPE_API_KEY
+            || inputs.provider == 'tencent_tokenhub' && secrets.TENCENT_TOKENHUB_API_KEY
+            || inputs.provider == 'siliconflow' && secrets.SILICONFLOW_API_KEY
+            || '' }}
+          STRICT: ${{ inputs.strict && '--strict' || '' }}
+        run: |
+          export AI_MODEL="$MODEL"
+          python scripts/ai_benchmark.py \
+            --operations "$OPERATION" --repeat "${{ inputs.repeat }}" \
+            --credential-name "$CREDENTIAL_NAME" \
+            --report ai-report.md --json ai-report.json $STRICT
+
+      - name: Benchmark (free chain with fallback)
+        if: inputs.operation != 'list-models' && inputs.provider == 'router'
+        env:
+          AI_PROVIDER: router
+          AI_GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          AI_MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          AI_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AI_OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          AI_CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          AI_NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          AI_COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+          AI_ALIBABA_MODEL_STUDIO_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          AI_TENCENT_TOKENHUB_API_KEY: ${{ secrets.TENCENT_TOKENHUB_API_KEY }}
+          AI_SILICONFLOW_API_KEY: ${{ secrets.SILICONFLOW_API_KEY }}
+          AI_ROUTE_CURRICULUM_GENERATION: ${{ vars.AI_ROUTE_CURRICULUM_GENERATION }}
+          AI_ROUTE_CONCEPT_EXTRACTION: ${{ vars.AI_ROUTE_CONCEPT_EXTRACTION }}
+          AI_ROUTE_LEARNING_ITEM_GENERATION: ${{ vars.AI_ROUTE_LEARNING_ITEM_GENERATION }}
+          AI_ROUTE_QUESTION_GENERATION: ${{ vars.AI_ROUTE_QUESTION_GENERATION }}
+          AI_ROUTE_ANSWER_EVALUATION: ${{ vars.AI_ROUTE_ANSWER_EVALUATION }}
+          STRICT: ${{ inputs.strict && '--strict' || '' }}
+        run: |
+          python scripts/ai_benchmark.py \
+            --operations "$OPERATION" --repeat "${{ inputs.repeat }}" \
+            --credential-name "the provider secrets" \
+            --report ai-report.md --json ai-report.json $STRICT
+
+      - name: Publish report
+        if: always()
+        run: |
+          for f in verify.txt models.txt; do
+            if [ -f "$f" ]; then
+              { echo '```'; cat "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          if [ -f ai-report.md ]; then
+            cat ai-report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: real-ai-${{ inputs.provider }}-${{ inputs.operation }}
+          path: |
+            backend/ai-report.md
+            backend/ai-report.json
+            backend/models.txt
+            backend/verify.txt
+            backend/verify.json
+          if-no-files-found: ignore
