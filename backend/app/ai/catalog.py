@@ -351,6 +351,20 @@ MODELS: dict[str, ModelCapability] = {
         _model("mistral", "mistral-small-latest", strict=True, notes="Free (Experiment) plan."),
         _model(
             "gemini",
+            "gemini-3.5-flash-lite",
+            privacy=PrivacyClass.DEVELOPMENT_ONLY,
+            notes="Verified live 2026-09-29 and benchmarked (9/9 cases). Free tier content may be "
+            "used by Google: development/demo material only.",
+        ),
+        _model(
+            "gemini",
+            "gemini-3.5-flash",
+            privacy=PrivacyClass.DEVELOPMENT_ONLY,
+            notes="Verified live 2026-09-29. Small free daily allowance; free tier content may be "
+            "used by Google.",
+        ),
+        _model(
+            "gemini",
             "gemini-2.5-flash",
             privacy=PrivacyClass.DEVELOPMENT_ONLY,
             notes="Free tier content may be used by Google: development/demo material only.",
@@ -482,7 +496,7 @@ def is_dynamic_router(provider_id: str, model_id: str) -> bool:
 # the order is the owner's initial candidate list, not a benchmark result. Re-order from the
 # Real AI benchmark (docs/FREE_AI_ROUTING.md §8) by setting AI_ROUTE_* rather than trusting this.
 _GENERATION_DEFAULT = (
-    "gemini:gemini-2.5-flash,"
+    "gemini:gemini-3.5-flash-lite,"
     "mistral:mistral-small-latest,"
     "groq:openai/gpt-oss-120b,"
     "cloudflare:@cf/zai-org/glm-4.7-flash"
@@ -492,16 +506,16 @@ DEFAULT_ROUTES: dict[RouteOperation, str] = {
     RouteOperation.CONCEPT_EXTRACTION: _GENERATION_DEFAULT,
     RouteOperation.LEARNING_ITEM_GENERATION: _GENERATION_DEFAULT,
     RouteOperation.QUESTION_GENERATION: (
+        "gemini:gemini-3.5-flash-lite,"
         "mistral:mistral-small-latest,"
-        "gemini:gemini-2.5-flash,"
         "groq:qwen/qwen3.8-27b,"
         "cloudflare:@cf/zai-org/glm-4.7-flash"
     ),
     RouteOperation.ANSWER_EVALUATION: (
+        "gemini:gemini-3.5-flash-lite,"
         "groq:openai/gpt-oss-120b,"
         "mistral:mistral-small-latest,"
-        "cloudflare:@cf/nvidia/nemotron-3-120b-a12b,"
-        "gemini:gemini-2.5-flash"
+        "cloudflare:@cf/nvidia/nemotron-3-120b-a12b"
     ),
     RouteOperation.FEEDBACK_GENERATION: "",
 }

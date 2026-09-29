@@ -91,7 +91,7 @@ jobs:
         ${{ inputs.model
         || inputs.provider == 'groq' && (vars.GROQ_MODEL || 'openai/gpt-oss-120b')
         || inputs.provider == 'mistral' && (vars.MISTRAL_MODEL || 'mistral-small-latest')
-        || inputs.provider == 'gemini' && (vars.GEMINI_MODEL || 'gemini-2.5-flash')
+        || inputs.provider == 'gemini' && (vars.GEMINI_MODEL || 'gemini-3.5-flash-lite')
         || inputs.provider == 'cloudflare' && (vars.CLOUDFLARE_MODEL || '@cf/zai-org/glm-4.7-flash')
         || inputs.provider == 'openrouter' && (vars.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free')
         || inputs.provider == 'nvidia' && vars.NVIDIA_MODEL
