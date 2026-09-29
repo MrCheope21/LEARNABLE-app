@@ -1,0 +1,67 @@
+# Render Blueprint (https://render.com/docs/blueprint-spec): the public deployment of LEARNABLE.
+# One service serves both the web app and the API from the same origin (backend/Dockerfile
+# builds web/ first, then the API image that serves web/dist — see app/web.py and
+# docs/DEPLOYMENT.md §6), so no separate static site and no CORS setup are needed.
+#
+# In the Render dashboard: New → Blueprint → pick this repo and the branch to deploy from →
+# Apply. Render creates the Postgres database and the service below, generates AUTH_SECRET, and
+# redeploys on every push to that branch. The public URL is https://<service name>.onrender.com
+# (or a custom domain, set in the dashboard) — PUBLIC_APP_URL defaults to it automatically
+# (RENDER_EXTERNAL_URL), so password-reset and welcome emails link to the right place with no
+# extra configuration.
+databases:
+  - name: learnable-db
+    databaseName: learnable
+    plan: basic-256mb
+    region: frankfurt
+
+services:
+  - type: web
+    name: learnable
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    region: frankfurt
+    # Starter or above: a persistent disk (uploaded documents) and preDeployCommand both need a
+    # paid instance; the free tier also sleeps after inactivity, which a shared account should
+    # not do.
+    plan: starter
+    healthCheckPath: /health
+    # Runs once per deploy, before traffic switches, so replicas never race on migrations.
+    preDeployCommand: alembic upgrade head
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: learnable-db
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: AUTH_ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: STORAGE_BACKEND
+        value: local
+      - key: STORAGE_LOCAL_DIR
+        value: /app/var/documents
+      - key: MAX_UPLOAD_MB
+        value: "50"
+      - key: LOG_LEVEL
+        value: INFO
+      # Outgoing email ("Forgot your password?", welcome emails): console just logs them, so
+      # nobody but this server can read a reset link. Switch to smtp in the dashboard once a
+      # real mailbox is available (docs/DEPLOYMENT.md §2): EMAIL_BACKEND=smtp,
+      # SMTP_HOST/SMTP_FROM (required), SMTP_USERNAME/SMTP_PASSWORD.
+      - key: EMAIL_BACKEND
+        value: console
+      # Runtime AI provider (docs/AI.md, docs/FREE_AI_ROUTING.md): unset means the server runs
+      # fine and AI endpoints answer 503. Fill in from the dashboard once a provider is chosen.
+      - key: AI_PROVIDER
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        sync: false
+    disk:
+      name: documents
+      mountPath: /app/var
+      sizeGB: 1

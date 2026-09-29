@@ -1,0 +1,45 @@
+# Overlay for a self-hosted deploy on an Oracle Cloud "Always Free" VM (or any VPS): adds Caddy
+# in front of the backend for automatic HTTPS (Let's Encrypt), keeps the backend and Postgres off
+# the public interface, and restarts everything after a VM reboot. docs/DEPLOYMENT_ORACLE.md has
+# the full setup.
+#
+# Usage (from the repo root), or set COMPOSE_FILE in .env so a plain `docker compose` includes it:
+#   docker compose -f docker-compose.yml -f deploy/oracle/docker-compose.oracle.yml up -d --build
+#
+# `!reset` (Docker Compose 2.24+) is required: Compose merges `ports` lists instead of replacing
+# them. Without it the backend (8000) and Postgres (5432, password "postgres") stay published on
+# the VM's public interface, and Docker's own iptables rules bypass the host firewall.
+services:
+  postgres:
+    restart: unless-stopped
+    ports: !reset []
+
+  backend:
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      # Uvicorn trusts X-Forwarded-Proto/For only from 127.0.0.1 by default, and Caddy is another
+      # container: without this, URLs the app builds say http:// behind the https site. Safe
+      # because the backend is reachable only from this compose network.
+      FORWARDED_ALLOW_IPS: "*"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      # The domain/subdomain pointed at this VM's public IP (A record). Caddy requests and
+      # renews its Let's Encrypt certificate for it automatically.
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env, e.g. learnable.example.com}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/oracle/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  caddy_data:
+  caddy_config:

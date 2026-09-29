@@ -1,5 +1,6 @@
 """Application configuration, loaded from environment variables and the repo-root `.env`."""
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Self
@@ -72,7 +73,14 @@ class Settings(BaseSettings):
     auth_secret: SecretStr
     auth_access_token_expire_minutes: int = Field(default=60, gt=0)
     # Where the web app is served: password reset links point here.
-    public_app_url: str = "http://localhost:5173"
+    # On Render, the service's own public address (RENDER_EXTERNAL_URL) unless PUBLIC_APP_URL
+    # says otherwise: the web app is served from the same origin there.
+    public_app_url: str = Field(
+        default_factory=lambda: os.environ.get("RENDER_EXTERNAL_URL") or "http://localhost:5173"
+    )
+    # The built web client (web/dist). When set, this server also serves it, on the same origin
+    # as /api (app/web.py; the production image sets it). Unset in development: Vite serves it.
+    web_dist_dir: Path | None = None
     password_reset_ttl_minutes: int = Field(default=30, gt=0, le=24 * 60)
     # Outgoing email (app/email/sender.py). console: written to the server log (development).
     email_backend: Literal["console", "smtp"] = "console"
@@ -239,6 +247,14 @@ class Settings(BaseSettings):
             ]
             if missing:
                 raise ValueError(f"EMAIL_BACKEND=smtp requires {' and '.join(missing)}")
+        return self
+
+    @model_validator(mode="after")
+    def _require_built_web_app(self) -> Self:
+        if self.web_dist_dir is not None and not (self.web_dist_dir / "index.html").is_file():
+            raise ValueError(
+                f"WEB_DIST_DIR={self.web_dist_dir} has no index.html (build web first)"
+            )
         return self
 
     @model_validator(mode="after")

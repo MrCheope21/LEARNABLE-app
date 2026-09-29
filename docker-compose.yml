@@ -19,7 +19,9 @@ services:
       retries: 30
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     env_file: .env
     environment:
       # Overrides any DATABASE_URL in .env: inside the compose network the database is reached
