@@ -375,6 +375,14 @@ MODELS: dict[str, ModelCapability] = {
             privacy=PrivacyClass.DEVELOPMENT_ONLY,
             notes="Free tier content may be used by Google: development/demo material only.",
         ),
+        _model(
+            "nvidia",
+            "openai/gpt-oss-20b",
+            json_schema=False,
+            cost=CostClass.FREE_LIMITED,
+            notes="Last resort. Owner-approved 2026-09-29 as free (NVIDIA API Catalog); passed the "
+            "grading benchmark in JSON mode but takes 25-50 s per call.",
+        ),
         _model("cloudflare", "@cf/zai-org/glm-4.7-flash"),
         _model("cloudflare", "@cf/google/gemma-4-26b-a4b-it"),
         _model("cloudflare", "@cf/nvidia/nemotron-3-120b-a12b"),
@@ -492,6 +500,9 @@ def is_dynamic_router(provider_id: str, model_id: str) -> bool:
     return provider_id == "openrouter" and model_id.startswith("openrouter/")
 
 
+# NVIDIA gpt-oss-20b is the last resort everywhere: it passed the grading benchmark but takes
+# 25-50 s per call, and it only runs when AI_FREE_MODELS lists it (NVIDIA free status is
+# owner-verified, never assumed).
 # Default routes for AI_PROVIDER=router, used when AI_ROUTE_<OPERATION> is empty. PROVISIONAL:
 # the order is the owner's initial candidate list, not a benchmark result. Re-order from the
 # Real AI benchmark (docs/FREE_AI_ROUTING.md §8) by setting AI_ROUTE_* rather than trusting this.
@@ -499,7 +510,8 @@ _GENERATION_DEFAULT = (
     "gemini:gemini-3.5-flash-lite,"
     "mistral:mistral-small-latest,"
     "groq:openai/gpt-oss-120b,"
-    "cloudflare:@cf/zai-org/glm-4.7-flash"
+    "cloudflare:@cf/zai-org/glm-4.7-flash,"
+    "nvidia:openai/gpt-oss-20b"
 )
 DEFAULT_ROUTES: dict[RouteOperation, str] = {
     RouteOperation.CURRICULUM_GENERATION: _GENERATION_DEFAULT,
@@ -509,13 +521,15 @@ DEFAULT_ROUTES: dict[RouteOperation, str] = {
         "gemini:gemini-3.5-flash-lite,"
         "mistral:mistral-small-latest,"
         "groq:qwen/qwen3.8-27b,"
-        "cloudflare:@cf/zai-org/glm-4.7-flash"
+        "cloudflare:@cf/zai-org/glm-4.7-flash,"
+        "nvidia:openai/gpt-oss-20b"
     ),
     RouteOperation.ANSWER_EVALUATION: (
         "gemini:gemini-3.5-flash-lite,"
         "groq:openai/gpt-oss-120b,"
         "mistral:mistral-small-latest,"
-        "cloudflare:@cf/nvidia/nemotron-3-120b-a12b"
+        "cloudflare:@cf/nvidia/nemotron-3-120b-a12b,"
+        "nvidia:openai/gpt-oss-20b"
     ),
     RouteOperation.FEEDBACK_GENERATION: "",
 }
