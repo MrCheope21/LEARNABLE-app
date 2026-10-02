@@ -119,14 +119,8 @@ Postgres, and back both up together.
 7. For real AI: a provider key in the runtime environment (not only in GitHub), then the
    validation in docs/FREE_AI_ROUTING.md.
 
-Two ways to provision items 1-5, both with the same image (`backend/Dockerfile`, single origin
-for web + API); the difference is who runs Postgres, TLS and backups:
-
-- **Render** (§6): a dashboard does it for you, on a paid plan (`render.yaml`'s `starter` web
-  service and `basic-256mb` database).
-- **Oracle Cloud "Always Free"** (docs/DEPLOYMENT_ORACLE.md): a free VM, but you run Postgres,
-  Caddy (HTTPS) and backups yourself in Docker Compose (`deploy/oracle/`), and Oracle may stop
-  it when idle unless the account is upgraded to Pay As You Go.
+A free, self-managed alternative to §6 (an Oracle Cloud VM running Docker Compose behind Caddy):
+docs/DEPLOYMENT_ORACLE.md.
 
 ## 6. The `render.yaml` Blueprint (§5 items 1-5, done)
 

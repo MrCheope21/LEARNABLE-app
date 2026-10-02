@@ -1,10 +1,9 @@
 # Self-hosting on Oracle Cloud "Always Free"
 
-A free alternative to Render (docs/DEPLOYMENT.md): everything runs in Docker Compose on one Oracle
-Cloud VM, from the same image the Render deploy builds (`backend/Dockerfile`, one origin for web
-+ API). The free VM is ARM (Ampere); every base image and every locked Python dependency is
-published for ARM64 (checked 2026-09-27). The trade-off against Render: you manage the VM, HTTPS
-and backups yourself instead of a dashboard doing it. This guide assumes no prior Oracle Cloud
+A free alternative to Render (docs/DEPLOYMENT.md §6): the same image runs in Docker Compose on one
+Oracle Cloud VM, behind Caddy for HTTPS. The free VM is ARM (Ampere); every base image and every
+locked Python dependency is published for ARM64 (checked 2026-09-27). The trade-off against
+Render: you manage the VM and backups yourself. This guide assumes no prior Oracle Cloud
 experience.
 
 ## 0. Before relying on it
@@ -36,26 +35,18 @@ experience.
 
 ## 2. Open ports 80 and 443
 
-**Oracle's cloud firewall** blocks them: the instance's subnet → **Security Lists** (or the
-VNIC's default security list) → Add Ingress Rules → source CIDR `0.0.0.0/0`, TCP, destination
-port `80`; repeat for `443`.
+The instance's subnet → **Security Lists** (or the VNIC's default security list) → Add Ingress
+Rules → source CIDR `0.0.0.0/0`, TCP, destination port `80`; repeat for `443`.
 
-**The VM's own firewall**: Oracle's Ubuntu image also ships iptables rules that reject new
-connections except SSH. Docker adds its own rules for the ports it publishes, but open 80/443
-here too so the setup doesn't depend on rule order. Do it before installing Docker, so the saved
-rules don't capture Docker's:
-
-```bash
-sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
-sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
-sudo netfilter-persistent save
-```
+Oracle's own tutorials also open ports in the VM's iptables `INPUT` chain. That is for services
+running on the host itself; ports Docker publishes are forwarded to the containers without
+passing through those rules, so nothing is needed there.
 
 ## 3. Point a domain at it
 
 Create a DNS **A record** for the domain or subdomain you'll use (e.g. `learnable.example.com`)
 pointing at the VM's public IP. No domain? A free dynamic-DNS subdomain (e.g. DuckDNS) works the
-same way. Caddy (§5) needs the name to resolve before it can get a certificate.
+same way. Caddy needs the name to resolve before it can get a certificate.
 
 ## 4. Install Docker
 
@@ -63,7 +54,6 @@ same way. Caddy (§5) needs the name to resolve before it can get a certificate.
 curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker $USER
 # log out and back in so the group membership takes effect
-docker compose version   # must be 2.24+ (the overlay uses `!reset` to unpublish 8000 and 5432)
 ```
 
 ## 5. Deploy
@@ -77,12 +67,11 @@ cp .env.example .env
 ```
 
 Edit `.env`:
-- `AUTH_SECRET`: generate with `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`.
-- `PUBLIC_APP_URL=https://learnable.example.com` (your domain, with `https://`).
-- `DOMAIN=learnable.example.com` (same domain, no scheme; read by `deploy/oracle/Caddyfile`).
-- Add `COMPOSE_FILE=docker-compose.yml:deploy/oracle/docker-compose.oracle.yml`. Every
-  `docker compose` command in this directory then includes the overlay; without it, a plain
-  `docker compose up` would publish the backend and Postgres again and drop HTTPS.
+- Set `AUTH_SECRET` (the comment above it shows how to generate one).
+- Uncomment `COMPOSE_FILE` and `DOMAIN`, and set `DOMAIN` to your domain without `https://`.
+  `COMPOSE_FILE` makes every `docker compose` command in this directory include
+  `deploy/oracle/`, which adds Caddy and derives `PUBLIC_APP_URL` (the address in reset emails)
+  from `DOMAIN`.
 - Optionally `EMAIL_BACKEND=smtp` + `SMTP_*` for real password-reset emails (docs/DEPLOYMENT.md
   §2), and an `AI_*` provider (docs/AI.md) for AI features.
 
@@ -91,8 +80,8 @@ docker compose up -d --build
 ```
 
 This builds `backend/Dockerfile` (web app included; the first build takes several minutes),
-starts Postgres, runs migrations, and starts Caddy in front of the app on 80/443. Caddy requests
-and renews its Let's Encrypt certificate for `DOMAIN` by itself.
+starts Postgres, runs migrations, and starts Caddy in front of the app on 80/443. Caddy gets and
+renews the Let's Encrypt certificate for `DOMAIN` by itself.
 
 ## 6. Verify
 
@@ -109,18 +98,21 @@ point at the VM yet, or port 80 is still closed in the security list).
 ```bash
 git pull
 docker compose up -d --build
-docker image prune -f   # every build leaves the previous image behind
+docker image prune -f && docker builder prune -af --filter until=168h   # old images, stale build cache
 ```
 
 ## 8. Backups
 
-Data lives in two Docker volumes on this VM: the database and the uploaded files. From the
-repository directory:
+The database and the uploaded files live in Docker volumes on this VM. From the repository
+directory, into `~/backups` (outside the checkout), keeping a week:
 
 ```bash
-docker compose exec -T postgres pg_dump -U postgres adaptive_learning | gzip > db-$(date +%F).sql.gz
-docker compose cp backend:/app/var/documents ./documents-$(date +%F)
+mkdir -p ~/backups
+docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > ~/backups/db-$(date +%F).sql.gz
+docker compose exec -T backend tar czf - -C /app/var documents > ~/backups/documents-$(date +%F).tar.gz
+find ~/backups -type f -mtime +7 -delete
 ```
 
-Copy both off the VM (e.g. `scp` to your computer, or Oracle Object Storage, which has its own
-Always Free quota). To run this from cron, write `%` as `\%`.
+Copy them off the VM too (e.g. `scp` to your computer, or Oracle Object Storage, which has its
+own Always Free quota). To run this from cron, `cd` into the repository first and write `%` as
+`\%`.

@@ -34,11 +34,13 @@ RUN useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app/var
 USER appuser
 
-ENV WEB_DIST_DIR=/app/web-dist
+# Uvicorn reads FORWARDED_ALLOW_IPS whatever command starts it (docker-compose.yml overrides
+# the CMD), so request URLs and client IPs reflect the HTTPS proxy in front (Render's load
+# balancer, Caddy) instead of this container's own port.
+ENV WEB_DIST_DIR=/app/web-dist \
+    FORWARDED_ALLOW_IPS=*
 
 # Migrations are deliberately NOT run here: with several replicas they'd race. Run
 # `alembic upgrade head` as a separate deploy step (docker-compose.yml does it for local dev;
-# render.yaml runs it as a pre-deploy command).
-# Render (and most hosts) assign the port via $PORT; --proxy-headers makes request URLs and
-# client IPs reflect the platform's HTTPS load balancer instead of this container's own port.
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*"]
+# render.yaml runs it as a pre-deploy command). Render (and most hosts) assign the port via $PORT.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
