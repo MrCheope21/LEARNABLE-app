@@ -1,0 +1,33 @@
+# Overlay for a self-hosted deploy on an Oracle Cloud "Always Free" VM (or any VPS): Caddy in
+# front for automatic HTTPS, restarts after a reboot, bounded logs. Enabled by COMPOSE_FILE in
+# .env; setup in docs/DEPLOYMENT_ORACLE.md.
+services:
+  postgres:
+    restart: unless-stopped
+    logging: {driver: local}
+
+  backend:
+    restart: unless-stopped
+    logging: {driver: local}
+    environment:
+      PUBLIC_APP_URL: https://${DOMAIN}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    logging: {driver: local}
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env, e.g. learnable.example.com}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/oracle/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  caddy_data:
+  caddy_config:

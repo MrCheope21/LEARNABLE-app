@@ -14,6 +14,7 @@ from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.session import get_session_factory
 from app.services.recovery import recover_stale_jobs
+from app.web import install_web_app
 
 logger = logging.getLogger(__name__)
 
@@ -73,3 +74,7 @@ app.include_router(api_router)
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# Last: only paths no route matched reach it (and only when WEB_DIST_DIR is set).
+install_web_app(app)

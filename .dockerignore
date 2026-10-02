@@ -1,0 +1,21 @@
+# Build context is now the repo root (backend/Dockerfile builds web/ then backend/app).
+.git
+android
+ios
+docs
+*.md
+
+backend/.venv
+backend/**/__pycache__
+backend/.pytest_cache
+backend/.ruff_cache
+backend/tests
+backend/*.db
+backend/var
+
+web/node_modules
+web/dist
+web/coverage
+web/test-results
+web/playwright-report
+web/e2e
