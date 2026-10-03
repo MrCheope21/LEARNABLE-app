@@ -1,6 +1,7 @@
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { NavLink, Outlet, useParams } from "react-router-dom";
 import { courses } from "../../api/endpoints";
+import { CollapseToggle, useCollapsed } from "../../components/Collapsible";
 import { QueryState } from "../../components/QueryState";
 import { studyStateLabel } from "../../components/labels";
 
@@ -19,8 +20,9 @@ export function refreshTitles(queryClient: QueryClient, courseId: string) {
  * one Chapter, Topic or Concept on the right (desktop-first, docs/WEB_ARCHITECTURE.md §5).
  */
 export function CourseLayout() {
-  const { courseId = "" } = useParams();
+  const { courseId = "", chapterId, topicId, conceptId } = useParams();
   const course = useQuery({ queryKey: ["course", courseId], queryFn: () => courses.get(courseId) });
+  const tree = useCollapsed(`learnable.tree-collapsed.${courseId}`);
   const outline = useQuery({ queryKey: outlineKey(courseId), queryFn: () => courses.outline(courseId) });
 
   return (
@@ -30,39 +32,81 @@ export function CourseLayout() {
           {course.data?.title ?? "Course"}
         </NavLink>
         <QueryState query={outline} label="Loading curriculum…">
-          {(chapters) => (
-            <ul>
-              {chapters.map((chapter) => (
-                <li key={chapter.id}>
-                  <NavLink to={`/courses/${courseId}/chapters/${chapter.id}`} className="tree-chapter">
-                    {chapter.title}
-                  </NavLink>
-                  <ul>
-                    {chapter.topics.map((topic) => (
-                      <li key={topic.id}>
-                        <NavLink to={`/courses/${courseId}/topics/${topic.id}`} className="tree-topic">
-                          {topic.title}
+          {(chapters) => {
+            // The branch holding the page you're on stays open, even if you collapsed it.
+            const openChapter = chapters.find(
+              (c) => c.id === chapterId || c.topics.some((t) => t.id === topicId || t.concepts.some((k) => k.id === conceptId)),
+            );
+            const openTopic = openChapter?.topics.find((t) => t.id === topicId || t.concepts.some((k) => k.id === conceptId));
+            const expanded = (id: string, open: boolean) => open || !tree.isCollapsed(id);
+            return (
+              <ul>
+                {chapters.map((chapter) => {
+                  const chapterOpen = expanded(chapter.id, chapter.id === openChapter?.id && chapter.id !== chapterId);
+                  return (
+                    <li key={chapter.id}>
+                      <div className="tree-row">
+                        {chapter.topics.length > 0 ? (
+                          <CollapseToggle
+                            expanded={chapterOpen}
+                            onToggle={() => tree.toggle(chapter.id)}
+                            label={chapter.title}
+                            controls={`tree-${chapter.id}`}
+                          />
+                        ) : (
+                          <span className="collapse-spacer" />
+                        )}
+                        <NavLink to={`/courses/${courseId}/chapters/${chapter.id}`} className="tree-chapter">
+                          {chapter.title}
                         </NavLink>
-                        <ul>
-                          {topic.concepts.map((concept) => (
-                            <li key={concept.id}>
-                              <NavLink
-                                to={`/courses/${courseId}/concepts/${concept.id}`}
-                                className={`tree-concept state-${concept.study_state.toLowerCase()}`}
-                                title={studyStateLabel[concept.study_state]}
-                              >
-                                {concept.title}
-                              </NavLink>
-                            </li>
-                          ))}
+                      </div>
+                      {chapter.topics.length > 0 && (
+                        <ul id={`tree-${chapter.id}`} hidden={!chapterOpen}>
+                          {chapter.topics.map((topic) => {
+                            const topicOpen = expanded(topic.id, topic.id === openTopic?.id && topic.id !== topicId);
+                            return (
+                              <li key={topic.id}>
+                                <div className="tree-row">
+                                  {topic.concepts.length > 0 ? (
+                                    <CollapseToggle
+                                      expanded={topicOpen}
+                                      onToggle={() => tree.toggle(topic.id)}
+                                      label={topic.title}
+                                      controls={`tree-${topic.id}`}
+                                    />
+                                  ) : (
+                                    <span className="collapse-spacer" />
+                                  )}
+                                  <NavLink to={`/courses/${courseId}/topics/${topic.id}`} className="tree-topic">
+                                    {topic.title}
+                                  </NavLink>
+                                </div>
+                                {topic.concepts.length > 0 && (
+                                  <ul id={`tree-${topic.id}`} hidden={!topicOpen}>
+                                    {topic.concepts.map((concept) => (
+                                      <li key={concept.id}>
+                                        <NavLink
+                                          to={`/courses/${courseId}/concepts/${concept.id}`}
+                                          className={`tree-concept state-${concept.study_state.toLowerCase()}`}
+                                          title={studyStateLabel[concept.study_state]}
+                                        >
+                                          {concept.title}
+                                        </NavLink>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-          )}
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            );
+          }}
         </QueryState>
         <NavLink to={`/courses/${courseId}/material`} className="tree-extra">
           All study material

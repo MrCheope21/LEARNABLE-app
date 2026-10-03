@@ -3131,6 +3131,27 @@
         "title": "NextStep",
         "type": "object"
       },
+      "OrderUpdate": {
+        "additionalProperties": false,
+        "description": "A parent's children in their new order (drag and drop): every child exactly once.",
+        "properties": {
+          "ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "title": "OrderUpdate",
+        "type": "object"
+      },
       "OverrideCreate": {
         "additionalProperties": false,
         "properties": {
@@ -5347,6 +5368,57 @@
         ]
       }
     },
+    "/api/v1/chapters/{chapter_id}/topic-order": {
+      "put": {
+        "operationId": "reorder_topics_api_v1_chapters__chapter_id__topic_order_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chapter_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Chapter Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reorder Topics",
+        "tags": [
+          "courses"
+        ]
+      }
+    },
     "/api/v1/chapters/{chapter_id}/topics": {
       "post": {
         "operationId": "create_topic_api_v1_chapters__chapter_id__topics_post",
@@ -5785,6 +5857,57 @@
           }
         ],
         "summary": "Deactivate Concept",
+        "tags": [
+          "courses"
+        ]
+      }
+    },
+    "/api/v1/concepts/{concept_id}/learning-item-order": {
+      "put": {
+        "operationId": "reorder_learning_items_api_v1_concepts__concept_id__learning_item_order_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "concept_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Concept Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reorder Learning Items",
         "tags": [
           "courses"
         ]
@@ -6355,6 +6478,57 @@
           }
         ],
         "summary": "Update Course",
+        "tags": [
+          "courses"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/chapter-order": {
+      "put": {
+        "operationId": "reorder_chapters_api_v1_courses__course_id__chapter_order_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reorder Chapters",
         "tags": [
           "courses"
         ]
@@ -8775,6 +8949,57 @@
           }
         ],
         "summary": "Update Topic",
+        "tags": [
+          "courses"
+        ]
+      }
+    },
+    "/api/v1/topics/{topic_id}/concept-order": {
+      "put": {
+        "operationId": "reorder_concepts_api_v1_topics__topic_id__concept_order_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Topic Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reorder Concepts",
         "tags": [
           "courses"
         ]

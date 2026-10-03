@@ -260,3 +260,33 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
   .tree { position: static; height: auto; }
   .grades .grade-row { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Drag-and-drop lists (components/SortableList.tsx) */
+.sortable-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.4rem; }
+.sortable-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); position: relative; }
+.sortable-row.dragging { z-index: 2; box-shadow: 0 8px 24px rgb(0 0 0 / 16%); border-color: var(--brand); }
+.sortable-content { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.sortable-content > a, .sortable-content > .row-title { font-weight: 600; overflow-wrap: anywhere; }
+.sortable-content .row-meta { margin-left: auto; color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.drag-handle { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 40px; padding: 0; border: none; background: none; color: var(--muted); cursor: grab; touch-action: none; border-radius: 6px; }
+.drag-handle:hover { color: var(--text); background: var(--surface-2); }
+.drag-handle:active { cursor: grabbing; }
+.drag-handle:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.question-list.sortable-list .sortable-row { padding: 0.25rem 0.5rem; }
+.question-list.sortable-list .sortable-content { display: block; }
+
+/* Collapsible sections (components/Collapsible.tsx) */
+.collapse-toggle { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; min-height: 0; padding: 0; border: none; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
+.collapse-toggle:hover { color: var(--text); background: var(--surface-2); }
+.collapse-toggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.collapse-toggle svg { transition: transform 0.15s ease; }
+.collapse-toggle.expanded svg { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .collapse-toggle svg { transition: none; } }
+.collapse-spacer { flex: none; width: 24px; }
+.tree-row { display: flex; align-items: center; gap: 0.1rem; min-width: 0; }
+.tree-row > a { flex: 1; min-width: 0; }
+.tree .tree-row .tree-chapter { margin-top: 0; }
+.tree > ul > li { margin-top: 0.3rem; }
+.section-heading { display: flex; align-items: center; gap: 0.35rem; }
+.section-heading > h2, .section-heading > h3 { margin: 0; }
+.tree ul ul ul { padding-left: 1.55rem; }

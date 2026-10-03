@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { courses, progress } from "../../api/endpoints";
+import { courses, progress, reorder } from "../../api/endpoints";
 import { EditableTitle } from "../../components/EditableTitle";
 import { QueryState } from "../../components/QueryState";
+import { SortableList } from "../../components/SortableList";
 import { percent, studyStateLabel } from "../../components/labels";
 import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
 import { Breadcrumbs } from "./Consolidate";
@@ -39,30 +40,24 @@ export function TopicPage() {
                 {topic.concepts.length === 0 ? (
                   <p className="hint">No concepts in this topic.</p>
                 ) : (
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Concept</th>
-                        <th scope="col">State</th>
-                        <th scope="col">Mastery (estimate)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topic.concepts.map((concept) => {
-                        const mastery = topicProgress?.concepts.find((c) => c.id === concept.id)?.memory.mastery;
-                        return (
-                          <tr key={concept.id}>
-                            <td>
-                              <Link to={`/courses/${courseId}/concepts/${concept.id}`}>{concept.title}</Link>
-                              {concept.needs_source_review && <span className="pill warning">Needs source review</span>}
-                            </td>
-                            <td>{studyStateLabel[concept.study_state]}</td>
-                            <td>{percent(mastery)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <SortableList
+                    items={topic.concepts}
+                    itemLabel={(concept) => concept.title}
+                    onReorder={async (ids) => {
+                      await reorder.concepts(topicId, ids);
+                      refreshTitles(queryClient, courseId);
+                    }}
+                    renderItem={(concept) => (
+                      <>
+                        <Link to={`/courses/${courseId}/concepts/${concept.id}`}>{concept.title}</Link>
+                        {concept.needs_source_review && <span className="pill warning">Needs source review</span>}
+                        <span className="row-meta">
+                          {studyStateLabel[concept.study_state]} · mastery{" "}
+                          {percent(topicProgress?.concepts.find((c) => c.id === concept.id)?.memory.mastery)}
+                        </span>
+                      </>
+                    )}
+                  />
                 )}
               </section>
             </>

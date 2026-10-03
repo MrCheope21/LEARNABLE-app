@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
-import { courses, dashboard, progress } from "../../api/endpoints";
+import { courses, dashboard, progress, reorder } from "../../api/endpoints";
 import { EditableTitle } from "../../components/EditableTitle";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
+import { SortableList } from "../../components/SortableList";
 import { CurriculumBlock, MemoryBlock, ReviewLoadBlock } from "../../components/ProgressBlocks";
 import { percent } from "../../components/labels";
 import { CourseCover, LearnButton, Metric, ReviewButton } from "../courses/CourseParts";
@@ -77,28 +78,22 @@ export function CourseOverview() {
               {data.chapters.length === 0 ? (
                 <p className="hint">Add a chapter, then add study material to it.</p>
               ) : (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Chapter</th>
-                      <th scope="col">Concepts active</th>
-                      <th scope="col">Mastery (estimate)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.chapters.map((chapter) => (
-                      <tr key={chapter.id}>
-                        <td>
-                          <Link to={`/courses/${courseId}/chapters/${chapter.id}`}>{chapter.title}</Link>
-                        </td>
-                        <td>
-                          {chapter.curriculum.active} of {chapter.curriculum.concepts}
-                        </td>
-                        <td>{percent(chapter.memory.mastery)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <SortableList
+                  items={data.chapters}
+                  itemLabel={(chapter) => chapter.title}
+                  onReorder={async (ids) => {
+                    await reorder.chapters(courseId, ids);
+                    refreshTitles(queryClient, courseId);
+                  }}
+                  renderItem={(chapter) => (
+                    <>
+                      <Link to={`/courses/${courseId}/chapters/${chapter.id}`}>{chapter.title}</Link>
+                      <span className="row-meta">
+                        {chapter.curriculum.active} of {chapter.curriculum.concepts} concepts active · mastery {percent(chapter.memory.mastery)}
+                      </span>
+                    </>
+                  )}
+                />
               )}
               <form className="inline-form" onSubmit={submit}>
                 <label className="sr-only" htmlFor="chapter-title">

@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../../api/client";
-import { courses, curriculum, progress } from "../../api/endpoints";
+import { courses, curriculum, progress, reorder } from "../../api/endpoints";
 import { EditableTitle } from "../../components/EditableTitle";
 import { QueryState } from "../../components/QueryState";
+import { SortableList } from "../../components/SortableList";
 import { CurriculumBlock, MemoryBlock } from "../../components/ProgressBlocks";
 import { MaterialPanel } from "../material/MaterialPanel";
 import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
@@ -70,19 +71,22 @@ export function ChapterPage() {
                 {chapter.topics.length === 0 ? (
                   <p className="hint">No topics yet. Upload material below, then analyze it.</p>
                 ) : (
-                  <ul className="tile-list">
-                    {chapter.topics.map((topic) => (
-                      <li key={topic.id}>
-                        <Link className="tile" to={`/courses/${courseId}/topics/${topic.id}`}>
-                          <strong>{topic.title}</strong>
-                          <span className="hint">
-                            {topic.concepts.filter((c) => c.study_state === "ACTIVE").length} of {topic.concepts.length}{" "}
-                            concepts active
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                  <SortableList
+                    items={chapter.topics}
+                    itemLabel={(topic) => topic.title}
+                    onReorder={async (ids) => {
+                      await reorder.topics(chapterId, ids);
+                      refreshTitles(queryClient, courseId);
+                    }}
+                    renderItem={(topic) => (
+                      <>
+                        <Link to={`/courses/${courseId}/topics/${topic.id}`}>{topic.title}</Link>
+                        <span className="row-meta">
+                          {topic.concepts.filter((c) => c.study_state === "ACTIVE").length} of {topic.concepts.length} concepts active
+                        </span>
+                      </>
+                    )}
+                  />
                 )}
               </section>
               <MaterialPanel courseId={courseId} chapterId={chapterId} />

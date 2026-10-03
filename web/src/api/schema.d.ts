@@ -253,6 +253,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/chapters/{chapter_id}/topic-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder Topics */
+        put: operations["reorder_topics_api_v1_chapters__chapter_id__topic_order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/chapters/{chapter_id}/topics": {
         parameters: {
             query?: never;
@@ -368,6 +385,23 @@ export interface paths {
         put?: never;
         /** Deactivate Concept */
         post: operations["deactivate_concept_api_v1_concepts__concept_id__deactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/concepts/{concept_id}/learning-item-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder Learning Items */
+        put: operations["reorder_learning_items_api_v1_concepts__concept_id__learning_item_order_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -516,6 +550,23 @@ export interface paths {
         head?: never;
         /** Update Course */
         patch: operations["update_course_api_v1_courses__course_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/chapter-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder Chapters */
+        put: operations["reorder_chapters_api_v1_courses__course_id__chapter_order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/courses/{course_id}/chapters": {
@@ -1227,6 +1278,23 @@ export interface paths {
         head?: never;
         /** Update Topic */
         patch: operations["update_topic_api_v1_topics__topic_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/topics/{topic_id}/concept-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder Concepts */
+        put: operations["reorder_concepts_api_v1_topics__topic_id__concept_order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/topics/{topic_id}/concepts": {
@@ -2403,6 +2471,14 @@ export interface components {
             /** Session Id */
             session_id?: string | null;
         };
+        /**
+         * OrderUpdate
+         * @description A parent's children in their new order (drag and drop): every child exactly once.
+         */
+        OrderUpdate: {
+            /** Ids */
+            ids: string[];
+        };
         /** OverrideCreate */
         OverrideCreate: {
             /** Note */
@@ -3452,6 +3528,39 @@ export interface operations {
             };
         };
     };
+    reorder_topics_api_v1_chapters__chapter_id__topic_order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chapter_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_topic_api_v1_chapters__chapter_id__topics_post: {
         parameters: {
             query?: never;
@@ -3725,6 +3834,39 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ConceptRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_learning_items_api_v1_concepts__concept_id__learning_item_order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                concept_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -4094,6 +4236,39 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CourseRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_chapters_api_v1_courses__course_id__chapter_order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -5572,6 +5747,39 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TopicRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_concepts_api_v1_topics__topic_id__concept_order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                topic_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

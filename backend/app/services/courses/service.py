@@ -6,14 +6,17 @@ a client-supplied id without checking it traces back to a Course the caller owns
 """
 
 import uuid
+from collections.abc import Sequence
+from typing import Protocol
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.errors import InvalidStateTransitionError, NotFoundError
+from app.core.errors import InvalidRequestError, InvalidStateTransitionError, NotFoundError
 from app.models.course import Chapter, Concept, Course, CourseSettings, Topic
 from app.models.document import Document
 from app.models.enums import StudyState
+from app.models.learning import LearningItem
 from app.schemas.courses import (
     ChapterCreate,
     ChapterUpdate,
@@ -293,3 +296,57 @@ def set_topic_paused(db: Session, user_id: uuid.UUID, topic_id: uuid.UUID, pause
     db.commit()
     db.refresh(topic)
     return topic
+
+
+# --- Order (drag and drop) ---
+
+
+class _Ordered(Protocol):
+    id: uuid.UUID
+    order: int
+
+
+def _apply_order[T: _Ordered](children: Sequence[T], ids: list[uuid.UUID]) -> None:
+    """Numbers the children 0..n-1 in the order of `ids`, which must name each child exactly once:
+    a client working from a stale list gets a 422 instead of a half-applied order."""
+    by_id = {child.id: child for child in children}
+    if len(ids) != len(by_id) or set(ids) != set(by_id):
+        raise InvalidRequestError(
+            "The list changed since it was loaded. Reload and try again.",
+            details={"reason": "order_mismatch"},
+        )
+    for index, child_id in enumerate(ids):
+        by_id[child_id].order = index
+
+
+def reorder_chapters(
+    db: Session, user_id: uuid.UUID, course_id: uuid.UUID, ids: list[uuid.UUID]
+) -> None:
+    get_owned_course(db, user_id, course_id)
+    _apply_order(db.scalars(select(Chapter).where(Chapter.course_id == course_id)).all(), ids)
+    db.commit()
+
+
+def reorder_topics(
+    db: Session, user_id: uuid.UUID, chapter_id: uuid.UUID, ids: list[uuid.UUID]
+) -> None:
+    get_owned_chapter(db, user_id, chapter_id)
+    _apply_order(db.scalars(select(Topic).where(Topic.chapter_id == chapter_id)).all(), ids)
+    db.commit()
+
+
+def reorder_concepts(
+    db: Session, user_id: uuid.UUID, topic_id: uuid.UUID, ids: list[uuid.UUID]
+) -> None:
+    get_owned_topic(db, user_id, topic_id)
+    _apply_order(db.scalars(select(Concept).where(Concept.topic_id == topic_id)).all(), ids)
+    db.commit()
+
+
+def reorder_learning_items(
+    db: Session, user_id: uuid.UUID, concept_id: uuid.UUID, ids: list[uuid.UUID]
+) -> None:
+    get_owned_concept(db, user_id, concept_id)
+    items = db.scalars(select(LearningItem).where(LearningItem.concept_id == concept_id)).all()
+    _apply_order(items, ids)
+    db.commit()
