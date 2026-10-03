@@ -16,9 +16,9 @@ from sqlalchemy.orm import Session
 
 from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, Topic
-from app.models.enums import MemoryState, SessionIntent, StudyState
+from app.models.enums import EvaluationStatus, MemoryState, SessionIntent, StudyState
 from app.models.learning import LearningItem, ReviewState
-from app.models.review import Answer, ReviewSession
+from app.models.review import Answer, Evaluation, ReviewSession
 from app.models.rewards import DailyActivity
 from app.models.user import User
 from app.schemas.dashboard import (
@@ -34,6 +34,9 @@ from app.schemas.dashboard import (
     PlannerHorizon,
     Streak,
     StreakDay,
+    WeakConcept,
+    WeakMisconception,
+    WeakSpots,
     XpSummary,
 )
 from app.services.courses.service import get_owned_course
@@ -90,6 +93,89 @@ def course_card(db: Session, user: User, course_id: uuid.UUID) -> CourseCard:
     get_owned_course(db, user.id, course_id)
     [card] = _course_cards(db, user, utc_now(), course_id=course_id)
     return card
+
+
+WEAK_SPOT_LOOKBACK = timedelta(days=90)
+WEAK_SPOT_EVALUATIONS_PER_ITEM = 3
+WEAK_SPOT_CONCEPTS = 20
+WEAK_SPOT_MISCONCEPTIONS = 5
+
+
+@dataclass
+class _Seen:
+    text: str
+    last_seen: datetime
+    count: int = 0
+
+
+def weak_spots(db: Session, user: User, course_id: uuid.UUID) -> WeakSpots:
+    get_owned_course(db, user.id, course_id)
+    # The latest few evaluations of each item, newest first (the cap is applied in SQL).
+    recent = (
+        select(
+            Answer.learning_item_id.label("item_id"),
+            Evaluation.misconceptions.label("misconceptions"),
+            Evaluation.created_at.label("created_at"),
+            func.row_number()
+            .over(partition_by=Answer.learning_item_id, order_by=Evaluation.created_at.desc())
+            .label("rank"),
+        )
+        .join(Answer, Answer.id == Evaluation.answer_id)
+        .where(
+            Evaluation.course_id == course_id,
+            Evaluation.status == EvaluationStatus.COMPLETED,
+            Evaluation.user_argument.is_(None),
+            Evaluation.created_at >= utc_now() - WEAK_SPOT_LOOKBACK,
+        )
+        .subquery()
+    )
+    rows = db.execute(
+        select(
+            Concept.id,
+            Concept.title,
+            Topic.title,
+            Chapter.title,
+            recent.c.misconceptions,
+            recent.c.created_at,
+        )
+        .join(LearningItem, LearningItem.id == recent.c.item_id)
+        .join(Concept, Concept.id == LearningItem.concept_id)
+        .join(Topic, Topic.id == Concept.topic_id)
+        .join(Chapter, Chapter.id == Concept.chapter_id)
+        .where(recent.c.rank <= WEAK_SPOT_EVALUATIONS_PER_ITEM)
+        .order_by(recent.c.created_at.desc())
+    ).all()
+
+    titles: dict[uuid.UUID, tuple[str, str, str]] = {}
+    found: dict[uuid.UUID, dict[str, _Seen]] = defaultdict(dict)
+    for concept_id, concept, topic, chapter, misconceptions, created_at in rows:
+        for text in misconceptions:
+            titles[concept_id] = (concept, topic, chapter)
+            # Rows come newest first, so the first sighting is the latest.
+            seen = found[concept_id].setdefault(
+                " ".join(text.casefold().split()), _Seen(text, created_at)
+            )
+            seen.count += 1
+
+    concepts = []
+    for concept_id, entries in found.items():
+        top = sorted(entries.values(), key=lambda e: (-e.count, -e.last_seen.timestamp()))
+        concept, topic, chapter = titles[concept_id]
+        concepts.append(
+            WeakConcept(
+                concept_id=concept_id,
+                concept_title=concept,
+                topic_title=topic,
+                chapter_title=chapter,
+                total=sum(e.count for e in entries.values()),
+                misconceptions=[
+                    WeakMisconception(text=e.text, count=e.count, last_seen=e.last_seen)
+                    for e in top[:WEAK_SPOT_MISCONCEPTIONS]
+                ],
+            )
+        )
+    concepts.sort(key=lambda c: (-c.total, c.concept_title))
+    return WeakSpots(concepts=concepts[:WEAK_SPOT_CONCEPTS])
 
 
 def activity(

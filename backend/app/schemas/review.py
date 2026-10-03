@@ -121,6 +121,10 @@ class OverrideCreate(InputModel):
     note: Annotated[str, Field(max_length=500)] | None = None
 
 
+class DisputeCreate(InputModel):
+    argument: Annotated[str, Field(min_length=3, max_length=1000)]
+
+
 class EvaluationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -139,6 +143,7 @@ class EvaluationRead(BaseModel):
     source_corrections: list[str]
     context_sufficient: bool | None
     feedback: str
+    user_argument: str | None
     ai_provider: str | None
     ai_model: str | None
     ai_model_version: str | None
@@ -183,6 +188,8 @@ class AnswerResult(BaseModel):
     text: str
     # The latest evaluation attempt; `evaluations` on GET /answers/{id} has all of them.
     evaluation: EvaluationRead | None
+    # The latest second opinion, asked for after the student disputed the grade; null if none.
+    second_opinion: EvaluationRead | None = None
     resolved_outcome: ReviewOutcome | None
     resolver_version: str | None
     override_outcome: ReviewOutcome | None

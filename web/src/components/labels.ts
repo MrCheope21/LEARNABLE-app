@@ -81,3 +81,10 @@ export function sourceSummary(source: Schemas["ProposalSource"]): string {
   if (source.section) parts.push(source.section);
   return parts.join(" · ");
 }
+
+const SECONDS_PER_REVIEW = 45;
+
+/** Rough study time for a number of scheduled reviews, at least a minute. */
+export function studyMinutes(items: number): number {
+  return items <= 0 ? 0 : Math.max(1, Math.round((items * SECONDS_PER_REVIEW) / 60));
+}

@@ -43,6 +43,8 @@ export const dashboard = {
   activity: (weeks: number) => call(api.GET("/api/v1/activity", { params: { query: { weeks } } })),
   courseSummary: (courseId: Id) =>
     call(api.GET("/api/v1/courses/{course_id}/summary", { params: { path: { course_id: courseId } } })),
+  weakSpots: (courseId: Id) =>
+    call(api.GET("/api/v1/courses/{course_id}/weak-spots", { params: { path: { course_id: courseId } } })),
 };
 
 export const courses = {
@@ -292,6 +294,14 @@ export const study = {
     call(
       api.POST("/api/v1/answers/{answer_id}/evaluate", {
         params: { path: { answer_id: answerId } },
+      }),
+    ),
+  /** A second opinion: the evaluator sees the student's objection. Changes no grade. */
+  dispute: (answerId: Id, argument: string) =>
+    call(
+      api.POST("/api/v1/answers/{answer_id}/dispute", {
+        params: { path: { answer_id: answerId } },
+        body: { argument },
       }),
     ),
   override: (answerId: Id, outcome: Schemas["ReviewOutcome"]) =>

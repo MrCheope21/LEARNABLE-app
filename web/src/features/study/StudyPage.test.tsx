@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { failWith, mockApi, ok, sequence } from "../../test/mockApi";
@@ -43,7 +43,9 @@ describe("study session", () => {
 
     // The backend's evaluation, reference and schedule are shown as returned.
     expect(await screen.findByText("Good")).toBeInTheDocument();
-    expect(screen.getByText("What you got right")).toBeInTheDocument();
+    // The evaluation is a breakdown and a checklist, not one grade.
+    expect(screen.getByRole("list", { name: "Score breakdown" })).toBeInTheDocument();
+    expect(within(screen.getByRole("list", { name: "What your answer covered" })).getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByText(/Next review:/)).toBeInTheDocument();
     expect(localStorage.getItem(draftKey)).toBeNull();
     const answer = requests.find((r) => r.path.endsWith("/answers"));

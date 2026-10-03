@@ -154,6 +154,12 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     [withResult],
   );
 
+  /** Asks the evaluator again with the student's objection; no grade changes. */
+  const dispute = useCallback(
+    (argument: string) => withResult((r) => study.dispute(r.answer_id, argument)),
+    [withResult],
+  );
+
   /** Reveals the hint for the current question. The server records it first (half XP). */
   const revealHint = useCallback(async () => {
     const current = sessionRef.current;
@@ -216,6 +222,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     beginRecall,
     submit,
     override,
+    dispute,
     revealHint,
     retryEvaluation,
     skip,

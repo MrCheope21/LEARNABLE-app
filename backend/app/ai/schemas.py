@@ -196,6 +196,8 @@ class EvaluationRequest:
     # The Learning Item's own source passages: the authority for this evaluation (spec §19).
     passages: list[SourcePassage]
     answer: str
+    # A second opinion only: why the student disagrees with the first evaluation.
+    user_argument: str | None = None
 
 
 Score = Annotated[float, Field(ge=0.0, le=1.0)]

@@ -2,18 +2,22 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { Schemas } from "../../api/client";
-import { concepts, courses } from "../../api/endpoints";
-import { XpIcon } from "../../app/AppShell";
+import { concepts, courses, dashboard } from "../../api/endpoints";
+import { dashboardKey, XpIcon } from "../../app/AppShell";
 import { BrandLogo } from "../../brand/BrandLogo";
 import { ErrorBanner } from "../../components/QueryState";
 import {
-  classificationLabel,
   dateTime,
   outcomeExplanation,
   outcomeLabel,
+  studyMinutes,
   userGrades,
 } from "../../components/labels";
+import { courseProgressKey, weakSpotsKey } from "../curriculum/CourseLayout";
+import { homeKey } from "../home/HomePage";
 import { SourceLink, SourcePanel, type SourceRef } from "../source/SourcePanel";
+import { DisputeForm } from "./DisputeForm";
+import { EvaluationView } from "./EvaluationView";
 import { useStudySession, type AnswerView, type Card } from "./useStudySession";
 
 const intentTitle: Record<Schemas["SessionIntent"], string> = {
@@ -74,9 +78,10 @@ export function StudyPage() {
   const graded = Object.keys(s.outcomes).length;
   useEffect(() => {
     if (graded === 0) return;
-    void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    void queryClient.invalidateQueries({ queryKey: ["home"] });
-    void queryClient.invalidateQueries({ queryKey: ["progress", courseId] });
+    void queryClient.invalidateQueries({ queryKey: dashboardKey });
+    void queryClient.invalidateQueries({ queryKey: homeKey });
+    void queryClient.invalidateQueries({ queryKey: courseProgressKey(courseId) });
+    void queryClient.invalidateQueries({ queryKey: weakSpotsKey(courseId) });
   }, [graded, queryClient, courseId]);
 
   const close = async () => {
@@ -306,6 +311,12 @@ function Result({
   const evaluation = result.evaluation;
   const outcome = result.final_outcome;
   const evaluationFailed = evaluation && evaluation.status !== "COMPLETED";
+  const showDispute = disputing && evaluation?.status === "COMPLETED";
+  const gradeTitle = result.needs_self_grade
+    ? "How well did you know it?"
+    : showDispute
+      ? "Or grade it yourself"
+      : "Your grade";
 
   return (
     <article className="card result">
@@ -325,32 +336,21 @@ function Result({
         ) : (
           <span className="outcome-badge">Needs your grade</span>
         )}
-        {evaluation?.classification && (
-          <span className="hint">AI evaluation: {classificationLabel[evaluation.classification]}</span>
-        )}
       </header>
 
       <Award result={result} />
 
-      {evaluation && evaluationFailed && (
-        <p className="banner warning" role="status">
-          {evaluation.error_message ?? "The answer couldn't be evaluated."}
-        </p>
+      {evaluation && (
+        <section className="evaluation" aria-label="First evaluation">
+          {result.second_opinion && <h3>First evaluation</h3>}
+          <EvaluationView evaluation={evaluation} />
+        </section>
       )}
-      {evaluation && !evaluationFailed && (
-        <section className="evaluation">
-          {evaluation.feedback && <p>{evaluation.feedback}</p>}
-          {evaluation.context_sufficient === false && (
-            <p className="banner warning">The course material doesn't cover this well enough to grade it.</p>
-          )}
-          <div className="point-grid">
-            {evaluation.correct_points.length > 0 && <Points title="What you got right" points={evaluation.correct_points} tone="good" />}
-            {evaluation.missing_points.length > 0 && <Points title="What was missing" points={evaluation.missing_points} tone="warn" />}
-            {evaluation.misconceptions.length > 0 && <Points title="Misconceptions" points={evaluation.misconceptions} tone="bad" />}
-            {evaluation.source_corrections.length > 0 && (
-              <Points title="What the material says" points={evaluation.source_corrections} />
-            )}
-          </div>
+      {result.second_opinion && (
+        <section className="evaluation second-opinion" aria-label="Second opinion">
+          <h3>Second opinion</h3>
+          <p className="hint">After your objection: “{result.second_opinion.user_argument}”</p>
+          <EvaluationView evaluation={result.second_opinion} />
         </section>
       )}
 
@@ -367,7 +367,8 @@ function Result({
 
       {gradeMode ? (
         <section className="grades" aria-label="Your grade">
-          <h3>{result.needs_self_grade ? "How well did you know it?" : "Your grade"}</h3>
+          {showDispute && <DisputeForm working={s.working} onAsk={s.dispute} />}
+          <h3>{gradeTitle}</h3>
           <div className="grade-row">
             {userGrades.map((grade, index) => (
               <button
@@ -443,10 +444,20 @@ function ScheduleNote({ result }: { result: AnswerView }) {
 }
 
 function Finished({ s, onClose }: { s: Session; onClose: () => void }) {
+  const [now] = useState(() => Date.now());
+  const dueNow = useQuery({
+    queryKey: dashboardKey,
+    queryFn: dashboard.get,
+    select: (d) => d.planner.horizons.find((h) => h.key === "now")?.items ?? 0,
+  });
+  if (s.session?.intent === "CONSOLIDATION") return <ConsolidationDone s={s} onClose={onClose} />;
   const counts = userGrades
     .map((grade) => [grade, Object.values(s.outcomes).filter((o) => o === grade).length] as const)
     .filter(([, count]) => count > 0);
-  if (s.session?.intent === "CONSOLIDATION") return <ConsolidationDone s={s} onClose={onClose} />;
+  const answered = Object.keys(s.outcomes).length;
+  const wentWell = Object.values(s.outcomes).filter((o) => o === "GOOD" || o === "EASY").length;
+  const started = s.session ? Date.parse(s.session.started_at) : now;
+  const minutes = Math.max(1, Math.round((now - started) / 60_000));
   return (
     <div className="state">
       <h2>Session complete</h2>
@@ -455,7 +466,10 @@ function Finished({ s, onClose }: { s: Session; onClose: () => void }) {
           <XpIcon /> +{s.session.xp_earned} XP this session
         </p>
       )}
-      <p>Answered: {Object.keys(s.outcomes).length}</p>
+      <p>
+        {answered} {answered === 1 ? "answer" : "answers"} in about {minutes} min.
+        {answered > 0 && ` ${wentWell} went well.`}
+      </p>
       <ul className="inline-list">
         {counts.map(([grade, count]) => (
           <li key={grade}>
@@ -463,6 +477,20 @@ function Finished({ s, onClose }: { s: Session; onClose: () => void }) {
           </li>
         ))}
       </ul>
+      {answered > 0 && (
+        <p className="hint">
+          {wentWell * 10 >= answered * 7
+            ? "Steady work: this is settling in."
+            : "The ones that went badly come back soon, which is how they stick."}
+        </p>
+      )}
+      {dueNow.data !== undefined && (
+        <p className="hint">
+          {dueNow.data > 0
+            ? `Still due now: ${dueNow.data} (about ${studyMinutes(dueNow.data)} min).`
+            : "Nothing else is due right now."}
+        </p>
+      )}
       <button type="button" className="primary" onClick={onClose}>
         Done
       </button>
@@ -470,9 +498,9 @@ function Finished({ s, onClose }: { s: Session; onClose: () => void }) {
   );
 }
 
-function Points({ title, points, tone }: { title: string; points: string[]; tone?: "good" | "warn" | "bad" }) {
+function Points({ title, points }: { title: string; points: string[] }) {
   return (
-    <section className={tone ? `points points-${tone}` : "points"}>
+    <section className="points">
       <h3>{title}</h3>
       <ul>
         {points.map((point, index) => (

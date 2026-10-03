@@ -139,6 +139,7 @@ class Evaluation(Base):
     a failure is a new row."""
 
     __tablename__ = "evaluations"
+    __table_args__ = (Index("ix_evaluations_course_id_created_at", "course_id", "created_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     answer_id: Mapped[uuid.UUID] = mapped_column(
@@ -164,6 +165,9 @@ class Evaluation(Base):
     source_corrections: Mapped[list[str]] = mapped_column(JSON, default=list)
     context_sufficient: Mapped[bool | None] = mapped_column(Boolean, default=None)
     feedback: Mapped[str] = mapped_column(Text, default="")
+    # Set on a second opinion: the student's objection to the first evaluation, which the
+    # evaluator was shown. Such a row never decides the outcome, the schedule or XP.
+    user_argument: Mapped[str | None] = mapped_column(String(1000), default=None)
     ai_provider: Mapped[str | None] = mapped_column(String(50), default=None)
     ai_model: Mapped[str | None] = mapped_column(String(200), default=None)
     ai_model_version: Mapped[str | None] = mapped_column(String(200), default=None)

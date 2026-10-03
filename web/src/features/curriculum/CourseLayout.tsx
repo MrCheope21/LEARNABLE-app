@@ -7,6 +7,7 @@ import { studyStateLabel } from "../../components/labels";
 
 export const outlineKey = (courseId: string) => ["outline", courseId] as const;
 export const courseProgressKey = (courseId: string) => ["progress", courseId] as const;
+export const weakSpotsKey = (courseId: string) => ["weak-spots", courseId] as const;
 
 /** After a rename: every view that shows a course, chapter, topic or concept title. */
 export function refreshTitles(queryClient: QueryClient, courseId: string) {
@@ -113,6 +114,9 @@ export function CourseLayout() {
         </NavLink>
         <NavLink to={`/courses/${courseId}/questions`} className="tree-extra">
           Manage questions
+        </NavLink>
+        <NavLink to={`/courses/${courseId}/weak-spots`} className="tree-extra">
+          What you keep getting wrong
         </NavLink>
       </nav>
       <div className="workspace-main">
