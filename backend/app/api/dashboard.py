@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.dashboard import Activity, CourseCard, Dashboard
+from app.schemas.dashboard import Activity, CourseCard, Dashboard, WeakSpots
 from app.services.dashboard import service
 
 router = APIRouter(tags=["dashboard"])
@@ -37,6 +37,12 @@ def activity(
 ) -> Activity:
     """The longer activity calendar ("See more")."""
     return service.activity(db, user, weeks)
+
+
+@router.get("/courses/{course_id}/weak-spots", response_model=WeakSpots)
+def weak_spots(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> WeakSpots:
+    """ "What you keep getting wrong": recent misconceptions per concept."""
+    return service.weak_spots(db, user, course_id)
 
 
 @router.get("/courses/{course_id}/summary", response_model=CourseCard)

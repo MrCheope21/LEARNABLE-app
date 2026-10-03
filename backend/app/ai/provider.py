@@ -294,6 +294,11 @@ class LLMAIProvider:
                     passages="\n\n".join(_format_passage(p) for p in request.passages)
                     or "(no source passages)",
                     answer=request.answer,
+                )
+                + (
+                    evaluation_prompt.OBJECTION.substitute(argument=request.user_argument)
+                    if request.user_argument
+                    else ""
                 ),
             ),
         ]

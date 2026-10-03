@@ -4,6 +4,7 @@ import type { Schemas } from "../../api/client";
 import { auth, dashboard, deviceTimezone } from "../../api/endpoints";
 import { dashboardKey, FlameIcon, meKey, XpIcon } from "../../app/AppShell";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
+import { studyMinutes } from "../../components/labels";
 import { studyLink } from "../study/StudyPage";
 import { CourseLibrary } from "./CourseLibrary";
 import { ActivityWidget, ExperienceWidget, GoalWidget, PlannerWidget, StreakWidget } from "./Widgets";
@@ -112,7 +113,7 @@ function nextStepContent(step: Schemas["NextStep"]): { title: string; detail?: s
     case "review":
       return {
         title: `Review ${step.count ?? 0} ${step.count === 1 ? "item" : "items"}`,
-        detail: step.course_title ?? undefined,
+        detail: [step.course_title, `about ${studyMinutes(step.count ?? 0)} min`].filter(Boolean).join(" · "),
         action: "Start review",
         to: step.course_id ? studyLink(step.course_id, "SCHEDULED_REVIEW") : null,
       };

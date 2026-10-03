@@ -98,11 +98,13 @@ ENDPOINTS = [
     ("GET", "/api/v1/answers/{answer}", {}),
     ("POST", "/api/v1/answers/{answer}/evaluate", {}),
     ("POST", "/api/v1/answers/{answer}/override", {"json": {"outcome": "EASY"}}),
+    ("POST", "/api/v1/answers/{answer}/dispute", {"json": {"argument": "I disagree"}}),
     ("GET", "/api/v1/concepts/{concept}/consolidation", {}),
     ("POST", "/api/v1/concepts/{concept}/consolidation", {}),
     ("POST", "/api/v1/review-sessions/{session}/hint", {}),
     ("GET", "/api/v1/documents/{document}/file", {}),
     ("GET", "/api/v1/courses/{course}/summary", {}),
+    ("GET", "/api/v1/courses/{course}/weak-spots", {}),
     ("GET", "/api/v1/courses/{course}/learning-items", {}),
     (
         "POST",

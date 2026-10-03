@@ -41,6 +41,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/answers/{answer_id}/dispute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dispute
+         * @description A second opinion: the evaluator sees the student's objection. Changes no grade.
+         */
+        post: operations["dispute_api_v1_answers__answer_id__dispute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/answers/{answer_id}/evaluate": {
         parameters: {
             query?: never;
@@ -803,6 +823,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courses/{course_id}/weak-spots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Weak Spots
+         * @description "What you keep getting wrong": recent misconceptions per concept.
+         */
+        get: operations["weak_spots_api_v1_courses__course_id__weak_spots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/curriculum-proposals/{proposal_id}": {
         parameters: {
             query?: never;
@@ -1460,6 +1500,7 @@ export interface components {
             /** Resolver Version */
             resolver_version: string | null;
             schedule: components["schemas"]["ScheduleChange"] | null;
+            second_opinion?: components["schemas"]["EvaluationRead"] | null;
             session: components["schemas"]["SessionRead"];
             /** Text */
             text: string;
@@ -1505,6 +1546,7 @@ export interface components {
             /** Resolver Version */
             resolver_version: string | null;
             schedule: components["schemas"]["ScheduleChange"] | null;
+            second_opinion?: components["schemas"]["EvaluationRead"] | null;
             session: components["schemas"]["SessionRead"];
             /** Text */
             text: string;
@@ -1942,7 +1984,7 @@ export interface components {
             /** Title */
             title: string;
             /** Weak Concepts */
-            weak_concepts: components["schemas"]["WeakConcept"][];
+            weak_concepts: components["schemas"]["app__schemas__progress__WeakConcept"][];
         };
         /** CourseUpdate */
         CourseUpdate: {
@@ -2075,6 +2117,11 @@ export interface components {
             today: string;
             xp: components["schemas"]["XpSummary"];
         };
+        /** DisputeCreate */
+        DisputeCreate: {
+            /** Argument */
+            argument: string;
+        };
         /**
          * DocumentKind
          * @description File types the Knowledge Repository accepts (docs/PROJECT_SPEC.md §16).
@@ -2196,6 +2243,8 @@ export interface components {
             /** Source Corrections */
             source_corrections: string[];
             status: components["schemas"]["EvaluationStatus"];
+            /** User Argument */
+            user_argument: string | null;
         };
         /**
          * EvaluationStatus
@@ -3005,19 +3054,23 @@ export interface components {
             /** Error Type */
             type: string;
         };
-        /** WeakConcept */
-        WeakConcept: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Lapses */
-            lapses: number;
-            /** Marked Hard */
-            marked_hard: number;
-            /** Title */
-            title: string;
+        /** WeakMisconception */
+        WeakMisconception: {
+            /** Count */
+            count: number;
+            /** Last Seen */
+            last_seen: string;
+            /** Text */
+            text: string;
+        };
+        /**
+         * WeakSpots
+         * @description Misconceptions the evaluator keeps finding, by concept: the last few evaluations of each
+         *     item, so something fixed stops showing once it has been answered correctly.
+         */
+        WeakSpots: {
+            /** Concepts */
+            concepts: components["schemas"]["app__schemas__dashboard__WeakConcept"][];
         };
         /**
          * XpReason
@@ -3048,6 +3101,38 @@ export interface components {
             today: number;
             /** Total */
             total: number;
+        };
+        /** WeakConcept */
+        app__schemas__dashboard__WeakConcept: {
+            /** Chapter Title */
+            chapter_title: string;
+            /**
+             * Concept Id
+             * Format: uuid
+             */
+            concept_id: string;
+            /** Concept Title */
+            concept_title: string;
+            /** Misconceptions */
+            misconceptions: components["schemas"]["WeakMisconception"][];
+            /** Topic Title */
+            topic_title: string;
+            /** Total */
+            total: number;
+        };
+        /** WeakConcept */
+        app__schemas__progress__WeakConcept: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lapses */
+            lapses: number;
+            /** Marked Hard */
+            marked_hard: number;
+            /** Title */
+            title: string;
         };
     };
     responses: never;
@@ -3107,6 +3192,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnswerDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dispute_api_v1_answers__answer_id__dispute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisputeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerResult"];
                 };
             };
             /** @description Validation Error */
@@ -4728,6 +4848,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CourseCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    weak_spots_api_v1_courses__course_id__weak_spots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeakSpots"];
                 };
             };
             /** @description Validation Error */

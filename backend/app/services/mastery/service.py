@@ -273,7 +273,11 @@ def _misconceptions(db: Session, course_id: uuid.UUID) -> dict[uuid.UUID, list[s
         select(LearningItem.concept_id, Evaluation.misconceptions)
         .join(Answer, Answer.id == Evaluation.answer_id)
         .join(LearningItem, LearningItem.id == Answer.learning_item_id)
-        .where(Evaluation.course_id == course_id, LearningItem.course_id == course_id)
+        .where(
+            Evaluation.course_id == course_id,
+            LearningItem.course_id == course_id,
+            Evaluation.user_argument.is_(None),
+        )
         .order_by(Evaluation.created_at.desc())
         .limit(500)
     ).tuples()

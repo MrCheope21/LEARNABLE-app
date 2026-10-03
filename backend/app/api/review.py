@@ -16,6 +16,7 @@ from app.schemas.review import (
     AnswerDetail,
     AnswerResult,
     ConsolidationPlan,
+    DisputeCreate,
     HintState,
     OverrideCreate,
     ReviewRead,
@@ -123,6 +124,18 @@ def retry_evaluation(
 ) -> AnswerResult:
     """Evaluates again after a failed (or unconfigured) attempt."""
     return service.retry_evaluation(db, provider, user.id, answer_id)
+
+
+@router.post("/answers/{answer_id}/dispute", response_model=AnswerResult)
+def dispute(
+    answer_id: uuid.UUID,
+    payload: DisputeCreate,
+    db: Session = DB,
+    user: User = CurrentUser,
+    provider: AIProvider | None = Provider,
+) -> AnswerResult:
+    """A second opinion: the evaluator sees the student's objection. Changes no grade."""
+    return service.dispute(db, provider, user.id, answer_id, payload)
 
 
 @router.post("/answers/{answer_id}/override", response_model=AnswerResult)

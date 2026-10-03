@@ -223,6 +223,16 @@
               }
             ]
           },
+          "second_opinion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvaluationRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "session": {
             "$ref": "#/components/schemas/SessionRead"
           },
@@ -370,6 +380,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/ScheduleChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "second_opinion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvaluationRead"
               },
               {
                 "type": "null"
@@ -1511,7 +1531,7 @@
           },
           "weak_concepts": {
             "items": {
-              "$ref": "#/components/schemas/WeakConcept"
+              "$ref": "#/components/schemas/app__schemas__progress__WeakConcept"
             },
             "title": "Weak Concepts",
             "type": "array"
@@ -1952,6 +1972,22 @@
         "title": "Dashboard",
         "type": "object"
       },
+      "DisputeCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "argument": {
+            "maxLength": 1000,
+            "minLength": 3,
+            "title": "Argument",
+            "type": "string"
+          }
+        },
+        "required": [
+          "argument"
+        ],
+        "title": "DisputeCreate",
+        "type": "object"
+      },
       "DocumentKind": {
         "description": "File types the Knowledge Repository accepts (docs/PROJECT_SPEC.md \u00a716).",
         "enum": [
@@ -2335,6 +2371,17 @@
           },
           "status": {
             "$ref": "#/components/schemas/EvaluationStatus"
+          },
+          "user_argument": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Argument"
           }
         },
         "required": [
@@ -2353,6 +2400,7 @@
           "source_corrections",
           "context_sufficient",
           "feedback",
+          "user_argument",
           "ai_provider",
           "ai_model",
           "ai_model_version",
@@ -4576,33 +4624,44 @@
         "title": "ValidationError",
         "type": "object"
       },
-      "WeakConcept": {
+      "WeakMisconception": {
         "properties": {
-          "id": {
-            "format": "uuid",
-            "title": "Id",
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "last_seen": {
+            "title": "Last Seen",
             "type": "string"
           },
-          "lapses": {
-            "title": "Lapses",
-            "type": "integer"
-          },
-          "marked_hard": {
-            "title": "Marked Hard",
-            "type": "integer"
-          },
-          "title": {
-            "title": "Title",
+          "text": {
+            "title": "Text",
             "type": "string"
           }
         },
         "required": [
-          "id",
-          "title",
-          "lapses",
-          "marked_hard"
+          "text",
+          "count",
+          "last_seen"
         ],
-        "title": "WeakConcept",
+        "title": "WeakMisconception",
+        "type": "object"
+      },
+      "WeakSpots": {
+        "description": "Misconceptions the evaluator keeps finding, by concept: the last few evaluations of each\nitem, so something fixed stops showing once it has been answered correctly.",
+        "properties": {
+          "concepts": {
+            "items": {
+              "$ref": "#/components/schemas/app__schemas__dashboard__WeakConcept"
+            },
+            "title": "Concepts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "concepts"
+        ],
+        "title": "WeakSpots",
         "type": "object"
       },
       "XpReason": {
@@ -4675,6 +4734,77 @@
           "today"
         ],
         "title": "XpSummary",
+        "type": "object"
+      },
+      "app__schemas__dashboard__WeakConcept": {
+        "properties": {
+          "chapter_title": {
+            "title": "Chapter Title",
+            "type": "string"
+          },
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "concept_title": {
+            "title": "Concept Title",
+            "type": "string"
+          },
+          "misconceptions": {
+            "items": {
+              "$ref": "#/components/schemas/WeakMisconception"
+            },
+            "title": "Misconceptions",
+            "type": "array"
+          },
+          "topic_title": {
+            "title": "Topic Title",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "concept_id",
+          "concept_title",
+          "topic_title",
+          "chapter_title",
+          "total",
+          "misconceptions"
+        ],
+        "title": "WeakConcept",
+        "type": "object"
+      },
+      "app__schemas__progress__WeakConcept": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lapses": {
+            "title": "Lapses",
+            "type": "integer"
+          },
+          "marked_hard": {
+            "title": "Marked Hard",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "lapses",
+          "marked_hard"
+        ],
+        "title": "WeakConcept",
         "type": "object"
       }
     },
@@ -4785,6 +4915,65 @@
           }
         ],
         "summary": "Get Answer",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/v1/answers/{answer_id}/dispute": {
+      "post": {
+        "description": "A second opinion: the evaluator sees the student's objection. Changes no grade.",
+        "operationId": "dispute_api_v1_answers__answer_id__dispute_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "answer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Answer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisputeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dispute",
         "tags": [
           "review"
         ]
@@ -7317,6 +7506,55 @@
           }
         ],
         "summary": "Course Summary",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/weak-spots": {
+      "get": {
+        "description": "\"What you keep getting wrong\": recent misconceptions per concept.",
+        "operationId": "weak_spots_api_v1_courses__course_id__weak_spots_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeakSpots"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Weak Spots",
         "tags": [
           "dashboard"
         ]

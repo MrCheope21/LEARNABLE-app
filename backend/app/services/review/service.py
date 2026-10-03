@@ -27,7 +27,7 @@ import logging
 import uuid
 from dataclasses import replace
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -55,6 +55,7 @@ from app.schemas.review import (
     AnswerResult,
     Card,
     CardQuestion,
+    DisputeCreate,
     EvaluationRead,
     HintState,
     Introduction,
@@ -467,12 +468,45 @@ def retry_evaluation(
             "This answer was evaluated but the result was inconclusive: grade it yourself.",
             details={"reason": "evaluation_inconclusive"},
         )
-    question = db.get(QuestionFormulation, answer.question_formulation_id)
-    if question is None:
-        raise NotFoundError("Question not found")
-    transition = _evaluate_and_apply(db, provider, session, item, answer, question)
+    transition = _evaluate_and_apply(db, provider, session, item, answer, _question_of(db, answer))
     _commit_finalization(db)
     return _result(db, answer, session, item, transition)
+
+
+MAX_SECOND_OPINIONS = 3
+
+
+def dispute(
+    db: Session,
+    provider: AIProvider | None,
+    user_id: uuid.UUID,
+    answer_id: uuid.UUID,
+    payload: DisputeCreate,
+) -> AnswerResult:
+    """Asks the evaluator again with the student's objection. The result is stored and shown
+    beside the first evaluation; it never changes the outcome, the schedule or XP: if the
+    student agrees with it, they grade the answer themselves (override)."""
+    answer, session, item = _owned_answer(db, user_id, answer_id)
+    first = _latest_evaluation(db, answer)
+    if first is None or first.status is not EvaluationStatus.COMPLETED:
+        raise ConflictError(
+            "There is no completed evaluation to dispute yet.",
+            details={"reason": "nothing_to_dispute"},
+        )
+    asked = db.scalar(
+        select(func.count())
+        .select_from(Evaluation)
+        .where(Evaluation.answer_id == answer.id, Evaluation.user_argument.is_not(None))
+    )
+    if (asked or 0) >= MAX_SECOND_OPINIONS:
+        raise ConflictError(
+            "This answer already had the maximum number of second opinions.",
+            details={"reason": "dispute_limit"},
+        )
+    question = _question_of(db, answer)
+    db.add(_evaluate(db, provider, item, answer, question, argument=payload.argument.strip()))
+    db.commit()
+    return _result(db, answer, session, item, None)
 
 
 def override(
@@ -550,8 +584,9 @@ def _evaluate(
     item: LearningItem,
     answer: Answer,
     question: QuestionFormulation,
+    argument: str | None = None,
 ) -> Evaluation:
-    base = Evaluation(answer_id=answer.id, course_id=answer.course_id)
+    base = Evaluation(answer_id=answer.id, course_id=answer.course_id, user_argument=argument)
     if provider is None:
         base.status = EvaluationStatus.NOT_CONFIGURED
         base.error_message = _NOT_CONFIGURED
@@ -565,6 +600,7 @@ def _evaluate(
         essential_points=list(item.essential_points),
         passages=_item_passages(db, item),
         answer=answer.text,
+        user_argument=argument,
     )
     try:
         result = provider.evaluate_answer(request)
@@ -801,13 +837,28 @@ def list_item_reviews(db: Session, user_id: uuid.UUID, item_id: uuid.UUID) -> li
     )
 
 
-def _latest_evaluation(db: Session, answer: Answer) -> Evaluation | None:
+def _latest_evaluation(
+    db: Session, answer: Answer, *, second_opinion: bool = False
+) -> Evaluation | None:
+    """The latest first-line evaluation, or with `second_opinion` the latest one asked for
+    after an objection. The two never stand in for each other."""
+    marker = Evaluation.user_argument
     return db.scalar(
         select(Evaluation)
-        .where(Evaluation.answer_id == answer.id)
+        .where(
+            Evaluation.answer_id == answer.id,
+            marker.is_not(None) if second_opinion else marker.is_(None),
+        )
         .order_by(Evaluation.created_at.desc())
         .limit(1)
     )
+
+
+def _question_of(db: Session, answer: Answer) -> QuestionFormulation:
+    question = db.get(QuestionFormulation, answer.question_formulation_id)
+    if question is None:
+        raise NotFoundError("Question not found")
+    return question
 
 
 def _result(
@@ -818,6 +869,7 @@ def _result(
     transition: Transition | None,
 ) -> AnswerResult:
     latest = _latest_evaluation(db, answer)
+    second = _latest_evaluation(db, answer, second_opinion=True)
     schedule = None
     if transition is not None:
         schedule = ScheduleChange(
@@ -836,6 +888,7 @@ def _result(
         intent=answer.intent,
         text=answer.text,
         evaluation=EvaluationRead.model_validate(latest) if latest else None,
+        second_opinion=EvaluationRead.model_validate(second) if second else None,
         resolved_outcome=answer.resolved_outcome,
         resolver_version=answer.resolver_version,
         override_outcome=answer.override_outcome,

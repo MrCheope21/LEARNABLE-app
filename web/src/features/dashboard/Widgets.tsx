@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
+import { studyMinutes } from "../../components/labels";
 import { auth } from "../../api/endpoints";
 import { dashboardKey, FlameIcon, meKey, XpIcon } from "../../app/AppShell";
 import { ErrorBanner } from "../../components/QueryState";
@@ -161,6 +162,12 @@ export function PlannerWidget({ planner }: { planner: Dashboard["planner"] }) {
   return (
     <section className="card widget" aria-labelledby="planner-title">
       <h2 id="planner-title">Time planner</h2>
+      {planner.horizons[0]?.key === "now" && planner.horizons[0].items > 0 && (
+        <p className="planner-now">
+          <strong>{planner.horizons[0].items.toLocaleString()}</strong> due now: about{" "}
+          {studyMinutes(planner.horizons[0].items)} min
+        </p>
+      )}
       <table className="table planner">
         <caption className="sr-only">Reviews due by each time, including overdue ones</caption>
         <thead>

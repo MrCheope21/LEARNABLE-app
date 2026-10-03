@@ -11,6 +11,7 @@ import { CourseLayout } from "../features/curriculum/CourseLayout";
 import { CourseOverview } from "../features/curriculum/CourseOverview";
 import { ProposalPage } from "../features/curriculum/ProposalPage";
 import { QuestionsPage } from "../features/curriculum/QuestionsPage";
+import { WeakSpotsPage } from "../features/curriculum/WeakSpotsPage";
 import { TopicPage } from "../features/curriculum/TopicPage";
 import { CoursesPage } from "../features/courses/CoursesPage";
 import { ActivityPage } from "../features/dashboard/ActivityPage";
@@ -66,6 +67,7 @@ function SignedInRoutes() {
           <Route path="proposals/:proposalId" element={<ProposalPage />} />
           <Route path="material" element={<CourseMaterialRoute />} />
           <Route path="questions" element={<QuestionsPage />} />
+          <Route path="weak-spots" element={<WeakSpotsPage />} />
         </Route>
         <Route path="review" element={<ReviewHubPage />} />
         <Route path="progress" element={<ProgressPage />} />

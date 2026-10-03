@@ -97,6 +97,29 @@ class Planner(BaseModel):
     horizons: list[PlannerHorizon]
 
 
+class WeakMisconception(BaseModel):
+    text: str
+    # In how many of the item's recent evaluations it appeared.
+    count: int
+    last_seen: UTCTimestamp
+
+
+class WeakConcept(BaseModel):
+    concept_id: UUID
+    concept_title: str
+    topic_title: str
+    chapter_title: str
+    total: int
+    misconceptions: list[WeakMisconception]
+
+
+class WeakSpots(BaseModel):
+    """Misconceptions the evaluator keeps finding, by concept: the last few evaluations of each
+    item, so something fixed stops showing once it has been answered correctly."""
+
+    concepts: list[WeakConcept]
+
+
 class ActivityDay(BaseModel):
     date: date
     attempts: int
