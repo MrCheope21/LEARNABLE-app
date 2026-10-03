@@ -274,6 +274,7 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .drag-handle:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
 .question-list.sortable-list .sortable-row { padding: 0.25rem 0.5rem; }
 .question-list.sortable-list .sortable-content { display: block; }
+.question-list .item-entry { display: grid; gap: 0.5rem; }
 
 /* Collapsible sections (components/Collapsible.tsx) */
 .collapse-toggle { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; min-height: 0; padding: 0; border: none; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }

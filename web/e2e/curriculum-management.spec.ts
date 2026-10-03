@@ -131,3 +131,23 @@ test("chapters, topics and concepts collapse one by one, and stay collapsed afte
   await page.goto(`/courses/${course.id}/concepts/${course.concept}`);
   await expect(tree.getByRole("link", { name: "Concept" })).toBeVisible();
 });
+
+test("learning items reorder on the concept page too", async ({ page, request }) => {
+  const email = `concept-reorder-${Date.now()}@example.com`;
+  const { token, course } = await setUp(request, email);
+  await signIn(page, email);
+  await page.goto(`/courses/${course.id}/concepts/${course.concept}`);
+  const rows = page.locator(".question-list .sortable-row");
+  await expect(rows).toHaveText([/First/, /Second/, /Third/]);
+  await page.getByRole("button", { name: "Reorder First question?" }).focus();
+  const save = saved(page, /\/learning-item-order$/);
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("status").filter({ hasText: /First.*position 1 of 3/ })).toBeAttached();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("status").filter({ hasText: "First question? is now at position 2 of 3" })).toBeAttached();
+  await page.keyboard.press("Space");
+  expect((await save).status()).toBe(204);
+  await expect(rows).toHaveText([/Second/, /First/, /Third/]);
+  const listed = (await (await request.get(`/api/v1/concepts/${course.concept}/learning-items`, { headers: { Authorization: `Bearer ${token}` } })).json()) as { title: string }[];
+  expect(listed.map((i) => i.title)).toEqual(["Second question?", "First question?", "Third question?"]);
+});

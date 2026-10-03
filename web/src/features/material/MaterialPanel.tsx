@@ -3,6 +3,7 @@ import { useId, useRef, useState, type FormEvent } from "react";
 import type { Schemas } from "../../api/client";
 import { documents } from "../../api/endpoints";
 import { userMessage } from "../../api/client";
+import { CollapseToggle, useCollapsed } from "../../components/Collapsible";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { dateTime } from "../../components/labels";
 import { outlineKey } from "../curriculum/CourseLayout";
@@ -39,6 +40,9 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
   const pending = upload.isPending ? upload.variables.purpose : null;
   const [pasting, setPasting] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const collapse = useCollapsed("learnable.material.collapsed");
+  const panelId = `material-${chapterId ?? courseId}`;
+  const expanded = !collapse.isCollapsed(panelId);
 
   const download = async (documentId: string, filename: string) => {
     setDownloadError(null);
@@ -73,7 +77,20 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
   return (
     <section className="card" aria-labelledby="material-heading">
       <header className="card-header">
-        <h2 id="material-heading">{chapterId ? "Chapter material" : "All study material"}</h2>
+        <div className="section-heading">
+          <CollapseToggle
+            expanded={expanded}
+            onToggle={() => collapse.toggle(panelId)}
+            label="study material"
+            controls={`${panelId}-body`}
+          />
+          <h2 id="material-heading">{chapterId ? "Chapter material" : "All study material"}</h2>
+          {!expanded && list.data && (
+            <span className="hint">
+              {list.data.length} {list.data.length === 1 ? "file" : "files"}
+            </span>
+          )}
+        </div>
         <div className="actions">
           <button type="button" onClick={() => materialInput.current?.click()} disabled={upload.isPending}>
             {pending === "MATERIAL" ? "Uploading…" : "Upload material"}
@@ -88,6 +105,7 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
         {fileInput(materialInput, ACCEPT, "MATERIAL", "material-input")}
         {fileInput(questionsInput, ACCEPT_QUESTIONS, "QUESTION_BANK", "questions-input")}
       </header>
+      <div id={`${panelId}-body`} hidden={!expanded}>
       <details className="hint format-help">
         <summary>How to prepare questions &amp; answers</summary>
         <p>
@@ -177,6 +195,7 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
           )
         }
       </QueryState>
+      </div>
     </section>
   );
 }
