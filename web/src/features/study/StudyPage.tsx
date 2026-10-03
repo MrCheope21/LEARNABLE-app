@@ -17,6 +17,7 @@ import { courseProgressKey, weakSpotsKey } from "../curriculum/CourseLayout";
 import { homeKey } from "../home/HomePage";
 import { SourceLink, SourcePanel, type SourceRef } from "../source/SourcePanel";
 import { DisputeForm } from "./DisputeForm";
+import { recognitionLanguage, useDictation } from "./useDictation";
 import { EvaluationView } from "./EvaluationView";
 import { useStudySession, type AnswerView, type Card } from "./useStudySession";
 
@@ -143,7 +144,13 @@ export function StudyPage() {
       <div className={source ? "study-body with-panel" : "study-body"}>
         <main className="study-main">
           <ErrorBanner error={s.error} onDismiss={s.clearError} />
-          <PhaseView s={s} openSource={setSource} courseId={courseId} onClose={() => void close()} />
+          <PhaseView
+            s={s}
+            openSource={setSource}
+            courseId={courseId}
+            language={recognitionLanguage(course.data?.language)}
+            onClose={() => void close()}
+          />
         </main>
         {source && <SourcePanel source={source} onClose={() => setSource(null)} />}
       </div>
@@ -157,11 +164,13 @@ function PhaseView({
   s,
   openSource,
   courseId,
+  language,
   onClose,
 }: {
   s: Session;
   openSource: (source: SourceRef) => void;
   courseId: string;
+  language: string;
   onClose: () => void;
 }) {
   const phase = s.phase;
@@ -176,7 +185,7 @@ function PhaseView({
       return <Introduction card={phase.card} onReady={s.beginRecall} openSource={openSource} />;
     case "answering":
     case "submitting":
-      return <Answer card={phase.card} s={s} submitting={phase.kind === "submitting"} />;
+      return <Answer card={phase.card} s={s} submitting={phase.kind === "submitting"} language={language} />;
     case "result":
       return <Result card={phase.card} result={phase.result} s={s} openSource={openSource} />;
     case "finished":
@@ -231,9 +240,14 @@ function Introduction({
   );
 }
 
-function Answer({ card, s, submitting }: { card: Card; s: Session; submitting: boolean }) {
+function Answer({ card, s, submitting, language }: { card: Card; s: Session; submitting: boolean; language: string }) {
   const editor = useRef<HTMLTextAreaElement>(null);
   useEffect(() => editor.current?.focus(), [card.question.id]);
+  const dictation = useDictation(language, s.appendDictation);
+  const stopDictation = dictation.stop;
+  useEffect(() => {
+    if (submitting) stopDictation();
+  }, [submitting, stopDictation]);
 
   const onKeyDown = (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
@@ -261,7 +275,28 @@ function Answer({ card, s, submitting }: { card: Card; s: Session; submitting: b
         rows={9}
         placeholder="Answer in your own words…"
       />
+      {dictation.listening && dictation.interim && (
+        <p className="interim" aria-live="polite">
+          {dictation.interim}
+        </p>
+      )}
+      {dictation.error && (
+        <p className="banner warning" role="status">
+          {dictation.error}
+        </p>
+      )}
       <div className="actions">
+        {dictation.supported && (
+          <button
+            type="button"
+            className={dictation.listening ? "mic listening" : "mic"}
+            aria-pressed={dictation.listening}
+            disabled={submitting}
+            onClick={dictation.listening ? dictation.stop : dictation.start}
+          >
+            {dictation.listening ? "Stop listening" : "Speak your answer"}
+          </button>
+        )}
         <button type="button" className="primary" disabled={!s.canSubmit || submitting} onClick={() => void s.submit()}>
           {submitting ? "Evaluating…" : "Submit"} <kbd>Ctrl/⌘ Enter</kbd>
         </button>
@@ -269,6 +304,11 @@ function Answer({ card, s, submitting }: { card: Card; s: Session; submitting: b
           Skip this question
         </button>
       </div>
+      <p className="hint">
+        {dictation.supported
+          ? "Dictation is transcribed by your browser, which may send the audio to its speech service. Only the text is kept; edit it before you submit."
+          : "Voice answers need Chrome, Edge or Safari. You can type your answer here."}
+      </p>
     </article>
   );
 }

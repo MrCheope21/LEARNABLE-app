@@ -25,6 +25,9 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
   const [phase, setPhase] = useState<Phase>({ kind: "starting" });
   const [session, setSession] = useState<Schemas["SessionRead"] | null>(null);
   const [draft, setDraftState] = useState("");
+  // The answer was (at least partly) dictated; the backend records how it was given.
+  const [dictated, setDictated] = useState(false);
+  const draftRef = useRef("");
   const [error, setError] = useState<unknown>(null);
   const [working, setWorking] = useState(false);
   // Final outcome per answer: an override replaces its answer's entry.
@@ -62,7 +65,10 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
         setPhase({ kind: "result", card, result: pending });
         return;
       }
-      setDraftState(drafts.load(card.question.id));
+      const saved = drafts.load(card.question.id);
+      setDraftState(saved);
+      draftRef.current = saved;
+      setDictated(false);
       setPhase(card.introduction ? { kind: "introduction", card } : { kind: "answering", card });
     } catch (e) {
       setPhase({ kind: "failed", message: userMessage(e) });
@@ -94,9 +100,22 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
   const setDraft = useCallback(
     (text: string) => {
       setDraftState(text);
+      draftRef.current = text;
+      if (!text.trim()) setDictated(false);
       if (phase.kind === "answering") drafts.save(phase.card.question.id, text);
     },
     [phase],
+  );
+
+  /** Adds a dictated phrase after what is already written. */
+  const appendDictation = useCallback(
+    (phrase: string) => {
+      if (!phrase) return;
+      const current = draftRef.current.trimEnd();
+      setDraft(current ? `${current} ${phrase}` : phrase);
+      setDictated(true);
+    },
+    [setDraft],
   );
 
   const beginRecall = useCallback(() => {
@@ -112,10 +131,12 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     setPhase({ kind: "submitting", card });
     setError(null);
     try {
-      const result = await study.answer(current.id, card.question.id, draft.trim());
+      const result = await study.answer(current.id, card.question.id, draft.trim(), dictated ? "VOICE" : "TEXT");
       // The backend has the answer: the local copy can go.
       drafts.clear(card.question.id);
       setDraftState("");
+      draftRef.current = "";
+      setDictated(false);
       record(result);
       setPhase({ kind: "result", card, result });
     } catch (e) {
@@ -128,7 +149,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
       setPhase({ kind: "answering", card });
       setError(e);
     }
-  }, [phase, draft, record, loadNext]);
+  }, [phase, draft, dictated, record, loadNext]);
 
   const withResult = useCallback(
     async (action: (result: AnswerView) => Promise<AnswerView>) => {
@@ -211,6 +232,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     session,
     draft,
     setDraft,
+    appendDictation,
     canSubmit,
     error,
     clearError: () => setError(null),
