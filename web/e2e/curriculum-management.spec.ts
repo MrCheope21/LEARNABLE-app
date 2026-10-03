@@ -158,6 +158,14 @@ test("selecting a chapter in the question manager deletes it with everything ins
   await signIn(page, email);
   await page.goto(`/courses/${course.id}/questions`);
 
+  // The group checkboxes sit beside their titles: nothing spills out of the card or the page.
+  const card = page.locator(".question-group").first();
+  const title = (await card.getByRole("heading", { name: "Alpha" }).boundingBox())!;
+  const box = (await card.boundingBox())!;
+  expect(title.x + title.width).toBeLessThanOrEqual(box.x + box.width);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+
   await page.getByRole("button", { name: /^Select all \(3\)$/ }).click();
   await expect(page.getByRole("checkbox", { name: "Select every question in Alpha" })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: "Select every question in Concept" })).toBeChecked();
