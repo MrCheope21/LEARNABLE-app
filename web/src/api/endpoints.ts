@@ -58,6 +58,9 @@ export const courses = {
     call(api.PATCH("/api/v1/chapters/{chapter_id}", { params: { path: { chapter_id: chapterId } }, body })),
   updateTopic: (topicId: Id, body: Schemas["TopicUpdate"]) =>
     call(api.PATCH("/api/v1/topics/{topic_id}", { params: { path: { topic_id: topicId } }, body })),
+  /** Deletes chapters, topics, concepts and questions together; all or nothing. */
+  deleteCurriculum: (courseId: Id, body: Schemas["CurriculumDelete"]) =>
+    call(api.POST("/api/v1/courses/{course_id}/curriculum/bulk-delete", { params: { path: { course_id: courseId } }, body })),
   outline: (courseId: Id) =>
     call(
       api.GET("/api/v1/courses/{course_id}/outline", { params: { path: { course_id: courseId } } }),

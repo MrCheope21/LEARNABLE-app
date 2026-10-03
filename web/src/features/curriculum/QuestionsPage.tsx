@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useId, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { courses, learningItems, reorder } from "../../api/endpoints";
@@ -8,6 +8,7 @@ import { CollapsibleSection, useCollapsed } from "../../components/Collapsible";
 import { SortableList } from "../../components/SortableList";
 import { memoryStateLabel } from "../../components/labels";
 import { Breadcrumbs } from "./Consolidate";
+import { removalFor, type Removal } from "./selection";
 import { courseProgressKey, outlineKey } from "./CourseLayout";
 
 type Item = Schemas["LearningItemRead"];
@@ -57,6 +58,25 @@ export function QuestionsPage() {
     },
   });
 
+  const remove = useMutation({
+    mutationFn: ({ removal }: { removal: Removal; questions: number }) =>
+      courses.deleteCurriculum(courseId, {
+        chapter_ids: removal.chapterIds,
+        topic_ids: removal.topicIds,
+        concept_ids: removal.conceptIds,
+        item_ids: removal.itemIds,
+      }),
+    onSuccess: (_result, { removal, questions }) => {
+      const groups = removal.chapterIds.length + removal.topicIds.length + removal.conceptIds.length;
+      setNotice(
+        `Deleted ${questions} ${questions === 1 ? "question" : "questions"}${groups ? ` and ${groups} emptied ${groups === 1 ? "group" : "groups"}` : ""}.`,
+      );
+      setSelected(new Set());
+      setMoving(false);
+      refresh();
+    },
+  });
+
   const visible = useMemo(() => {
     const needle = filter.trim().toLocaleLowerCase();
     const all = items.data ?? [];
@@ -82,13 +102,18 @@ export function QuestionsPage() {
   const ids = [...selected];
   const allVisibleSelected = visible.length > 0 && visible.every((i) => selected.has(i.id));
   const confirmDelete = () => {
+    const removal = removalFor(outline.data ?? [], items.data ?? [], selected);
     const count = ids.length;
-    if (
-      window.confirm(
-        `Delete ${count} ${count === 1 ? "question" : "questions"}? Their answers and review history are deleted too, and concepts left without questions are removed.`,
-      )
-    ) {
-      bulk.mutate({ item_ids: ids, action: "delete", delete_emptied_concepts: true });
+    const groups = [
+      [removal.chapterIds.length, "chapter"],
+      [removal.topicIds.length, "topic"],
+      [removal.conceptIds.length, "concept"],
+    ]
+      .filter(([n]) => Number(n) > 0)
+      .map(([n, word]) => `${n} ${word}${n === 1 ? "" : "s"}`);
+    const also = groups.length ? ` The ${groups.join(", ")} left with no questions are deleted too.` : "";
+    if (window.confirm(`Delete ${count} ${count === 1 ? "question" : "questions"}? Their answers and review history are deleted too.${also}`)) {
+      remove.mutate({ removal, questions: count });
     }
   };
 
@@ -105,10 +130,9 @@ export function QuestionsPage() {
           Search questions
         </label>
         <input id={searchId} type="search" placeholder="Search questions and answers" value={filter} onChange={(e) => setFilter(e.target.value)} />
-        <label className="toggle">
-          <input type="checkbox" checked={allVisibleSelected} onChange={(e) => toggle(visible.map((i) => i.id), e.target.checked)} />
-          Select all shown
-        </label>
+        <button type="button" disabled={visible.length === 0} onClick={() => toggle(visible.map((i) => i.id), !allVisibleSelected)}>
+          {allVisibleSelected ? "Deselect all" : `Select all${filter.trim() ? " shown" : ""} (${visible.length})`}
+        </button>
         <button type="button" className="link" disabled={Boolean(filter.trim())} onClick={() => sections.setAll(sectionIds, true)}>
           Collapse all
         </button>
@@ -129,7 +153,7 @@ export function QuestionsPage() {
           <button type="button" disabled={bulk.isPending} onClick={() => bulk.mutate({ item_ids: ids, action: "resume", delete_emptied_concepts: false })}>
             Resume
           </button>
-          <button type="button" className="danger" disabled={bulk.isPending} onClick={confirmDelete}>
+          <button type="button" className="danger" disabled={bulk.isPending || remove.isPending} onClick={confirmDelete}>
             Delete
           </button>
           <button type="button" className="link" onClick={() => setSelected(new Set())}>
@@ -148,7 +172,7 @@ export function QuestionsPage() {
           </button>
         </p>
       )}
-      <ErrorBanner error={bulk.error} />
+      <ErrorBanner error={bulk.error ?? remove.error} />
 
       <QueryState query={outline}>
         {(chapters) => (
@@ -160,6 +184,7 @@ export function QuestionsPage() {
               if (!anything) {
                 return <p className="state">{filter ? "No question matches this search." : "No questions yet. Activate a concept or import your own questions and answers."}</p>;
               }
+              const idsIn = (concepts: { id: string }[]) => concepts.flatMap((k) => (byConcept.get(k.id) ?? []).map((i) => i.id));
               const section = (id: string, label: string) => ({ id, label, expanded: open(id), onToggle: () => sections.toggle(id) });
               const questionList = (conceptId: string, conceptItems: Item[]) => (
                 <SortableList
@@ -196,10 +221,20 @@ export function QuestionsPage() {
                     as="section"
                     className="card question-group"
                     labelledBy={`qc-${chapter.id}`}
-                    heading={<h2 id={`qc-${chapter.id}`}>{chapter.title}</h2>}
+                    heading={
+                      <>
+                        <GroupCheckbox label={chapter.title} ids={idsIn(topics.flatMap((t) => t.concepts))} selected={selected} onToggle={toggle} />
+                        <h2 id={`qc-${chapter.id}`}>{chapter.title}</h2>
+                      </>
+                    }
                   >
                     {topics.map((topic) => (
-                      <CollapsibleSection key={topic.id} {...section(topic.id, topic.title)} className="question-topic" heading={<h3>{topic.title}</h3>}>
+                      <CollapsibleSection key={topic.id} {...section(topic.id, topic.title)} className="question-topic" heading={
+                          <>
+                            <GroupCheckbox label={topic.title} ids={idsIn(topic.concepts)} selected={selected} onToggle={toggle} />
+                            <h3>{topic.title}</h3>
+                          </>
+                        }>
                         {topic.concepts
                           .filter((k) => byConcept.has(k.id))
                           .map((concept) => {
@@ -210,15 +245,10 @@ export function QuestionsPage() {
                                 {...section(concept.id, concept.title)}
                                 className="question-concept"
                                 heading={
-                                  <label className="toggle concept-toggle">
-                                    <input
-                                      type="checkbox"
-                                      checked={conceptItems.every((i) => selected.has(i.id))}
-                                      onChange={(e) => toggle(conceptItems.map((i) => i.id), e.target.checked)}
-                                      aria-label={`Select every question in ${concept.title}`}
-                                    />
+                                  <>
+                                    <GroupCheckbox label={concept.title} ids={idsIn([concept])} selected={selected} onToggle={toggle} />
                                     <Link to={`/courses/${courseId}/concepts/${concept.id}`}>{concept.title}</Link>
-                                  </label>
+                                  </>
                                 }
                                 collapsedSummary={
                                   <span className="hint">
@@ -432,5 +462,34 @@ function MoveForm({
         </button>
       </div>
     </form>
+  );
+}
+
+/** Selects every shown question inside a chapter, topic or concept; partly selected shows a dash. */
+function GroupCheckbox({
+  label,
+  ids,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  ids: string[];
+  selected: Set<string>;
+  onToggle: (ids: string[], on: boolean) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const count = ids.filter((id) => selected.has(id)).length;
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = count > 0 && count < ids.length;
+  }, [count, ids.length]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      className="group-checkbox"
+      checked={ids.length > 0 && count === ids.length}
+      onChange={(e) => onToggle(ids, e.target.checked)}
+      aria-label={`Select every question in ${label}`}
+    />
   );
 }

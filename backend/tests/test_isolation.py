@@ -113,6 +113,11 @@ ENDPOINTS = [
     ),
     ("PATCH", "/api/v1/questions/{question}", {"json": {"text": "hijacked"}}),
     ("DELETE", "/api/v1/questions/{question}", {}),
+    (
+        "POST",
+        "/api/v1/courses/{course}/curriculum/bulk-delete",
+        {"json": {"chapter_ids": ["{chapter}"], "item_ids": ["{item}"]}},
+    ),
     ("PUT", "/api/v1/courses/{course}/chapter-order", {"json": {"ids": ["{chapter}"]}}),
     ("PUT", "/api/v1/chapters/{chapter}/topic-order", {"json": {"ids": ["{topic}"]}}),
     ("PUT", "/api/v1/topics/{topic}/concept-order", {"json": {"ids": ["{concept}"]}}),

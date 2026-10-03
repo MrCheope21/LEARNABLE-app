@@ -99,6 +99,7 @@ input, select, textarea {
   font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border);
   border-radius: 8px; padding: 0.45rem 0.6rem; width: 100%;
 }
+input[type="checkbox"], input[type="radio"] { width: auto; padding: 0; }
 textarea { resize: vertical; min-height: 10rem; line-height: 1.5; }
 label { display: grid; gap: 0.3rem; font-weight: 500; }
 
@@ -307,3 +308,4 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .weak-list { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 1rem; }
 .planner-now { margin: 0 0 0.5rem; }
 @media (max-width: 480px) { .scores li { grid-template-columns: 6.5rem 1fr 4rem; } }
+.group-checkbox { flex: none; margin: 0 0.25rem 0 0; }

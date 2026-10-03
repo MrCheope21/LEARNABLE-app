@@ -24,6 +24,8 @@ from app.schemas.courses import (
     ConceptUpdate,
     CourseCreate,
     CourseUpdate,
+    CurriculumDelete,
+    CurriculumDeleteResult,
     TopicCreate,
     TopicUpdate,
 )
@@ -127,6 +129,66 @@ def delete_chapter(db: Session, user_id: uuid.UUID, chapter_id: uuid.UUID) -> No
         document.analyzed_at = None
     db.delete(chapter)
     db.commit()
+
+
+def delete_curriculum(
+    db: Session, user_id: uuid.UUID, course_id: uuid.UUID, payload: CurriculumDelete
+) -> CurriculumDeleteResult:
+    """Deletes chapters, topics, concepts and questions in one transaction. Every id must belong
+    to this Course (404 otherwise, as for a missing id) or nothing changes. What sits inside a
+    selected group is deleted with it. Documents of a deleted chapter stay, unassigned and marked
+    not analyzed, as with a single chapter delete."""
+    get_owned_course(db, user_id, course_id)
+
+    def fetch[T: Chapter | Topic | Concept | LearningItem](
+        model: type[T], ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, T]:
+        wanted = set(ids)
+        rows = {
+            row.id: row
+            for row in db.scalars(
+                select(model).where(model.course_id == course_id, model.id.in_(wanted))
+            )
+        }
+        if len(rows) != len(wanted):
+            raise NotFoundError(f"{model.__name__} not found")
+        return rows
+
+    chapters = fetch(Chapter, payload.chapter_ids)
+    topics = fetch(Topic, payload.topic_ids)
+    concepts = fetch(Concept, payload.concept_ids)
+    items = fetch(LearningItem, payload.item_ids)
+
+    # Only the outermost selections are deleted; the database removes what is inside them.
+    topics_left = {t.id: t for t in topics.values() if t.chapter_id not in chapters}
+    concepts_left = {
+        c.id: c
+        for c in concepts.values()
+        if c.chapter_id not in chapters and c.topic_id not in topics
+    }
+    homes = {
+        c.id: c
+        for c in db.scalars(
+            select(Concept).where(Concept.id.in_({i.concept_id for i in items.values()}))
+        )
+    }
+    items_left = [
+        i
+        for i in items.values()
+        if i.concept_id not in concepts
+        and homes[i.concept_id].topic_id not in topics
+        and homes[i.concept_id].chapter_id not in chapters
+    ]
+    for chapter in chapters.values():
+        for document in db.scalars(select(Document).where(Document.chapter_id == chapter.id)):
+            document.chapter_id = None
+            document.analyzed_at = None
+    for row in [*items_left, *concepts_left.values(), *topics_left.values(), *chapters.values()]:
+        db.delete(row)
+    db.commit()
+    return CurriculumDeleteResult(
+        chapters=len(chapters), topics=len(topics), concepts=len(concepts), items=len(items)
+    )
 
 
 # --- Topic ---
