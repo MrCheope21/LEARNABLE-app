@@ -272,11 +272,11 @@ export const study = {
         params: { path: { session_id: sessionId } },
       }),
     ),
-  answer: (sessionId: Id, questionId: Id, text: string) =>
+  answer: (sessionId: Id, questionId: Id, text: string, method: Schemas["AnswerMethod"] = "TEXT") =>
     call(
       api.POST("/api/v1/review-sessions/{session_id}/answers", {
         params: { path: { session_id: sessionId } },
-        body: { question_formulation_id: questionId, text, method: "TEXT" },
+        body: { question_formulation_id: questionId, text, method },
       }),
     ),
   skip: (sessionId: Id) =>
