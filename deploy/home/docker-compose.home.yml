@@ -1,0 +1,23 @@
+# Overlay for running LEARNABLE on a computer at home, published through a Cloudflare Tunnel
+# (no open router ports, no Caddy: Cloudflare terminates HTTPS). Enabled by COMPOSE_FILE in
+# .env; setup in docs/DEPLOYMENT_HOME.md.
+services:
+  postgres:
+    restart: unless-stopped
+    logging: {driver: local}
+
+  backend:
+    restart: unless-stopped
+    logging: {driver: local}
+    environment:
+      PUBLIC_APP_URL: https://${DOMAIN}
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    logging: {driver: local}
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env (Cloudflare Zero Trust, Tunnels)}
+    depends_on:
+      - backend
