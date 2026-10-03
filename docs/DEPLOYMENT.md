@@ -120,7 +120,8 @@ Postgres, and back both up together.
    validation in docs/FREE_AI_ROUTING.md.
 
 A free, self-managed alternative to §6 (an Oracle Cloud VM running Docker Compose behind Caddy):
-docs/DEPLOYMENT_ORACLE.md.
+docs/DEPLOYMENT_ORACLE.md. Or at home behind a Cloudflare Tunnel with a Google Cloud standby:
+docs/DEPLOYMENT_HOME.md.
 
 ## 6. The `render.yaml` Blueprint (§5 items 1-5, done)
 
