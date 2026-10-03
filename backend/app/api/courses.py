@@ -27,6 +27,8 @@ from app.schemas.courses import (
     CourseCreate,
     CourseRead,
     CourseUpdate,
+    CurriculumDelete,
+    CurriculumDeleteResult,
     OrderUpdate,
     TopicCreate,
     TopicRead,
@@ -104,6 +106,14 @@ def reorder_chapters(
     course_id: uuid.UUID, payload: OrderUpdate, db: Session = DB, user: User = CurrentUser
 ) -> None:
     service.reorder_chapters(db, user.id, course_id, payload.ids)
+
+
+@router.post("/courses/{course_id}/curriculum/bulk-delete", response_model=CurriculumDeleteResult)
+def bulk_delete_curriculum(
+    course_id: uuid.UUID, payload: CurriculumDelete, db: Session = DB, user: User = CurrentUser
+) -> CurriculumDeleteResult:
+    """Deletes selected chapters, topics, concepts and questions together; all or nothing."""
+    return service.delete_curriculum(db, user.id, course_id, payload)
 
 
 @router.delete("/chapters/{chapter_id}", status_code=status.HTTP_204_NO_CONTENT)

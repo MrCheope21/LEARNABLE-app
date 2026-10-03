@@ -33,6 +33,7 @@ function backend() {
     ["GET", /\/courses\/[^/]+\/learning-items$/, ok(items)],
     ["GET", /\/courses\/[^/]+$/, ok({ id: course, title: "Diritto bancario" })],
     ["POST", /\/learning-items\/bulk$/, ok({ affected: 2, created_concepts: 0, deleted_concepts: 1 })],
+    ["POST", /\/curriculum\/bulk-delete$/, ok({ chapters: 1, topics: 0, concepts: 0, items: 0 })],
     ["PATCH", /\/learning-items\/[^/]+$/, ok(items[0])],
     ["PATCH", /\/questions\/[^/]+$/, ok(items[0]!.questions[0])],
   ]);
@@ -63,19 +64,58 @@ describe("question manager", () => {
     expect(await screen.findByText(/Moved 2 questions · 1 empty concept removed/)).toBeInTheDocument();
   });
 
-  it("deletes the selection after confirming", async () => {
+  it("deletes a whole group with its questions, in every stage, after confirming", async () => {
     const user = userEvent.setup();
     const { requests } = backend();
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     renderApp(`/courses/${course}/questions`);
 
-    await user.click(await screen.findByRole("checkbox", { name: `Select every question in ${concept.title}` }));
+    await user.click(await screen.findByRole("checkbox", { name: `Select every question in ${chapter.title}` }));
+    expect(screen.getByRole("checkbox", { name: `Select every question in ${topic.title}` })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: `Select every question in ${concept.title}` })).toBeChecked();
     await user.click(screen.getByRole("button", { name: "Delete" }));
-    expect(confirm).toHaveBeenCalled();
+    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/Delete 2 questions.*1 chapter.*deleted too/));
     await waitFor(() =>
-      expect(requests.find((r) => r.path.endsWith("/bulk"))?.body).toMatchObject({ item_ids: ["i1", "i2"], action: "delete" }),
+      expect(requests.find((r) => r.path.endsWith("/curriculum/bulk-delete"))?.body).toEqual({
+        chapter_ids: [chapter.id],
+        topic_ids: [],
+        concept_ids: [],
+        item_ids: [],
+      }),
+    );
+    expect(await screen.findByText(/Deleted 2 questions and 1 emptied group/)).toBeInTheDocument();
+    confirm.mockRestore();
+  });
+
+  it("deletes only the questions chosen when the group is not fully selected", async () => {
+    const user = userEvent.setup();
+    const { requests } = backend();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderApp(`/courses/${course}/questions`);
+
+    await user.click(await screen.findByRole("checkbox", { name: "Select: Che cos'è il mutuo?" }));
+    expect(screen.getByRole("checkbox", { name: `Select every question in ${concept.title}` })).not.toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() =>
+      expect(requests.find((r) => r.path.endsWith("/curriculum/bulk-delete"))?.body).toEqual({
+        chapter_ids: [],
+        topic_ids: [],
+        concept_ids: [],
+        item_ids: ["i1"],
+      }),
     );
     confirm.mockRestore();
+  });
+
+  it("selects and deselects everything with one button", async () => {
+    const user = userEvent.setup();
+    backend();
+    renderApp(`/courses/${course}/questions`);
+
+    await user.click(await screen.findByRole("button", { name: "Select all (2)" }));
+    expect(screen.getByRole("toolbar", { name: "Selected questions" })).toHaveTextContent("2 selected");
+    await user.click(screen.getByRole("button", { name: "Deselect all" }));
+    expect(screen.queryByRole("toolbar", { name: "Selected questions" })).not.toBeInTheDocument();
   });
 
   it("edits one question's wording and expected answer", async () => {

@@ -20,6 +20,25 @@ class OrderUpdate(InputModel):
     ids: list[UUID] = Field(min_length=1, max_length=10_000)
 
 
+class CurriculumDelete(InputModel):
+    """Whole groups and single questions to delete together (the question manager's selection)."""
+
+    chapter_ids: list[UUID] = Field(default_factory=list, max_length=10_000)
+    topic_ids: list[UUID] = Field(default_factory=list, max_length=10_000)
+    concept_ids: list[UUID] = Field(default_factory=list, max_length=10_000)
+    item_ids: list[UUID] = Field(default_factory=list, max_length=10_000)
+
+
+class CurriculumDeleteResult(BaseModel):
+    """What was selected and removed. Anything inside a selected group goes with it and is not
+    counted separately."""
+
+    chapters: int
+    topics: int
+    concepts: int
+    items: int
+
+
 class CourseCreate(InputModel):
     title: Title
     description: Description = ""

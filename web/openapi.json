@@ -1632,6 +1632,79 @@
         "title": "CurriculumApply",
         "type": "object"
       },
+      "CurriculumDelete": {
+        "additionalProperties": false,
+        "description": "Whole groups and single questions to delete together (the question manager's selection).",
+        "properties": {
+          "chapter_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "title": "Chapter Ids",
+            "type": "array"
+          },
+          "concept_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "title": "Concept Ids",
+            "type": "array"
+          },
+          "item_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "title": "Item Ids",
+            "type": "array"
+          },
+          "topic_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "title": "Topic Ids",
+            "type": "array"
+          }
+        },
+        "title": "CurriculumDelete",
+        "type": "object"
+      },
+      "CurriculumDeleteResult": {
+        "description": "What was selected and removed. Anything inside a selected group goes with it and is not\ncounted separately.",
+        "properties": {
+          "chapters": {
+            "title": "Chapters",
+            "type": "integer"
+          },
+          "concepts": {
+            "title": "Concepts",
+            "type": "integer"
+          },
+          "items": {
+            "title": "Items",
+            "type": "integer"
+          },
+          "topics": {
+            "title": "Topics",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chapters",
+          "topics",
+          "concepts",
+          "items"
+        ],
+        "title": "CurriculumDeleteResult",
+        "type": "object"
+      },
       "CurriculumGenerate": {
         "additionalProperties": false,
         "properties": {
@@ -6894,6 +6967,65 @@
         "summary": "Generate Curriculum",
         "tags": [
           "curriculum"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/curriculum/bulk-delete": {
+      "post": {
+        "description": "Deletes selected chapters, topics, concepts and questions together; all or nothing.",
+        "operationId": "bulk_delete_curriculum_api_v1_courses__course_id__curriculum_bulk_delete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CurriculumDelete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumDeleteResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Bulk Delete Curriculum",
+        "tags": [
+          "courses"
         ]
       }
     },

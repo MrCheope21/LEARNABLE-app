@@ -151,3 +151,20 @@ test("learning items reorder on the concept page too", async ({ page, request })
   const listed = (await (await request.get(`/api/v1/concepts/${course.concept}/learning-items`, { headers: { Authorization: `Bearer ${token}` } })).json()) as { title: string }[];
   expect(listed.map((i) => i.title)).toEqual(["Second question?", "First question?", "Third question?"]);
 });
+
+test("selecting a chapter in the question manager deletes it with everything inside", async ({ page, request }) => {
+  const email = `group-delete-${Date.now()}@example.com`;
+  const { token, course } = await setUp(request, email);
+  await signIn(page, email);
+  await page.goto(`/courses/${course.id}/questions`);
+
+  await page.getByRole("button", { name: /^Select all \(3\)$/ }).click();
+  await expect(page.getByRole("checkbox", { name: "Select every question in Alpha" })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Select every question in Concept" })).toBeChecked();
+  page.once("dialog", (dialog) => void dialog.accept());
+  await page.getByRole("toolbar", { name: "Selected questions" }).getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByText(/Deleted 3 questions and 1 emptied group/)).toBeVisible();
+
+  const outline = (await (await request.get(`/api/v1/courses/${course.id}/outline`, { headers: { Authorization: `Bearer ${token}` } })).json()) as { title: string }[];
+  expect(outline.map((c) => c.title)).toEqual(["Beta", "Gamma"]);
+});

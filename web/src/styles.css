@@ -307,3 +307,4 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .weak-list { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 1rem; }
 .planner-now { margin: 0 0 0.5rem; }
 @media (max-width: 480px) { .scores li { grid-template-columns: 6.5rem 1fr 4rem; } }
+.group-checkbox { flex: none; margin-right: 0.25rem; }

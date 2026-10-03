@@ -629,6 +629,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courses/{course_id}/curriculum/bulk-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk Delete Curriculum
+         * @description Deletes selected chapters, topics, concepts and questions together; all or nothing.
+         */
+        post: operations["bulk_delete_curriculum_api_v1_courses__course_id__curriculum_bulk_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/{course_id}/documents": {
         parameters: {
             query?: never;
@@ -2006,6 +2026,35 @@ export interface components {
             chapters?: components["schemas"]["ApplyChapter"][] | null;
             /** Topics */
             topics?: components["schemas"]["ApplyTopic"][] | null;
+        };
+        /**
+         * CurriculumDelete
+         * @description Whole groups and single questions to delete together (the question manager's selection).
+         */
+        CurriculumDelete: {
+            /** Chapter Ids */
+            chapter_ids?: string[];
+            /** Concept Ids */
+            concept_ids?: string[];
+            /** Item Ids */
+            item_ids?: string[];
+            /** Topic Ids */
+            topic_ids?: string[];
+        };
+        /**
+         * CurriculumDeleteResult
+         * @description What was selected and removed. Anything inside a selected group goes with it and is not
+         *     counted separately.
+         */
+        CurriculumDeleteResult: {
+            /** Chapters */
+            chapters: number;
+            /** Concepts */
+            concepts: number;
+            /** Items */
+            items: number;
+            /** Topics */
+            topics: number;
         };
         /** CurriculumGenerate */
         CurriculumGenerate: {
@@ -4489,6 +4538,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CurriculumProposalRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_delete_curriculum_api_v1_courses__course_id__curriculum_bulk_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CurriculumDelete"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurriculumDeleteResult"];
                 };
             };
             /** @description Validation Error */
