@@ -72,10 +72,19 @@ PATCH  /api/v1/concepts/{concept_id}
 DELETE /api/v1/concepts/{concept_id}
 
 GET    /api/v1/courses/{course_id}/outline   # the whole tree: chapters → topics → concepts
+
+PUT    /api/v1/courses/{course_id}/chapter-order          # {"ids": [...]} → 204
+PUT    /api/v1/chapters/{chapter_id}/topic-order          # {"ids": [...]} → 204
+PUT    /api/v1/topics/{topic_id}/concept-order            # {"ids": [...]} → 204
+PUT    /api/v1/concepts/{concept_id}/learning-item-order  # {"ids": [...]} → 204
 ```
 
 - Chapters, Topics and Concepts all have an `order` (≥ 0, default 0), settable on create and
   PATCH. Lists and the outline sort by `order`, then creation time.
+- **Reordering (drag and drop)** sends a parent's children in their new order; the server
+  numbers them 0..n-1 in one transaction. `ids` must name every current child exactly once, so a
+  stale list (a child added, deleted or moved elsewhere since it was loaded) or an id from another
+  parent is a 422 `order_mismatch` and nothing changes (`backend/tests/test_reorder.py`).
 - **`GET /courses/{id}/outline`** returns `ChapterRead` + `topics: [TopicRead + concepts:
   [ConceptRead]]`, loaded in three queries regardless of size.
 

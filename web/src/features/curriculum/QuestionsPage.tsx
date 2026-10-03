@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { Schemas } from "../../api/client";
-import { courses, learningItems } from "../../api/endpoints";
+import { courses, learningItems, reorder } from "../../api/endpoints";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
+import { CollapsibleSection, useCollapsed } from "../../components/Collapsible";
+import { SortableList } from "../../components/SortableList";
 import { memoryStateLabel } from "../../components/labels";
 import { Breadcrumbs } from "./Consolidate";
 import { courseProgressKey, outlineKey } from "./CourseLayout";
@@ -29,6 +31,10 @@ export function QuestionsPage() {
   const [moving, setMoving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const searchId = useId();
+  const sections = useCollapsed(`learnable.questions-collapsed.${courseId}`);
+  // Search results are never hidden inside a collapsed section.
+  const open = (id: string) => Boolean(filter.trim()) || !sections.isCollapsed(id);
+  const sectionIds = (outline.data ?? []).flatMap((c) => [c.id, ...c.topics.flatMap((t) => [t.id, ...t.concepts.map((k) => k.id)])]);
 
   const refresh = () => {
     for (const key of [courseItemsKey(courseId), outlineKey(courseId), courseProgressKey(courseId), ["dashboard"], ["course-summary", courseId], ["items"], ["consolidation"]]) {
@@ -91,7 +97,7 @@ export function QuestionsPage() {
       <Breadcrumbs courseId={courseId} current="Questions" />
       <header className="page-header">
         <h1>Questions</h1>
-        <p className="hint">Select questions to delete, pause, resume or move them; edit one to fix its wording or expected answer.</p>
+        <p className="hint">Select questions to delete, pause, resume or move them; drag ⠿ to reorder them; edit one to fix its title, wording or expected answer.</p>
       </header>
 
       <div className="toolbar">
@@ -103,6 +109,12 @@ export function QuestionsPage() {
           <input type="checkbox" checked={allVisibleSelected} onChange={(e) => toggle(visible.map((i) => i.id), e.target.checked)} />
           Select all shown
         </label>
+        <button type="button" className="link" disabled={Boolean(filter.trim())} onClick={() => sections.setAll(sectionIds, true)}>
+          Collapse all
+        </button>
+        <button type="button" className="link" disabled={Boolean(filter.trim())} onClick={() => sections.setAll(sectionIds, false)}>
+          Expand all
+        </button>
       </div>
 
       {selected.size > 0 && (
@@ -148,54 +160,79 @@ export function QuestionsPage() {
               if (!anything) {
                 return <p className="state">{filter ? "No question matches this search." : "No questions yet. Activate a concept or import your own questions and answers."}</p>;
               }
+              const section = (id: string, label: string) => ({ id, label, expanded: open(id), onToggle: () => sections.toggle(id) });
+              const questionList = (conceptId: string, conceptItems: Item[]) => (
+                <SortableList
+                  className="question-list"
+                  items={conceptItems}
+                  itemLabel={(item) => item.questions[0]?.text ?? item.title}
+                  disabledReason={filter.trim() ? "Clear the search to reorder these questions." : undefined}
+                  onReorder={async (ids) => {
+                    await reorder.learningItems(conceptId, ids);
+                    refresh();
+                  }}
+                  renderItem={(item) => (
+                    <QuestionRow
+                      item={item}
+                      selected={selected.has(item.id)}
+                      onSelect={(on) => toggle([item.id], on)}
+                      editing={editing === item.id}
+                      onEdit={() => setEditing(editing === item.id ? null : item.id)}
+                      onSaved={() => {
+                        setEditing(null);
+                        refresh();
+                      }}
+                    />
+                  )}
+                />
+              );
               return chapters.map((chapter) => {
                 const topics = chapter.topics.filter((t) => t.concepts.some((k) => byConcept.has(k.id)));
                 if (topics.length === 0) return null;
                 return (
-                  <section key={chapter.id} className="card question-group" aria-labelledby={`qc-${chapter.id}`}>
-                    <h2 id={`qc-${chapter.id}`}>{chapter.title}</h2>
+                  <CollapsibleSection
+                    key={chapter.id}
+                    {...section(chapter.id, chapter.title)}
+                    as="section"
+                    className="card question-group"
+                    labelledBy={`qc-${chapter.id}`}
+                    heading={<h2 id={`qc-${chapter.id}`}>{chapter.title}</h2>}
+                  >
                     {topics.map((topic) => (
-                      <div key={topic.id} className="question-topic">
-                        <h3>{topic.title}</h3>
+                      <CollapsibleSection key={topic.id} {...section(topic.id, topic.title)} className="question-topic" heading={<h3>{topic.title}</h3>}>
                         {topic.concepts
                           .filter((k) => byConcept.has(k.id))
                           .map((concept) => {
                             const conceptItems = byConcept.get(concept.id) ?? [];
-                            const allOn = conceptItems.every((i) => selected.has(i.id));
                             return (
-                              <div key={concept.id} className="question-concept">
-                                <label className="toggle concept-toggle">
-                                  <input
-                                    type="checkbox"
-                                    checked={allOn}
-                                    onChange={(e) => toggle(conceptItems.map((i) => i.id), e.target.checked)}
-                                    aria-label={`Select every question in ${concept.title}`}
-                                  />
-                                  <Link to={`/courses/${courseId}/concepts/${concept.id}`}>{concept.title}</Link>
-                                </label>
-                                <ul className="question-list">
-                                  {conceptItems.map((item) => (
-                                    <li key={item.id}>
-                                      <QuestionRow
-                                        item={item}
-                                        selected={selected.has(item.id)}
-                                        onSelect={(on) => toggle([item.id], on)}
-                                        editing={editing === item.id}
-                                        onEdit={() => setEditing(editing === item.id ? null : item.id)}
-                                        onSaved={() => {
-                                          setEditing(null);
-                                          refresh();
-                                        }}
-                                      />
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
+                              <CollapsibleSection
+                                key={concept.id}
+                                {...section(concept.id, concept.title)}
+                                className="question-concept"
+                                heading={
+                                  <label className="toggle concept-toggle">
+                                    <input
+                                      type="checkbox"
+                                      checked={conceptItems.every((i) => selected.has(i.id))}
+                                      onChange={(e) => toggle(conceptItems.map((i) => i.id), e.target.checked)}
+                                      aria-label={`Select every question in ${concept.title}`}
+                                    />
+                                    <Link to={`/courses/${courseId}/concepts/${concept.id}`}>{concept.title}</Link>
+                                  </label>
+                                }
+                                collapsedSummary={
+                                  <span className="hint">
+                                    {conceptItems.length} {conceptItems.length === 1 ? "question" : "questions"}
+                                  </span>
+                                }
+                              >
+                                {questionList(concept.id, conceptItems)}
+                              </CollapsibleSection>
                             );
                           })}
-                      </div>
+                      </CollapsibleSection>
                     ))}
-                  </section>
+                  </CollapsibleSection>
                 );
               });
             }}

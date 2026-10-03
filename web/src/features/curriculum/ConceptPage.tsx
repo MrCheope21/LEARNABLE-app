@@ -2,10 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ApiError, type Schemas } from "../../api/client";
-import { concepts, learningItems, progress, type ConceptAction } from "../../api/endpoints";
+import { concepts, learningItems, progress, reorder, type ConceptAction } from "../../api/endpoints";
 import { EditableTitle } from "../../components/EditableTitle";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { MemoryBlock } from "../../components/ProgressBlocks";
+import { SortableList } from "../../components/SortableList";
 import { dateTime, memoryStateLabel, pageLabel, roleLabel, studyStateLabel } from "../../components/labels";
 import { Breadcrumbs, ConsolidatePanel } from "./Consolidate";
 import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
@@ -193,12 +194,21 @@ function GenerationStatus({
 
 function ItemList({ items, conceptId }: { items: Schemas["LearningItemRead"][]; conceptId: string }) {
   const [open, setOpen] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   return (
     <section className="card">
       <h2>Learning items</h2>
-      <ul className="item-list">
-        {items.map((item) => (
-          <li key={item.id}>
+      <SortableList
+        className="question-list"
+        items={items}
+        itemLabel={(item) => item.title}
+        onReorder={async (ids) => {
+          await reorder.learningItems(conceptId, ids);
+          void queryClient.invalidateQueries({ queryKey: ["items", conceptId] });
+          void queryClient.invalidateQueries({ queryKey: ["course-items"] });
+        }}
+        renderItem={(item) => (
+          <div className="item-entry">
             <button
               type="button"
               className="item-row"
@@ -214,9 +224,9 @@ function ItemList({ items, conceptId }: { items: Schemas["LearningItemRead"][]; 
               </span>
             </button>
             {open === item.id && <ItemDetail item={item} conceptId={conceptId} />}
-          </li>
-        ))}
-      </ul>
+          </div>
+        )}
+      />
     </section>
   );
 }
