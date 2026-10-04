@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, EmailStr, Field
@@ -36,6 +36,9 @@ def _valid_zone(value: str | None) -> str | None:
 # An IANA zone name ("Europe/Rome"); decides the user's calendar day.
 Timezone = Annotated[str, Field(min_length=1, max_length=64), AfterValidator(_valid_zone)]
 DailyGoal = Annotated[int, Field(ge=1, le=500)]
+# Interface languages the clients ship: English, Italian, Spanish, French, German, Chinese
+# (Simplified), Japanese, Arabic, Hindi.
+Language = Literal["en", "it", "es", "fr", "de", "zh", "ja", "ar", "hi"]
 
 
 class UserCreate(_AuthInput):
@@ -43,6 +46,8 @@ class UserCreate(_AuthInput):
     password: NewPassword
     # The device's zone; UTC when omitted (it can be changed later).
     timezone: Timezone | None = None
+    # The language the sign-up page was shown in; English when omitted.
+    language: Language = "en"
 
 
 class UserLogin(_AuthInput):
@@ -59,11 +64,16 @@ class UserRead(BaseModel):
     timezone: str
     # Completed answers per day.
     daily_goal: int
+    language: Language
+    display_name: str | None
 
 
 class UserPreferencesUpdate(_AuthInput):
     timezone: Timezone | None = None
     daily_goal: DailyGoal | None = None
+    language: Language | None = None
+    # An empty string clears it.
+    display_name: Annotated[str, Field(max_length=80)] | None = None
 
 
 class PasswordResetRequest(_AuthInput):

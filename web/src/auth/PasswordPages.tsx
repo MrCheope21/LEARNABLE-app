@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { tokenStore, userMessage } from "../api/client";
 import { auth } from "../api/endpoints";
 import { BrandLogo } from "../brand/BrandLogo";
+import { useI18n } from "../i18n";
 
 const MIN_LENGTH = 12;
 
@@ -149,6 +150,7 @@ export function ResetPasswordPage() {
 
 /** Account menu: change the password (needs the current one). Other devices are signed out. */
 export function ChangePasswordForm({ onDone }: { onDone: () => void }) {
+  const { t } = useI18n();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -177,21 +179,21 @@ export function ChangePasswordForm({ onDone }: { onDone: () => void }) {
   if (changed) {
     return (
       <div role="status" className="password-changed">
-        <p>Password changed. Your other devices were signed out.</p>
+        <p>{t("password.changed")}</p>
         <button type="button" className="link" onClick={onDone}>
-          Close
+          {t("common.close")}
         </button>
       </div>
     );
   }
   return (
-    <form onSubmit={submit} className="password-form" aria-label="Change password">
+    <form onSubmit={submit} className="password-form" aria-label={t("password.change")}>
       <label>
-        Current password
+        {t("password.current")}
         <input type="password" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
       </label>
       <label>
-        New password (12+ characters)
+        {t("password.new")}
         <input type="password" autoComplete="new-password" required value={next} onChange={(e) => setNext(e.target.value)} />
       </label>
       {error && (
@@ -201,10 +203,10 @@ export function ChangePasswordForm({ onDone }: { onDone: () => void }) {
       )}
       <div className="actions" style={{ marginTop: 0 }}>
         <button type="submit" className="primary" disabled={busy || !current || next.length < MIN_LENGTH}>
-          Change password
+          {t("password.change")}
         </button>
         <button type="button" className="link" onClick={onDone}>
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </form>

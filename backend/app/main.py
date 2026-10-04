@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.documents import get_max_upload_bytes
 from app.api.errors import register_exception_handlers
+from app.api.headers import SecurityHeadersMiddleware
 from app.api.limits import MULTIPART_OVERHEAD_BYTES, BodySizeLimitMiddleware
 from app.api.router import api_router
 from app.core.config import get_settings
@@ -68,6 +69,8 @@ app.add_middleware(
     BodySizeLimitMiddleware,
     limit_bytes=lambda: get_max_upload_bytes() + MULTIPART_OVERHEAD_BYTES,
 )
+# Added last, so it runs first and also covers error responses from the other middleware.
+app.add_middleware(SecurityHeadersMiddleware)
 app.include_router(api_router)
 
 

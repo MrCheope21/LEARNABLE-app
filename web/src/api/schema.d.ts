@@ -155,8 +155,9 @@ export interface paths {
         head?: never;
         /**
          * Update Preferences
-         * @description Timezone and daily goal. A new timezone applies from now on: days already recorded keep
-         *     the date they were recorded under (docs/XP_AND_ACTIVITY.md §5).
+         * @description Profile and preferences: display name, interface language, timezone, daily goal. A new
+         *     timezone applies from now on: days already recorded keep the date they were recorded under
+         *     (docs/XP_AND_ACTIVITY.md §5).
          */
         patch: operations["update_preferences_api_v1_auth_me_patch"];
         trace?: never;
@@ -3051,6 +3052,12 @@ export interface components {
              * Format: email
              */
             email: string;
+            /**
+             * Language
+             * @default en
+             * @enum {string}
+             */
+            language: "en" | "it" | "es" | "fr" | "de" | "zh" | "ja" | "ar" | "hi";
             /** Password */
             password: string;
             /** Timezone */
@@ -3070,6 +3077,10 @@ export interface components {
         UserPreferencesUpdate: {
             /** Daily Goal */
             daily_goal?: number | null;
+            /** Display Name */
+            display_name?: string | null;
+            /** Language */
+            language?: ("en" | "it" | "es" | "fr" | "de" | "zh" | "ja" | "ar" | "hi") | null;
             /** Timezone */
             timezone?: string | null;
         };
@@ -3077,6 +3088,8 @@ export interface components {
         UserRead: {
             /** Daily Goal */
             daily_goal: number;
+            /** Display Name */
+            display_name: string | null;
             /**
              * Email
              * Format: email
@@ -3087,6 +3100,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Language
+             * @enum {string}
+             */
+            language: "en" | "it" | "es" | "fr" | "de" | "zh" | "ja" | "ar" | "hi";
             /** Timezone */
             timezone: string;
         };

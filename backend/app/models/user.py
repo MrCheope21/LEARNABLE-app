@@ -22,6 +22,10 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(String(64), default="UTC", server_default="UTC")
     # Completed answers per day the user aims for.
     daily_goal: Mapped[int] = mapped_column(Integer, default=20, server_default="20")
+    # Interface language of the web and app clients (a code from auth.schemas.Language).
+    language: Mapped[str] = mapped_column(String(8), default="en", server_default="en")
+    # How the user wants to be shown; optional, the email is used otherwise.
+    display_name: Mapped[str | None] = mapped_column(String(80), default=None)
     # Carried by every access token; a password change increments it, so every existing session
     # (on every device) ends at once.
     token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

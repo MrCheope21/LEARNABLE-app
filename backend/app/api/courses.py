@@ -14,6 +14,7 @@ from app.ai.factory import get_ai_provider
 from app.ai.provider import AIProvider
 from app.api.curriculum import get_max_context_chars
 from app.auth.dependencies import get_current_user
+from app.core.rate_limit import per_user
 from app.db.session import get_db, get_session_factory
 from app.models.course import Chapter, Concept, Course, Topic
 from app.models.user import User
@@ -211,7 +212,11 @@ def mark_concept_studied(
     return service.transition_concept(db, user.id, concept_id, "mark_studied")
 
 
-@router.post("/concepts/{concept_id}/activate", response_model=ConceptRead)
+@router.post(
+    "/concepts/{concept_id}/activate",
+    response_model=ConceptRead,
+    dependencies=[Depends(per_user("activate", 200, 3600))],
+)
 def activate_concept(
     concept_id: uuid.UUID,
     background_tasks: BackgroundTasks,

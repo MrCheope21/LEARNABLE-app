@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { userMessage } from "../api/client";
 import { BrandLogo } from "../brand/BrandLogo";
+import { LANGUAGES, useI18n, type Language } from "../i18n";
 import { useAuth } from "./AuthContext";
 import { ForgotPasswordForm } from "./PasswordPages";
 
 export function SignInPage() {
   const { signIn, register } = useAuth();
+  const { t, language, setLocalLanguage } = useI18n();
   const [mode, setMode] = useState<"signIn" | "register" | "forgot">("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,14 +19,14 @@ export function SignInPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (tooShort) {
-      setError("Use at least 12 characters.");
+      setError(t("signin.passwordRule"));
       return;
     }
     setBusy(true);
     setError(null);
     try {
       if (mode === "signIn") await signIn(email.trim(), password);
-      else await register(email.trim(), password);
+      else await register(email.trim(), password, language);
       setPassword("");
     } catch (e) {
       setError(userMessage(e));
@@ -44,16 +46,16 @@ export function SignInPage() {
   return (
     <main className="signin">
       <form className="card signin-card" onSubmit={submit} aria-labelledby="signin-title">
-        <a href="/" className="signin-logo" aria-label="LEARNABLE home">
+        <a href="/" className="signin-logo" aria-label={t("nav.home")}>
           <BrandLogo height={36} />
         </a>
-        <h1 id="signin-title">{mode === "signIn" ? "Sign in to LEARNABLE" : "Create your account"}</h1>
+        <h1 id="signin-title">{mode === "signIn" ? t("signin.title") : t("signin.registerTitle")}</h1>
         <label>
-          Email
+          {t("signin.email")}
           <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         <label>
-          Password
+          {t("signin.password")}
           <input
             type="password"
             autoComplete={mode === "register" ? "new-password" : "current-password"}
@@ -62,23 +64,33 @@ export function SignInPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
-        {mode === "register" && <p className="hint">At least 12 characters.</p>}
+        {mode === "register" && <p className="hint">{t("signin.passwordRule")}</p>}
         {error && (
           <p role="alert" className="error">
             {error}
           </p>
         )}
         <button type="submit" className="primary" disabled={busy || !email || !password}>
-          {busy ? "Please wait…" : mode === "signIn" ? "Sign in" : "Create account"}
+          {busy ? t("common.pleaseWait") : mode === "signIn" ? t("signin.submit") : t("signin.register")}
         </button>
         {mode === "signIn" && (
           <button type="button" className="link" onClick={() => setMode("forgot")}>
-            Forgot your password?
+            {t("signin.forgot")}
           </button>
         )}
         <button type="button" className="link" onClick={() => setMode(mode === "signIn" ? "register" : "signIn")}>
-          {mode === "signIn" ? "Create an account" : "I already have an account"}
+          {mode === "signIn" ? t("signin.toRegister") : t("signin.toSignIn")}
         </button>
+        <label className="language-picker">
+          {t("signin.language")}
+          <select value={language} onChange={(e) => setLocalLanguage(e.target.value as Language)}>
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code} lang={l.code}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </form>
     </main>
   );

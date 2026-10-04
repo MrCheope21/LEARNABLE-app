@@ -61,16 +61,17 @@ describe("passwords", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("This reset link is invalid or has expired");
   });
 
-  it("changes the password from the account menu and keeps this browser signed in", async () => {
+  it("changes the password from Settings, reached from the account menu, and keeps this browser signed in", async () => {
     const user = userEvent.setup();
     const { requests } = mockApi([
       ["GET", /\/dashboard$/, failWith(503, "internal_error")],
-      ["GET", /\/auth\/me$/, ok({ id: "u1", email: "ada@example.com", timezone: "UTC", daily_goal: 20 })],
+      ["GET", /\/auth\/me$/, ok({ id: "u1", email: "ada@example.com", timezone: "UTC", daily_goal: 20, language: "en", display_name: null })],
       ["POST", /\/auth\/change-password$/, ok({ access_token: "fresh-token", token_type: "bearer" })],
     ]);
     renderApp("/");
     await user.click(await screen.findByRole("button", { name: "Account" }));
-    await user.click(screen.getByRole("button", { name: "Change password" }));
+    await user.click(screen.getByRole("link", { name: "Settings" }));
+    await user.click(await screen.findByRole("button", { name: "Change password" }));
     await user.type(screen.getByLabelText("Current password"), "old-password");
     await user.type(screen.getByLabelText("New password (12+ characters)"), "a-long-new-password");
     await user.click(screen.getByRole("button", { name: "Change password" }));

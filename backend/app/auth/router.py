@@ -25,16 +25,25 @@ from app.auth.security import (
 )
 from app.core.config import get_settings
 from app.core.errors import AuthenticationError, ConflictError, InvalidRequestError
+from app.core.rate_limit import limiter, per_ip, per_user
 from app.db.session import get_db
 from app.email.sender import EmailSender, get_email_sender
 from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+_FAILED_LOGINS = 10
+_FAILED_LOGIN_WINDOW = 900
+
 _INVALID_CREDENTIALS = "Incorrect email or password"
 
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=UserRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(per_ip("register", 10, 3600))],
+)
 def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
     if db.scalar(select(User).where(User.email == payload.email)) is not None:
         raise ConflictError("Email already registered")
@@ -42,6 +51,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
         email=payload.email,
         hashed_password=hash_password(payload.password),
         timezone=payload.timezone or "UTC",
+        language=payload.language,
     )
     db.add(user)
     try:
@@ -55,13 +65,19 @@ def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
     return user
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, dependencies=[Depends(per_ip("login", 30, 300))])
 def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
+    # Wrong passwords for one address, from anywhere: slows guessing spread over many IPs.
+    # Unknown addresses count the same, so the limit doesn't reveal who is registered.
+    failures = f"login-failures:{payload.email}"
+    limiter.hit_check(failures, _FAILED_LOGINS, _FAILED_LOGIN_WINDOW)
     user = db.scalar(select(User).where(User.email == payload.email))
     if user is None:
         spend_equivalent_verification_time(payload.password)
+        limiter.record(failures, _FAILED_LOGIN_WINDOW)
         raise AuthenticationError(_INVALID_CREDENTIALS)
     if not verify_password(payload.password, user.hashed_password):
+        limiter.record(failures, _FAILED_LOGIN_WINDOW)
         raise AuthenticationError(_INVALID_CREDENTIALS)
     if password_needs_rehash(user.hashed_password):
         user.hashed_password = hash_password(payload.password)
@@ -80,12 +96,17 @@ def update_preferences(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> User:
-    """Timezone and daily goal. A new timezone applies from now on: days already recorded keep
-    the date they were recorded under (docs/XP_AND_ACTIVITY.md §5)."""
+    """Profile and preferences: display name, interface language, timezone, daily goal. A new
+    timezone applies from now on: days already recorded keep the date they were recorded under
+    (docs/XP_AND_ACTIVITY.md §5)."""
     if payload.timezone is not None:
         current_user.timezone = payload.timezone
     if payload.daily_goal is not None:
         current_user.daily_goal = payload.daily_goal
+    if payload.language is not None:
+        current_user.language = payload.language
+    if payload.display_name is not None:
+        current_user.display_name = " ".join(payload.display_name.split()) or None
     db.commit()
     db.refresh(current_user)
     return current_user
@@ -98,7 +119,10 @@ _RESET_ACCEPTED = (
 
 
 @router.post(
-    "/password-reset/request", response_model=MessageRead, status_code=status.HTTP_202_ACCEPTED
+    "/password-reset/request",
+    response_model=MessageRead,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(per_ip("password-reset", 10, 3600))],
 )
 def request_password_reset(
     payload: PasswordResetRequest,
@@ -120,7 +144,11 @@ def request_password_reset(
     return MessageRead(detail=_RESET_ACCEPTED)
 
 
-@router.post("/password-reset/confirm", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/password-reset/confirm",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(per_ip("password-reset-confirm", 20, 3600))],
+)
 def confirm_password_reset(
     payload: PasswordResetConfirm, db: Session = Depends(get_db)
 ) -> Response:
@@ -131,7 +159,11 @@ def confirm_password_reset(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/change-password", response_model=Token)
+@router.post(
+    "/change-password",
+    response_model=Token,
+    dependencies=[Depends(per_user("change-password", 10, 900))],
+)
 def change_password(
     payload: PasswordChange,
     current_user: User = Depends(get_current_user),

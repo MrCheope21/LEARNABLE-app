@@ -9,6 +9,7 @@ from app.ai.factory import get_ai_provider
 from app.ai.provider import AIProvider
 from app.api.curriculum import get_max_context_chars
 from app.auth.dependencies import get_current_user
+from app.core.rate_limit import per_user
 from app.db.session import get_db, get_session_factory
 from app.models.course import Concept
 from app.models.document import DocumentChunk
@@ -39,6 +40,7 @@ DB = Depends(get_db)
     "/concepts/{concept_id}/learning-items/generate",
     response_model=ConceptRead,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(per_user("generation", 30, 3600))],
 )
 def generate_learning_items(
     concept_id: uuid.UUID,
@@ -143,6 +145,7 @@ def add_question(
     "/learning-items/{item_id}/questions/generate",
     response_model=list[QuestionRead],
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(per_user("generation", 30, 3600))],
 )
 def generate_questions(
     item_id: uuid.UUID,

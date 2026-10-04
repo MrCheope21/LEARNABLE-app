@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.auth.dependencies import get_current_user
 from app.core.config import get_settings
 from app.core.errors import PayloadTooLargeError
+from app.core.rate_limit import per_user
 from app.db.session import get_db, get_session_factory
 from app.models.document import Document, DocumentChunk
 from app.models.enums import DocumentPurpose
@@ -43,6 +44,7 @@ def get_max_upload_bytes() -> int:
     "/courses/{course_id}/documents",
     response_model=DocumentRead,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(per_user("upload", 60, 3600))],
 )
 def upload_document(
     course_id: uuid.UUID,
