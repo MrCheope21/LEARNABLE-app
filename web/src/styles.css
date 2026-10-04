@@ -381,3 +381,13 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .guide-section { display: grid; gap: 0.8rem; scroll-margin-top: 1rem; }
 .guide-shot { display: block; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 6px 20px rgb(0 0 0 / 8%); }
 .guide-shot img { display: block; width: 100%; height: auto; }
+.tooltip-anchor { position: relative; display: inline-flex; }
+.tooltip { position: absolute; z-index: 30; top: calc(100% + 0.45rem); inset-inline-start: 0; width: max-content; max-width: min(280px, 80vw); padding: 0.5rem 0.7rem; border-radius: 8px; background: #1f2430; color: #fff; font-size: 0.85rem; font-weight: 400; line-height: 1.4; text-align: start; box-shadow: 0 8px 24px rgb(0 0 0 / 22%); opacity: 0; visibility: hidden; transform: translateY(-3px); transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s; pointer-events: none; }
+.tooltip.visible { opacity: 1; visibility: visible; transform: none; }
+@media (prefers-reduced-motion: reduce) { .tooltip { transition: none; } }
+.study-content > .hint { margin: 0; }
+.study-content .item-entry { display: grid; gap: 0.35rem; padding: 0.35rem 0.2rem; }
+.study-content .item-title { margin: 0; font-size: 1.05rem; }
+.study-content .item-entry .reading { margin: 0; line-height: 1.6; }
+.study-content .key-points { margin: 0; padding-inline-start: 1.2rem; }
+.item-details-toggle { justify-self: start; padding-inline-start: 0; }

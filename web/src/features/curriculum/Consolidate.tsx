@@ -63,7 +63,7 @@ export function ConsolidatePanel({ courseId, conceptId, active }: { courseId: st
         <HelpTip text="help.consolidate" topic="Studied this concept?" guide="study" />
       </div>
       <p>
-        Read its learning items below first. When you're ready, each question is asked <strong>{p.rounds_per_item} times in a row</strong>,
+        Read what to study above first. When you're ready, each question is asked <strong>{p.rounds_per_item} times in a row</strong>,
         with feedback after every round.
       </p>
       <p className="hint">
