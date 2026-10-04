@@ -9,6 +9,7 @@ import { HelpTip } from "../../components/HelpTip";
 import { SortableList } from "../../components/SortableList";
 import { memoryStateLabel } from "../../components/labels";
 import { Breadcrumbs } from "./Consolidate";
+import { ReferenceDrawingEditor } from "./ReferenceDrawingEditor";
 import { removalFor, type Removal } from "./selection";
 import { courseProgressKey, outlineKey } from "./CourseLayout";
 
@@ -309,7 +310,12 @@ function QuestionRow({
       <button type="button" className="link" aria-expanded={editing} onClick={onEdit}>
         {editing ? "Close" : "Edit"}
       </button>
-      {editing && <ItemEditor item={item} onSaved={onSaved} />}
+      {editing && (
+        <>
+          <ItemEditor item={item} onSaved={onSaved} />
+          <ReferenceDrawingEditor item={item} onChanged={onSaved} />
+        </>
+      )}
     </div>
   );
 }

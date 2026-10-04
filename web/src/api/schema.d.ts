@@ -61,6 +61,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/answers/{answer_id}/drawing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Answer Drawing
+         * @description The drawing given as this answer (owner only).
+         */
+        get: operations["answer_drawing_api_v1_answers__answer_id__drawing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/answers/{answer_id}/evaluate": {
         parameters: {
             query?: never;
@@ -1094,6 +1114,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/learning-items/{item_id}/reference-drawing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reference Drawing */
+        get: operations["reference_drawing_api_v1_learning_items__item_id__reference_drawing_get"];
+        /**
+         * Set Reference Drawing
+         * @description Makes the question a drawing question: its answer is this image (PNG, JPEG or WebP,
+         *     3 MB at most). Students then answer by drawing, and the AI compares the two drawings.
+         */
+        put: operations["set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put"];
+        post?: never;
+        /**
+         * Remove Reference Drawing
+         * @description Back to a question answered in words.
+         */
+        delete: operations["remove_reference_drawing_api_v1_learning_items__item_id__reference_drawing_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/learning-items/{item_id}/resume": {
         parameters: {
             query?: never;
@@ -1238,7 +1284,8 @@ export interface paths {
         /**
          * Submit Answer
          * @description Stores the answer, evaluates it, resolves the outcome and applies it. Always 201 once
-         *     the answer is stored, even if evaluation failed (`needs_self_grade`).
+         *     the answer is stored, even if evaluation failed (`needs_self_grade`). A drawing question
+         *     takes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`.
          */
         post: operations["submit_answer_api_v1_review_sessions__session_id__answers_post"];
         delete?: never;
@@ -1468,6 +1515,8 @@ export interface components {
         };
         /** AnswerCreate */
         AnswerCreate: {
+            /** Drawing */
+            drawing?: string | null;
             /** @default TEXT */
             method: components["schemas"]["AnswerMethod"];
             /**
@@ -1475,7 +1524,10 @@ export interface components {
              * Format: uuid
              */
             question_formulation_id: string;
-            /** Text */
+            /**
+             * Text
+             * @default
+             */
             text: string;
         };
         /** AnswerDetail */
@@ -1493,6 +1545,11 @@ export interface components {
             /** Evaluations */
             evaluations: components["schemas"]["EvaluationRead"][];
             final_outcome: components["schemas"]["ReviewOutcome"] | null;
+            /**
+             * Has Drawing
+             * @default false
+             */
+            has_drawing: boolean;
             /**
              * Hint Used
              * @default false
@@ -1543,6 +1600,11 @@ export interface components {
             consolidation_round?: number | null;
             evaluation: components["schemas"]["EvaluationRead"] | null;
             final_outcome: components["schemas"]["ReviewOutcome"] | null;
+            /**
+             * Has Drawing
+             * @default false
+             */
+            has_drawing: boolean;
             /**
              * Hint Used
              * @default false
@@ -1613,6 +1675,11 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put */
+        Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put: {
+            /** File */
+            file: string;
+        };
         /** Body_upload_document_api_v1_courses__course_id__documents_post */
         Body_upload_document_api_v1_courses__course_id__documents_post: {
             /** Chapter Id */
@@ -1655,6 +1722,11 @@ export interface components {
         };
         /** Card */
         Card: {
+            /**
+             * Answer Format
+             * @default TEXT
+             */
+            answer_format: string;
             /**
              * Concept Id
              * Format: uuid
@@ -2330,6 +2402,11 @@ export interface components {
          * @description LEARN only: what to encode, shown before the first retrieval.
          */
         Introduction: {
+            /**
+             * Drawing
+             * @default false
+             */
+            drawing: boolean;
             /** Essential Points */
             essential_points: string[];
             /** Expected Knowledge */
@@ -2399,6 +2476,8 @@ export interface components {
             ai_model: string | null;
             /** Ai Provider */
             ai_provider: string | null;
+            /** Answer Format */
+            answer_format: string;
             /**
              * Chapter Id
              * Format: uuid
@@ -2748,6 +2827,11 @@ export interface components {
          * @description The correct answer and where it comes from, shown with the feedback (spec §41, §66).
          */
         Reference: {
+            /**
+             * Drawing
+             * @default false
+             */
+            drawing: boolean;
             /** Essential Points */
             essential_points: string[];
             /** Expected Knowledge */
@@ -3295,6 +3379,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AnswerResult"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_drawing_api_v1_answers__answer_id__drawing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -5526,6 +5639,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestionRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reference_drawing_api_v1_learning_items__item_id__reference_drawing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_reference_drawing_api_v1_learning_items__item_id__reference_drawing_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningItemRead"];
                 };
             };
             /** @description Validation Error */

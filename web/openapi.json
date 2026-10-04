@@ -63,6 +63,18 @@
       "AnswerCreate": {
         "additionalProperties": false,
         "properties": {
+          "drawing": {
+            "anyOf": [
+              {
+                "maxLength": 5000000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drawing"
+          },
           "method": {
             "$ref": "#/components/schemas/AnswerMethod",
             "default": "TEXT"
@@ -73,15 +85,14 @@
             "type": "string"
           },
           "text": {
+            "default": "",
             "maxLength": 10000,
-            "minLength": 1,
             "title": "Text",
             "type": "string"
           }
         },
         "required": [
-          "question_formulation_id",
-          "text"
+          "question_formulation_id"
         ],
         "title": "AnswerCreate",
         "type": "object"
@@ -134,6 +145,11 @@
                 "type": "null"
               }
             ]
+          },
+          "has_drawing": {
+            "default": false,
+            "title": "Has Drawing",
+            "type": "boolean"
           },
           "hint_used": {
             "default": false,
@@ -319,6 +335,11 @@
                 "type": "null"
               }
             ]
+          },
+          "has_drawing": {
+            "default": false,
+            "title": "Has Drawing",
+            "type": "boolean"
           },
           "hint_used": {
             "default": false,
@@ -548,6 +569,20 @@
         "title": "ApplyTopic",
         "type": "object"
       },
+      "Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put",
+        "type": "object"
+      },
       "Body_upload_document_api_v1_courses__course_id__documents_post": {
         "properties": {
           "chapter_id": {
@@ -664,6 +699,11 @@
       },
       "Card": {
         "properties": {
+          "answer_format": {
+            "default": "TEXT",
+            "title": "Answer Format",
+            "type": "string"
+          },
           "concept_id": {
             "format": "uuid",
             "title": "Concept Id",
@@ -2559,6 +2599,11 @@
       "Introduction": {
         "description": "LEARN only: what to encode, shown before the first retrieval.",
         "properties": {
+          "drawing": {
+            "default": false,
+            "title": "Drawing",
+            "type": "boolean"
+          },
           "essential_points": {
             "items": {
               "type": "string"
@@ -2735,6 +2780,10 @@
             ],
             "title": "Ai Provider"
           },
+          "answer_format": {
+            "title": "Answer Format",
+            "type": "string"
+          },
           "chapter_id": {
             "format": "uuid",
             "title": "Chapter Id",
@@ -2830,6 +2879,7 @@
         },
         "required": [
           "id",
+          "answer_format",
           "concept_id",
           "topic_id",
           "chapter_id",
@@ -3749,6 +3799,11 @@
       "Reference": {
         "description": "The correct answer and where it comes from, shown with the feedback (spec \u00a741, \u00a766).",
         "properties": {
+          "drawing": {
+            "default": false,
+            "title": "Drawing",
+            "type": "boolean"
+          },
           "essential_points": {
             "items": {
               "type": "string"
@@ -5125,6 +5180,48 @@
           }
         ],
         "summary": "Dispute",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/v1/answers/{answer_id}/drawing": {
+      "get": {
+        "description": "The drawing given as this answer (owner only).",
+        "operationId": "answer_drawing_api_v1_answers__answer_id__drawing_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "answer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Answer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Answer Drawing",
         "tags": [
           "review"
         ]
@@ -8655,6 +8752,151 @@
         ]
       }
     },
+    "/api/v1/learning-items/{item_id}/reference-drawing": {
+      "delete": {
+        "description": "Back to a question answered in words.",
+        "operationId": "remove_reference_drawing_api_v1_learning_items__item_id__reference_drawing_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningItemRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Reference Drawing",
+        "tags": [
+          "learning-items"
+        ]
+      },
+      "get": {
+        "operationId": "reference_drawing_api_v1_learning_items__item_id__reference_drawing_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reference Drawing",
+        "tags": [
+          "learning-items"
+        ]
+      },
+      "put": {
+        "description": "Makes the question a drawing question: its answer is this image (PNG, JPEG or WebP,\n3 MB at most). Students then answer by drawing, and the AI compares the two drawings.",
+        "operationId": "set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningItemRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Reference Drawing",
+        "tags": [
+          "learning-items"
+        ]
+      }
+    },
     "/api/v1/learning-items/{item_id}/resume": {
       "post": {
         "operationId": "resume_learning_item_api_v1_learning_items__item_id__resume_post",
@@ -9054,7 +9296,7 @@
     },
     "/api/v1/review-sessions/{session_id}/answers": {
       "post": {
-        "description": "Stores the answer, evaluates it, resolves the outcome and applies it. Always 201 once\nthe answer is stored, even if evaluation failed (`needs_self_grade`).",
+        "description": "Stores the answer, evaluates it, resolves the outcome and applies it. Always 201 once\nthe answer is stored, even if evaluation failed (`needs_self_grade`). A drawing question\ntakes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`.",
         "operationId": "submit_answer_api_v1_review_sessions__session_id__answers_post",
         "parameters": [
           {

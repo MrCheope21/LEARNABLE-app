@@ -27,6 +27,8 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
   const [draft, setDraftState] = useState("");
   // The answer was (at least partly) dictated; the backend records how it was given.
   const [dictated, setDictated] = useState(false);
+  // A drawing question's answer (a data URL), or null while nothing is drawn.
+  const [drawing, setDrawing] = useState<string | null>(null);
   const draftRef = useRef("");
   const [error, setError] = useState<unknown>(null);
   const [working, setWorking] = useState(false);
@@ -69,6 +71,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
       setDraftState(saved);
       draftRef.current = saved;
       setDictated(false);
+      setDrawing(null);
       setPhase(card.introduction ? { kind: "introduction", card } : { kind: "answering", card });
     } catch (e) {
       setPhase({ kind: "failed", message: userMessage(e) });
@@ -122,21 +125,29 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     if (phase.kind === "introduction") setPhase({ kind: "answering", card: phase.card });
   }, [phase]);
 
-  const canSubmit = phase.kind === "answering" && draft.trim().length > 0;
+  const drawn = phase.kind === "answering" && phase.card.answer_format === "DRAWING";
+  const canSubmit = phase.kind === "answering" && (drawn ? drawing !== null : draft.trim().length > 0);
 
   const submit = useCallback(async () => {
     const current = sessionRef.current;
-    if (phase.kind !== "answering" || !current || !draft.trim()) return;
+    if (phase.kind !== "answering" || !current || !canSubmit) return;
     const card = phase.card;
     setPhase({ kind: "submitting", card });
     setError(null);
     try {
-      const result = await study.answer(current.id, card.question.id, draft.trim(), dictated ? "VOICE" : "TEXT");
+      const result = await study.answer(
+        current.id,
+        card.question.id,
+        draft.trim(),
+        dictated ? "VOICE" : "TEXT",
+        card.answer_format === "DRAWING" ? (drawing ?? undefined) : undefined,
+      );
       // The backend has the answer: the local copy can go.
       drafts.clear(card.question.id);
       setDraftState("");
       draftRef.current = "";
       setDictated(false);
+      setDrawing(null);
       record(result);
       setPhase({ kind: "result", card, result });
     } catch (e) {
@@ -149,7 +160,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
       setPhase({ kind: "answering", card });
       setError(e);
     }
-  }, [phase, draft, dictated, record, loadNext]);
+  }, [phase, draft, dictated, drawing, canSubmit, record, loadNext]);
 
   const withResult = useCallback(
     async (action: (result: AnswerView) => Promise<AnswerView>) => {
@@ -233,6 +244,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     draft,
     setDraft,
     appendDictation,
+    setDrawing,
     canSubmit,
     error,
     clearError: () => setError(null),

@@ -77,6 +77,9 @@ def delete_course(db: Session, user_id: uuid.UUID, course_id: uuid.UUID) -> list
     keys = list(
         db.scalars(select(Document.storage_key).where(Document.course_id == course_id)).all()
     )
+    from app.services import drawings
+
+    keys += drawings.course_drawing_keys(db, course_id)
     db.delete(course)
     db.commit()
     return keys

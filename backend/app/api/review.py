@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.ai.factory import get_ai_provider
@@ -25,13 +25,16 @@ from app.schemas.review import (
     SessionCreate,
     SessionRead,
 )
+from app.services import drawings
 from app.services.review import consolidation, service
+from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(tags=["review"])
 
 CurrentUser = Depends(get_current_user)
 DB = Depends(get_db)
 Provider = Depends(get_ai_provider)
+Storage = Depends(get_document_storage)
 
 
 @router.post(
@@ -96,10 +99,12 @@ def submit_answer(
     db: Session = DB,
     user: User = CurrentUser,
     provider: AIProvider | None = Provider,
+    storage: DocumentStorage = Storage,
 ) -> AnswerResult:
     """Stores the answer, evaluates it, resolves the outcome and applies it. Always 201 once
-    the answer is stored, even if evaluation failed (`needs_self_grade`)."""
-    return service.submit_answer(db, provider, user.id, session_id, payload)
+    the answer is stored, even if evaluation failed (`needs_self_grade`). A drawing question
+    takes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`."""
+    return service.submit_answer(db, provider, storage, user.id, session_id, payload)
 
 
 @router.post("/review-sessions/{session_id}/skip", response_model=SessionCard)
@@ -127,9 +132,10 @@ def retry_evaluation(
     db: Session = DB,
     user: User = CurrentUser,
     provider: AIProvider | None = Provider,
+    storage: DocumentStorage = Storage,
 ) -> AnswerResult:
     """Evaluates again after a failed (or unconfigured) attempt."""
-    return service.retry_evaluation(db, provider, user.id, answer_id)
+    return service.retry_evaluation(db, provider, storage, user.id, answer_id)
 
 
 @router.post(
@@ -143,9 +149,22 @@ def dispute(
     db: Session = DB,
     user: User = CurrentUser,
     provider: AIProvider | None = Provider,
+    storage: DocumentStorage = Storage,
 ) -> AnswerResult:
     """A second opinion: the evaluator sees the student's objection. Changes no grade."""
-    return service.dispute(db, provider, user.id, answer_id, payload)
+    return service.dispute(db, provider, storage, user.id, answer_id, payload)
+
+
+@router.get("/answers/{answer_id}/drawing", response_class=Response)
+def answer_drawing(
+    answer_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    storage: DocumentStorage = Storage,
+) -> Response:
+    """The drawing given as this answer (owner only)."""
+    data, media_type = drawings.load_answer_drawing(db, storage, user.id, answer_id)
+    return Response(data, media_type=media_type, headers={"Cache-Control": "private, no-store"})
 
 
 @router.post("/answers/{answer_id}/override", response_model=AnswerResult)

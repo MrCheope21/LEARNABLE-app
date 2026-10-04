@@ -8,10 +8,22 @@ after an ownership check.
 import base64
 import binascii
 import re
+import uuid
 
-from app.core.errors import InvalidRequestError, PayloadTooLargeError, UnsupportedMediaTypeError
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.core.errors import (
+    InvalidRequestError,
+    NotFoundError,
+    PayloadTooLargeError,
+    UnsupportedMediaTypeError,
+)
 from app.models.learning import LearningItem
 from app.models.review import Answer
+from app.services.courses.service import get_owned_course
+from app.services.learning.service import get_owned_item
+from app.storage.documents import DocumentStorage, StoredFileMissingError
 
 MAX_DRAWING_BYTES = 3 * 1024 * 1024
 _DATA_URL = re.compile(r"^data:image/[a-z+.-]+;base64,(?P<data>[A-Za-z0-9+/=\s]+)$")
@@ -48,3 +60,73 @@ def reference_key(item: LearningItem) -> str:
 
 def answer_key(answer: Answer) -> str:
     return f"courses/{answer.course_id}/drawings/answers/{answer.id}"
+
+
+# --- Reference drawings (the answer a drawing question expects) ---
+
+
+def set_reference(
+    db: Session, storage: DocumentStorage, user_id: uuid.UUID, item_id: uuid.UUID, data: bytes
+) -> LearningItem:
+    """Makes the item a drawing question with this reference drawing (replacing any earlier one)."""
+    item = get_owned_item(db, user_id, item_id)
+    media_type = image_type(data)
+    storage.save(reference_key(item), data)
+    item.answer_format = "DRAWING"
+    item.reference_drawing_type = media_type
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def remove_reference(
+    db: Session, storage: DocumentStorage, user_id: uuid.UUID, item_id: uuid.UUID
+) -> LearningItem:
+    """Back to a text question. Drawn answers already given keep their own images."""
+    item = get_owned_item(db, user_id, item_id)
+    if item.reference_drawing_type is not None:
+        storage.delete(reference_key(item))
+    item.answer_format = "TEXT"
+    item.reference_drawing_type = None
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def load_reference(
+    db: Session, storage: DocumentStorage, user_id: uuid.UUID, item_id: uuid.UUID
+) -> tuple[bytes, str]:
+    item = get_owned_item(db, user_id, item_id)
+    if item.reference_drawing_type is None:
+        raise NotFoundError("This question has no reference drawing.")
+    return _load(storage, reference_key(item)), item.reference_drawing_type
+
+
+def load_answer_drawing(
+    db: Session, storage: DocumentStorage, user_id: uuid.UUID, answer_id: uuid.UUID
+) -> tuple[bytes, str]:
+    answer = db.get(Answer, answer_id)
+    if answer is None or answer.user_id != user_id or answer.drawing_type is None:
+        raise NotFoundError("Drawing not found")
+    get_owned_course(db, user_id, answer.course_id)
+    return _load(storage, answer_key(answer)), answer.drawing_type
+
+
+def _load(storage: DocumentStorage, key: str) -> bytes:
+    try:
+        return storage.load(key)
+    except StoredFileMissingError as exc:
+        raise NotFoundError("The drawing file is missing.") from exc
+
+
+def course_drawing_keys(db: Session, course_id: uuid.UUID) -> list[str]:
+    """Every drawing file of a Course, so deleting the Course deletes them too (spec §70)."""
+    items = db.scalars(
+        select(LearningItem).where(
+            LearningItem.course_id == course_id, LearningItem.reference_drawing_type.is_not(None)
+        )
+    )
+    answers = db.scalars(
+        select(Answer).where(Answer.course_id == course_id, Answer.drawing_type.is_not(None))
+    )
+    return [*(reference_key(i) for i in items), *(answer_key(a) for a in answers)]

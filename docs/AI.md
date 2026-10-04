@@ -336,3 +336,27 @@ ai_call operation=generate_curriculum provider=deepseek model=deepseek-chat late
 
 Services log their own ids (proposal, course) next to failures. `request_id` and `user_id`
 correlation are not implemented yet.
+
+## Drawing answers (2026-10)
+
+A Learning Item can be answered by drawing instead of words (`answer_format: DRAWING`), for
+questions whose answer is a picture: a chemical structure, a diagram, a graph.
+
+- **Reference.** `PUT /learning-items/{id}/reference-drawing` (PNG, JPEG or WebP, 3 MB at most,
+  type read from the bytes) makes the item a drawing question; `DELETE` turns it back into a text
+  question. Files live in DocumentStorage under `courses/{course}/drawings/...`, are served only to
+  the owner (`Cache-Control: private, no-store`) and are deleted with the Course.
+- **Answer.** `POST /review-sessions/{id}/answers` takes `drawing` (a data URL) instead of `text`
+  (an optional note). The web client has a drawing pad (pen, eraser, undo, mouse, finger or
+  stylus) and accepts a photo of a drawing made on paper, scaled down before upload.
+- **Evaluation.** `AIProvider.evaluate_drawing` sends the question, then the reference image, then
+  the student's image (OpenAI-style `image_url` content parts) with prompt
+  `drawing_evaluation_v1`, and returns the same `EvaluationOutput` as text answers, so the
+  ReviewOutcomeResolver, second opinions, weak spots and XP work unchanged.
+- **Routing.** A separate operation, `DRAWING_EVALUATION` (`AI_ROUTE_DRAWING_EVALUATION`), that
+  only models which read images may serve: by default Gemini 3.5 Flash-Lite, then Flash. Text-only
+  models never receive drawings. With no such model, evaluation fails cleanly and the student
+  grades the drawing themselves, with both drawings side by side.
+- **Mock.** The offline mock can't see images: an identical drawing is CORRECT, anything else is
+  UNCERTAIN (the student grades it). Real grading quality is unmeasured until the Gemini route is
+  benchmarked on drawings.

@@ -6,6 +6,7 @@ import { concepts, learningItems, progress, reorder, type ConceptAction } from "
 import { EditableTitle } from "../../components/EditableTitle";
 import { HelpTip } from "../../components/HelpTip";
 import { Tooltip } from "../../components/Tooltip";
+import { ReferenceDrawingEditor } from "./ReferenceDrawingEditor";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { MemoryBlock } from "../../components/ProgressBlocks";
 import { SortableList } from "../../components/SortableList";
@@ -300,6 +301,10 @@ function ItemDetail({ item, conceptId }: { item: Schemas["LearningItemRead"]; co
         />
         In training
       </label>
+      <ReferenceDrawingEditor
+        item={item}
+        onChanged={() => void queryClient.invalidateQueries({ queryKey: ["items", conceptId] })}
+      />
       <h4>Questions</h4>
       <ul>
         {item.questions.map((q) => (
