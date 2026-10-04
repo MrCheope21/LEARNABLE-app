@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.api.cleanup import DrawingCleanup
 from app.auth.dependencies import get_current_user
 from app.core.rate_limit import per_user
 from app.db.session import get_db
@@ -128,5 +129,10 @@ def publish(
     db: Session = DB,
     user: User = CurrentUser,
     storage: DocumentStorage = Storage,
+    cleanup: DrawingCleanup = Depends(),
 ) -> MyListing:
-    return marketplace.publish(db, storage, user.id, course_id, payload)
+    listing = marketplace.publish(db, storage, user.id, course_id, payload)
+    # Questions the author removed went from every course with access, answers included.
+    for synced in marketplace.courses_with_access(db, listing.id):
+        cleanup.after(synced)
+    return listing

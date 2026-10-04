@@ -438,6 +438,10 @@ def acquire(
     return course.id
 
 
+def courses_with_access(db: Session, listing_id: uuid.UUID) -> list[uuid.UUID]:
+    return list(db.scalars(select(Course.id).where(Course.marketplace_listing_id == listing_id)))
+
+
 def origin(db: Session, course: Course) -> CourseOrigin | None:
     if course.marketplace_listing_id is None:
         return None

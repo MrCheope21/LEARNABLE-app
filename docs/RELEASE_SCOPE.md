@@ -31,7 +31,7 @@ Not in the beta, and not to be started until the beta gates below are met:
 - Coverage model (how much of the material the items cover)
 - Advanced question variation and follow-up questions
 - External-knowledge mode (answers judged beyond the course sources)
-- Marketplace or sharing
+- Paid marketplace listings (the marketplace itself is free-only)
 
 ## Release decisions
 

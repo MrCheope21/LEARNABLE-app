@@ -551,6 +551,38 @@ GET    /api/v1/courses/{course_id}/summary  # one course card (course header)
 - Days are the user's local calendar days (`users.timezone`); due counts use the same
   eligibility as review sessions. All of it is the signed-in user's own data only.
 
+## Marketplace (spec §92) — implemented and tested
+
+```
+PUT    /api/v1/courses/{course_id}/marketplace/info      # the sales page; a private DRAFT at first
+POST   /api/v1/courses/{course_id}/marketplace/publish   # ListingInfo + rights_confirmed: true
+GET    /api/v1/courses/{course_id}/marketplace           # {listing (author), origin (acquirer)}
+GET    /api/v1/marketplace/listings?q&category&level&language&size&sort
+GET    /api/v1/marketplace/listings/{listing_id}         # sales page + chapter sizes only
+POST   /api/v1/marketplace/listings/{listing_id}/acquire # → {course_id}
+POST   /api/v1/marketplace/listings/{listing_id}/unpublish
+GET    /api/v1/marketplace/mine
+```
+
+- **Listing** (`MarketplaceListing`): the author's sales page (`title, subtitle, description,
+  outcomes, audience, level, category, tags`) and a **snapshot** of the course's study content
+  (structure, items, questions, priorities, reference drawings; never documents, answers or
+  progress). `DRAFT` (version 0) → `PUBLISHED` → `UNPUBLISHED`. Each publish is a new version;
+  saving the sales page of a published listing is not.
+- **Before access** a listing exposes only the sales page, `item_count`, `chapter_count` and
+  `chapters [{title, questions}]`; no question, answer or drawing. Authors appear by display
+  name only.
+- **Access, not a copy**: `acquire` creates a course in the user's account with
+  `marketplace_listing_id` set (`MarketplaceAcquisition` records the access, once per user and
+  for good). Its content is **read-only** (409 `managed_course` on any content change, enforced
+  by a `before_flush` guard in `services/managed_courses.py`); study state, pauses, schedule,
+  answers, XP and the user's own `priority` per question stay theirs (`origin_priority` is the
+  author's). Every publish syncs these courses row by row (`origin_key` = the author's row id),
+  updating questions in place so answers stay attached; the user's own priority is kept, an
+  unchanged one follows the author's.
+- Nothing can be downloaded: the author's documents never reach the acquirer's course.
+- Free only: a listing with `price_cents > 0` answers 409 `payments_unavailable`.
+
 ## Explicit cross-course endpoints (future, spec §11)
 
 Must be a distinct, clearly-named path — never implied by omitting `course_id` from a normal

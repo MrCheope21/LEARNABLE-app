@@ -10,11 +10,19 @@ Keys are built only from server-generated ids, never from the user's filename.
 
 import os
 import uuid
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Protocol
 
 from app.core.config import Settings, get_settings
+
+
+@dataclass(frozen=True)
+class StoredFile:
+    key: str
+    modified_at: datetime
 
 
 class DocumentStorage(Protocol):
@@ -23,6 +31,10 @@ class DocumentStorage(Protocol):
     def load(self, key: str) -> bytes: ...
 
     def delete(self, key: str) -> None: ...
+
+    def list(self, prefix: str) -> list[StoredFile]:
+        """Every file whose key starts with `prefix` (a directory-like prefix ending in "/")."""
+        ...
 
 
 class StoredFileMissingError(Exception):
@@ -67,6 +79,19 @@ class LocalDocumentStorage:
     def delete(self, key: str) -> None:
         self._path(key).unlink(missing_ok=True)
 
+    def list(self, prefix: str) -> list[StoredFile]:
+        folder = self._path(prefix)
+        if not folder.is_dir():
+            return []
+        return [
+            StoredFile(
+                key=path.relative_to(self._root).as_posix(),
+                modified_at=datetime.fromtimestamp(path.stat().st_mtime, UTC),
+            )
+            for path in folder.rglob("*")
+            if path.is_file() and not path.name.endswith(".partial")
+        ]
+
 
 class S3DocumentStorage:
     """Private objects in an S3-compatible bucket. `client` is a boto3 S3 client (injected, so
@@ -94,6 +119,20 @@ class S3DocumentStorage:
     def delete(self, key: str) -> None:
         # S3 deletes are idempotent: deleting a missing key succeeds.
         self._client.delete_object(Bucket=self._bucket, Key=self._key(key))
+
+    def list(self, prefix: str) -> list[StoredFile]:
+        files = []
+        pages = self._client.get_paginator("list_objects_v2").paginate(
+            Bucket=self._bucket, Prefix=self._key(prefix)
+        )
+        for page in pages:
+            for item in page.get("Contents", []):
+                files.append(
+                    StoredFile(
+                        key=item["Key"][len(self._prefix) :], modified_at=item["LastModified"]
+                    )
+                )
+        return files
 
 
 def build_storage(settings: Settings) -> DocumentStorage:
