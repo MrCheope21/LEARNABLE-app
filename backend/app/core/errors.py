@@ -4,6 +4,7 @@ Services raise these instead of HTTPException so business logic stays framework-
 route handler doesn't need its own try/except translation.
 """
 
+from math import ceil
 from typing import Any
 
 
@@ -15,6 +16,18 @@ class AppError(Exception):
         super().__init__(message)
         self.message = message
         self.details = details or {}
+
+
+class RateLimitedError(AppError):
+    status_code = 429
+    error_type = "rate_limited"
+
+    def __init__(self, retry_after: float) -> None:
+        self.retry_after = max(1, ceil(retry_after))
+        super().__init__(
+            "Too many attempts. Please wait a little and try again.",
+            {"retry_after_seconds": self.retry_after},
+        )
 
 
 class NotFoundError(AppError):

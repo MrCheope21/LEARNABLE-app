@@ -1,13 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { SESSION_EXPIRED_EVENT, tokenStore } from "../api/client";
+import { SESSION_EXPIRED_EVENT, tokenStore, type Schemas } from "../api/client";
 import { auth, deviceTimezone } from "../api/endpoints";
 import { drafts } from "../features/study/drafts";
 
 interface AuthState {
   isSignedIn: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, language?: Schemas["UserCreate"]["language"]) => Promise<void>;
   signOut: () => void;
 }
 
@@ -43,8 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const register = useCallback(
-    async (email: string, password: string) => {
-      await auth.register({ email, password, timezone: deviceTimezone() });
+    async (email: string, password: string, language?: Schemas["UserCreate"]["language"]) => {
+      await auth.register({ email, password, timezone: deviceTimezone(), language: language ?? "en" });
       await signIn(email, password);
     },
     [signIn],

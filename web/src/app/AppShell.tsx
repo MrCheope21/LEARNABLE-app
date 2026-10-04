@@ -3,9 +3,9 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { auth, dashboard } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
-import { ChangePasswordForm } from "../auth/PasswordPages";
 import { BrandLogo } from "../brand/BrandLogo";
 import { ErrorBanner } from "../components/QueryState";
+import { useI18n } from "../i18n";
 
 export const dashboardKey = ["dashboard"] as const;
 export const meKey = ["me"] as const;
@@ -26,25 +26,27 @@ export function TopNav() {
   const summary = useQuery({ queryKey: dashboardKey, queryFn: dashboard.get });
   const streak = summary.data?.streak.current;
   const xp = summary.data?.xp.total;
+  const { t } = useI18n();
   return (
     <header className="topnav">
       <div className="topnav-inner">
-        <Link to="/" className="home-link" aria-label="LEARNABLE home">
+        <Link to="/" className="home-link" aria-label={t("nav.home")}>
           <BrandLogo tone="white" height={26} />
         </Link>
-        <nav className="nav-links" aria-label="Main">
-          <NavLink to="/courses">Courses</NavLink>
-          <NavLink to="/review">Review</NavLink>
-          <NavLink to="/progress">Progress</NavLink>
+        <nav className="nav-links" aria-label={t("nav.main")}>
+          <NavLink to="/courses">{t("nav.courses")}</NavLink>
+          <NavLink to="/review">{t("nav.review")}</NavLink>
+          <NavLink to="/progress">{t("nav.progress")}</NavLink>
+          <NavLink to="/guide">{t("nav.guide")}</NavLink>
         </nav>
         <div className="nav-stats">
           {streak !== undefined && (
-            <span className="nav-stat" title="Daily streak" aria-label={`Daily streak: ${streak} ${streak === 1 ? "day" : "days"}`}>
+            <span className="nav-stat" title={t("nav.streak", { n: streak })} aria-label={t("nav.streak", { n: streak })}>
               <FlameIcon /> {streak}
             </span>
           )}
           {xp !== undefined && (
-            <span className="nav-stat xp-stat" title="Total experience" aria-label={`Total experience: ${xp} XP`}>
+            <span className="nav-stat xp-stat" title={t("nav.xp", { n: xp })} aria-label={t("nav.xp", { n: xp })}>
               <XpIcon /> {xp.toLocaleString()}
             </span>
           )}
@@ -57,12 +59,11 @@ export function TopNav() {
 
 function AccountMenu() {
   const { signOut } = useAuth();
+  const { t } = useI18n();
   const me = useQuery({ queryKey: meKey, queryFn: auth.me });
   const [open, setOpen] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
   const menuId = useId();
   const container = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!open) return;
     const close = (event: MouseEvent | KeyboardEvent) => {
@@ -77,8 +78,7 @@ function AccountMenu() {
       document.removeEventListener("keydown", close);
     };
   }, [open]);
-
-  const email = me.data?.email ?? "";
+  const name = me.data?.display_name || me.data?.email || "";
   return (
     <div className="account" ref={container}>
       <button
@@ -87,24 +87,23 @@ function AccountMenu() {
         aria-haspopup="true"
         aria-expanded={open}
         aria-controls={menuId}
-        aria-label="Account"
+        aria-label={t("account.menu")}
         onClick={() => setOpen((v) => !v)}
       >
-        {email ? email[0]?.toUpperCase() : "·"}
+        {name ? name[0]?.toUpperCase() : "·"}
       </button>
       {open && (
         <div className="account-menu" id={menuId}>
-          <span className="email">{email}</span>
-          {me.data && <TimezoneForm current={me.data.timezone} />}
-          {changingPassword ? (
-            <ChangePasswordForm onDone={() => setChangingPassword(false)} />
-          ) : (
-            <button type="button" onClick={() => setChangingPassword(true)}>
-              Change password
-            </button>
-          )}
+          {me.data?.display_name && <strong>{me.data.display_name}</strong>}
+          <span className="email">{me.data?.email}</span>
+          <Link to="/settings" className="button" onClick={() => setOpen(false)}>
+            {t("account.settings")}
+          </Link>
+          <Link to="/guide" className="button" onClick={() => setOpen(false)}>
+            {t("account.guide")}
+          </Link>
           <button type="button" onClick={signOut}>
-            Sign out
+            {t("account.signOut")}
           </button>
         </div>
       )}
@@ -122,6 +121,7 @@ function zones(): string[] {
 
 export function TimezoneForm({ current }: { current: string }) {
   const queryClient = useQueryClient();
+  const { t } = useI18n();
   const [value, setValue] = useState(current);
   const listId = useId();
   const save = useMutation({
@@ -138,7 +138,7 @@ export function TimezoneForm({ current }: { current: string }) {
   return (
     <form onSubmit={submit} className="timezone-form">
       <label>
-        Timezone (your study day)
+        {t("settings.timezone")}
         <input list={listId} value={value} onChange={(e) => setValue(e.target.value)} maxLength={64} />
       </label>
       <datalist id={listId}>
@@ -148,7 +148,7 @@ export function TimezoneForm({ current }: { current: string }) {
       </datalist>
       <ErrorBanner error={save.error} />
       <button type="submit" disabled={save.isPending || !value.trim() || value === current}>
-        Save timezone
+        {t("common.save")}
       </button>
     </form>
   );

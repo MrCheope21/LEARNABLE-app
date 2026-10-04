@@ -204,6 +204,8 @@ class Settings(BaseSettings):
     # Interrupted background jobs (see app/services/recovery.py) are swept at startup and then
     # every this many seconds. 0 disables the sweep (tests drive it directly).
     job_recovery_interval_seconds: float = Field(default=60, ge=0)
+    # Attempt limits on sign-in, sign-up, password and AI-heavy endpoints (app/core/rate_limit.py).
+    rate_limits_enabled: bool = True
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.ai.factory import get_ai_provider
 from app.ai.provider import AIProvider
 from app.auth.dependencies import get_current_user
+from app.core.rate_limit import per_user
 from app.db.session import get_db
 from app.models.review import Review
 from app.models.user import User
@@ -87,6 +88,7 @@ def next_card(session_id: uuid.UUID, db: Session = DB, user: User = CurrentUser)
     "/review-sessions/{session_id}/answers",
     response_model=AnswerResult,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(per_user("answers", 600, 3600))],
 )
 def submit_answer(
     session_id: uuid.UUID,
@@ -115,7 +117,11 @@ def get_answer(answer_id: uuid.UUID, db: Session = DB, user: User = CurrentUser)
     return service.get_answer(db, user.id, answer_id)
 
 
-@router.post("/answers/{answer_id}/evaluate", response_model=AnswerResult)
+@router.post(
+    "/answers/{answer_id}/evaluate",
+    response_model=AnswerResult,
+    dependencies=[Depends(per_user("evaluate", 60, 3600))],
+)
 def retry_evaluation(
     answer_id: uuid.UUID,
     db: Session = DB,
@@ -126,7 +132,11 @@ def retry_evaluation(
     return service.retry_evaluation(db, provider, user.id, answer_id)
 
 
-@router.post("/answers/{answer_id}/dispute", response_model=AnswerResult)
+@router.post(
+    "/answers/{answer_id}/dispute",
+    response_model=AnswerResult,
+    dependencies=[Depends(per_user("dispute", 30, 3600))],
+)
 def dispute(
     answer_id: uuid.UUID,
     payload: DisputeCreate,

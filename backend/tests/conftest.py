@@ -29,6 +29,7 @@ from sqlalchemy.pool import StaticPool
 import app.models  # registers every model on Base.metadata
 from app.ai.factory import get_ai_provider
 from app.ai.mock import MockAIProvider
+from app.core.rate_limit import limiter
 from app.db.base import Base
 from app.db.session import create_engine_for_url, get_db, get_session_factory
 from app.main import app
@@ -77,6 +78,12 @@ def engine(database_url: str) -> Iterator[Engine]:
         engine = create_engine_for_url(database_url)
     yield engine
     engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limits() -> None:
+    """Every test starts with no attempts counted (the limiter is process-wide)."""
+    limiter.reset()
 
 
 @pytest.fixture

@@ -12,6 +12,9 @@ import { CourseOverview } from "../features/curriculum/CourseOverview";
 import { ProposalPage } from "../features/curriculum/ProposalPage";
 import { QuestionsPage } from "../features/curriculum/QuestionsPage";
 import { WeakSpotsPage } from "../features/curriculum/WeakSpotsPage";
+import { GuidePage } from "../features/guide/GuidePage";
+import { SettingsPage } from "../features/settings/SettingsPage";
+import { I18nProvider } from "../i18n";
 import { TopicPage } from "../features/curriculum/TopicPage";
 import { CoursesPage } from "../features/courses/CoursesPage";
 import { ActivityPage } from "../features/dashboard/ActivityPage";
@@ -42,11 +45,13 @@ function CourseMaterialRoute() {
 
 export function AppRoutes() {
   return (
-    <Routes>
-      {/* A reset link must open whether or not this browser is signed in. */}
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="*" element={<SignedInRoutes />} />
-    </Routes>
+    <I18nProvider>
+      <Routes>
+        {/* A reset link must open whether or not this browser is signed in. */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="*" element={<SignedInRoutes />} />
+      </Routes>
+    </I18nProvider>
   );
 }
 
@@ -72,6 +77,8 @@ function SignedInRoutes() {
         <Route path="review" element={<ReviewHubPage />} />
         <Route path="progress" element={<ProgressPage />} />
         <Route path="activity" element={<ActivityPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="guide" element={<GuidePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

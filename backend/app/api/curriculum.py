@@ -9,6 +9,7 @@ from app.ai.factory import get_ai_provider
 from app.ai.provider import AIProvider
 from app.auth.dependencies import get_current_user
 from app.core.config import get_settings
+from app.core.rate_limit import per_user
 from app.db.session import get_db, get_session_factory
 from app.models.course import Chapter
 from app.models.document import DocumentChunk
@@ -37,6 +38,7 @@ def get_max_context_chars() -> int:
     "/courses/{course_id}/curriculum-proposals",
     response_model=CurriculumProposalRead,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(per_user("generation", 30, 3600))],
 )
 def generate_curriculum(
     course_id: uuid.UUID,

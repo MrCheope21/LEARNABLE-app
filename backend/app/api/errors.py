@@ -13,7 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.core.errors import AppError, AuthenticationError
+from app.core.errors import AppError, AuthenticationError, RateLimitedError
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,11 @@ def error_response(
 
 
 async def _app_error(_request: Request, exc: AppError) -> JSONResponse:
-    headers = {"WWW-Authenticate": "Bearer"} if isinstance(exc, AuthenticationError) else None
+    headers: dict[str, str] | None = None
+    if isinstance(exc, AuthenticationError):
+        headers = {"WWW-Authenticate": "Bearer"}
+    elif isinstance(exc, RateLimitedError):
+        headers = {"Retry-After": str(exc.retry_after)}
     return error_response(exc.status_code, exc.error_type, exc.message, exc.details, headers)
 
 

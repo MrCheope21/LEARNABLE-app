@@ -4545,6 +4545,22 @@
             "title": "Email",
             "type": "string"
           },
+          "language": {
+            "default": "en",
+            "enum": [
+              "en",
+              "it",
+              "es",
+              "fr",
+              "de",
+              "zh",
+              "ja",
+              "ar",
+              "hi"
+            ],
+            "title": "Language",
+            "type": "string"
+          },
           "password": {
             "maxLength": 128,
             "minLength": 12,
@@ -4610,6 +4626,40 @@
             ],
             "title": "Daily Goal"
           },
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "enum": [
+                  "en",
+                  "it",
+                  "es",
+                  "fr",
+                  "de",
+                  "zh",
+                  "ja",
+                  "ar",
+                  "hi"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
           "timezone": {
             "anyOf": [
               {
@@ -4633,6 +4683,17 @@
             "title": "Daily Goal",
             "type": "integer"
           },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
           "email": {
             "format": "email",
             "title": "Email",
@@ -4641,6 +4702,21 @@
           "id": {
             "format": "uuid",
             "title": "Id",
+            "type": "string"
+          },
+          "language": {
+            "enum": [
+              "en",
+              "it",
+              "es",
+              "fr",
+              "de",
+              "zh",
+              "ja",
+              "ar",
+              "hi"
+            ],
+            "title": "Language",
             "type": "string"
           },
           "timezone": {
@@ -4652,7 +4728,9 @@
           "id",
           "email",
           "timezone",
-          "daily_goal"
+          "daily_goal",
+          "language",
+          "display_name"
         ],
         "title": "UserRead",
         "type": "object"
@@ -5274,7 +5352,7 @@
         ]
       },
       "patch": {
-        "description": "Timezone and daily goal. A new timezone applies from now on: days already recorded keep\nthe date they were recorded under (docs/XP_AND_ACTIVITY.md \u00a75).",
+        "description": "Profile and preferences: display name, interface language, timezone, daily goal. A new\ntimezone applies from now on: days already recorded keep the date they were recorded under\n(docs/XP_AND_ACTIVITY.md \u00a75).",
         "operationId": "update_preferences_api_v1_auth_me_patch",
         "requestBody": {
           "content": {
