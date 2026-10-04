@@ -3,7 +3,15 @@ import { useId, useState } from "react";
 const MIN_LENGTH = 3;
 
 /** "Ask the AI to look again": the objection goes to the evaluator; no grade changes. */
-export function DisputeForm({ working, onAsk }: { working: boolean; onAsk: (argument: string) => Promise<void> }) {
+export function DisputeForm({
+  working,
+  onAsk,
+  testAi = false,
+}: {
+  working: boolean;
+  onAsk: (argument: string) => Promise<void>;
+  testAi?: boolean;
+}) {
   const [argument, setArgument] = useState("");
   const id = useId();
   const ready = argument.trim().length >= MIN_LENGTH;
@@ -16,6 +24,11 @@ export function DisputeForm({ working, onAsk }: { working: boolean; onAsk: (argu
       }}
     >
       <h3>Ask the AI to look again</h3>
+      {testAi && (
+        <p className="banner warning" role="note">
+          The test AI can't read your objection: a second opinion would repeat the same grade. Grade it yourself below.
+        </p>
+      )}
       <label htmlFor={id}>Why do you disagree?</label>
       <textarea
         id={id}

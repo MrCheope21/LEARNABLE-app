@@ -1,6 +1,6 @@
 """ChessableStyleSchedulingPolicy in isolation: no database, no AI (docs/PROJECT_SPEC.md §77).
 
-Owner decisions under test: AGAIN → level 1; HARD advances like GOOD and marks the item hard;
+Owner decisions under test (v1): AGAIN → level 1; HARD advances like GOOD and marks the item hard;
 EASY skips a level; the ladder is 4h, 1d, 3d, 1w, 2w, 1m, 3m, 6m.
 """
 
@@ -12,7 +12,6 @@ import pytest
 from app.models.enums import MemoryState, ReviewOutcome
 from app.services.scheduling.config import CHESSABLE_V1_LADDER
 from app.services.scheduling.policy import (
-    ChessableStyleSchedulingPolicy,
     MemorySnapshot,
     SchedulingError,
     get_policy,
@@ -25,7 +24,9 @@ AGAIN, HARD, GOOD, EASY = (
     ReviewOutcome.GOOD,
     ReviewOutcome.EASY,
 )
-policy = ChessableStyleSchedulingPolicy()
+# The rules most tests pin are v1's; v2's differences are tested at the end of this file.
+policy = get_policy("chessable", "1")
+v2 = get_policy("chessable", "2")
 
 
 def learned(level: int = 1, state: MemoryState | None = None) -> MemorySnapshot:
@@ -204,6 +205,58 @@ def test_items_are_independent_values():
 
 def test_policy_registry():
     assert get_policy().name == "chessable"
-    assert get_policy("chessable", "1") is get_policy()
+    assert get_policy().version == "2"
+    assert get_policy("chessable", "2") is get_policy()
+    assert get_policy("chessable", "1") is not get_policy()
     with pytest.raises(SchedulingError):
         get_policy("fsrs", "1")
+
+
+# --- v2 (owner decision 2026-10-04): HARD holds the level; a first slip drops two levels ---
+
+
+def test_v2_hard_repeats_the_same_interval():
+    t = v2.process_review(learned(3), HARD, NOW)
+    assert (t.after.level, t.after.due_at) == (3, NOW + v2.interval_for(3))
+    assert t.after.marked_hard
+
+
+def test_v2_good_and_easy_still_advance():
+    assert v2.process_review(learned(3), GOOD, NOW).after.level == 4
+    assert v2.process_review(learned(3), EASY, NOW).after.level == 5
+
+
+def test_v2_a_first_slip_drops_two_levels():
+    t = v2.process_review(learned(7), AGAIN, NOW)
+    assert (t.after.level, t.after.state, t.after.lapse_count) == (5, MemoryState.RELEARNING, 1)
+    assert t.after.due_at == NOW + timedelta(weeks=2)
+
+
+def test_v2_a_second_slip_in_a_row_goes_back_to_level_1():
+    first = v2.process_review(learned(7), AGAIN, NOW).after
+    second = v2.process_review(first, AGAIN, NOW + timedelta(weeks=2)).after
+    assert (second.level, second.state, second.lapse_count) == (1, MemoryState.RELEARNING, 1)
+
+
+def test_v2_a_slip_after_recovering_is_gentle_again():
+    first = v2.process_review(learned(7), AGAIN, NOW).after
+    recovered = v2.process_review(first, GOOD, NOW + timedelta(weeks=2)).after
+    assert recovered.level == 6
+    again = v2.process_review(recovered, AGAIN, NOW + timedelta(days=60)).after
+    assert (again.level, again.lapse_count) == (4, 2)
+
+
+def test_v2_low_levels_never_drop_below_1():
+    assert v2.process_review(learned(2), AGAIN, NOW).after.level == 1
+    assert v2.process_review(learned(1), AGAIN, NOW).after.level == 1
+
+
+def test_v2_mastered_items_slip_gently_too():
+    t = v2.process_review(learned(8, MemoryState.MASTERED), AGAIN, NOW)
+    assert (t.after.level, t.after.state) == (6, MemoryState.RELEARNING)
+
+
+def test_v2_uses_the_same_ladder():
+    assert [v2.interval_for(level) for level in range(1, 9)] == [
+        policy.interval_for(level) for level in range(1, 9)
+    ]

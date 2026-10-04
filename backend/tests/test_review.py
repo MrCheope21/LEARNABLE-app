@@ -162,7 +162,7 @@ def test_learn_introduces_then_encodes_and_initializes_the_schedule(client, cour
         "GOOD",
         "NEW",
     )
-    assert (review["scheduling_policy"], review["scheduling_policy_version"]) == ("chessable", "1")
+    assert (review["scheduling_policy"], review["scheduling_policy_version"]) == ("chessable", "2")
 
 
 def test_failed_encoding_keeps_the_item_new_and_asks_it_again(client, course, db_session):
@@ -254,7 +254,7 @@ def test_scheduled_review_takes_only_due_items_and_advances_them(client, course,
     assert memory(db_session, it["id"]).level == 2
 
 
-def test_hard_advances_and_marks_the_item(client, course, db_session):
+def test_hard_keeps_the_level_and_marks_the_item(client, course, db_session):
     headers, course_id, _, topic_id = course
     it = item(client, headers, concept(client, headers, topic_id)["id"])
     learn(client, headers, course_id)
@@ -265,12 +265,13 @@ def test_hard_advances_and_marks_the_item(client, course, db_session):
 
     assert result["evaluation"]["classification"] == "PARTIALLY_CORRECT"
     assert result["final_outcome"] == "HARD"
-    assert result["schedule"]["next_level"] == 2
+    # Scheduling v2: HARD repeats the same interval instead of advancing.
+    assert result["schedule"]["next_level"] == 1
     state = memory(db_session, it["id"])
     assert (state.marked_hard, state.hard_count) == (True, 1)
 
 
-def test_again_resets_one_item_and_never_its_siblings(client, course, db_session):
+def test_again_drops_one_item_and_never_its_siblings(client, course, db_session):
     headers, course_id, _, topic_id = course
     c = concept(client, headers, topic_id)
     definition = item(client, headers, c["id"], "Definizione")
@@ -287,7 +288,8 @@ def test_again_resets_one_item_and_never_its_siblings(client, course, db_session
     assert session["total"] == 1
     result = answer(client, headers, session["id"], WRONG).json()
 
-    assert (result["final_outcome"], result["schedule"]["next_level"]) == ("AGAIN", 1)
+    # Scheduling v2: a first slip drops two levels (a second slip in a row would go to 1).
+    assert (result["final_outcome"], result["schedule"]["next_level"]) == ("AGAIN", 3)
     assert memory(db_session, scenario["id"]).lapse_count == 1
     assert memory(db_session, definition["id"]).level == 5
 

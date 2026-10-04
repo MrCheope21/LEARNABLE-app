@@ -67,6 +67,20 @@ class LearningItemRole(StrEnum):
     OPTIONAL_EXTENSION = "OPTIONAL_EXTENSION"
 
 
+# How much a question matters, set by the user to decide what to concentrate on: 1 Essential,
+# 2 Important, 3 Extra (addendum). Labels and filters only: it doesn't change the study order.
+PRIORITY_ESSENTIAL, PRIORITY_IMPORTANT, PRIORITY_EXTRA = 1, 2, 3
+
+
+def default_priority(role: "LearningItemRole") -> int:
+    """The starting priority of a generated item, from the role the AI suggested."""
+    if role is LearningItemRole.CORE_TRAINABLE:
+        return PRIORITY_ESSENTIAL
+    if role in (LearningItemRole.SUPPORTING_TRAINABLE, LearningItemRole.COMMON_TRAP):
+        return PRIORITY_IMPORTANT
+    return PRIORITY_EXTRA
+
+
 # Roles that go into training by default when generated.
 TRAINABLE_ROLES = frozenset(
     {

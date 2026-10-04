@@ -87,6 +87,7 @@ export function EvaluationView({ evaluation }: { evaluation: Evaluation }) {
   }
   return (
     <div className="evaluation-body">
+      {evaluation.ai_provider === "mock" && <TestAiNotice />}
       {evaluation.classification && (
         <span className="hint">AI evaluation: {classificationLabel[evaluation.classification]}</span>
       )}
@@ -97,5 +98,15 @@ export function EvaluationView({ evaluation }: { evaluation: Evaluation }) {
       <ScoreBreakdown evaluation={evaluation} />
       <PointChecklist evaluation={evaluation} />
     </div>
+  );
+}
+
+/** The server runs the offline test AI: its grades only compare words, so say so plainly. */
+export function TestAiNotice() {
+  return (
+    <p className="banner warning test-ai" role="note">
+      <strong>Test AI.</strong> This grade comes from a stand-in that only compares words with the reference: it can't
+      understand paraphrases or objections. Check the reference and grade it yourself, or connect a real AI.
+    </p>
   );
 }

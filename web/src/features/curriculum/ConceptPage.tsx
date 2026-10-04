@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ApiError, type Schemas } from "../../api/client";
 import { concepts, learningItems, progress, reorder, type ConceptAction } from "../../api/endpoints";
 import { EditableTitle } from "../../components/EditableTitle";
 import { HelpTip } from "../../components/HelpTip";
+import { PriorityBadge } from "../../components/PriorityBadge";
 import { Tooltip } from "../../components/Tooltip";
+import { studyLink } from "../study/StudyPage";
 import { ReferenceDrawingEditor } from "./ReferenceDrawingEditor";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { MemoryBlock } from "../../components/ProgressBlocks";
@@ -124,7 +126,7 @@ export function ConceptPage() {
               )}
               {/* What to study comes first, then "I have studied it", then managing the concept. */}
               <QueryState query={items} label="Loading learning items…">
-                {(list) => (list.length > 0 ? <ItemList items={list} conceptId={conceptId} /> : null)}
+                {(list) => (list.length > 0 ? <ItemList items={list} conceptId={conceptId} courseId={courseId} /> : null)}
               </QueryState>
               <ConsolidatePanel courseId={courseId} conceptId={conceptId} active={data.study_state === "ACTIVE"} />
               <section className="card" aria-label="Manage this concept">
@@ -209,12 +211,19 @@ function GenerationStatus({
 }
 
 /** What the concept teaches, readable at once; each item's memory, questions and sources on demand. */
-function ItemList({ items, conceptId }: { items: Schemas["LearningItemRead"][]; conceptId: string }) {
+function ItemList({ items, conceptId, courseId }: { items: Schemas["LearningItemRead"][]; conceptId: string; courseId: string }) {
   const [open, setOpen] = useState<string | null>(null);
   const queryClient = useQueryClient();
   return (
     <section className="card study-content" aria-labelledby="study-content-title">
-      <h2 id="study-content-title">What to study</h2>
+      <div className="title-row study-content-head">
+        <h2 id="study-content-title">What to study</h2>
+        <Tooltip text="Be tested on this concept whenever you like. It doesn't change your review plan and earns no XP.">
+          <Link className="button" to={studyLink(courseId, "PRACTICE", { conceptIds: [conceptId] })}>
+            🔁 Review on your own
+          </Link>
+        </Tooltip>
+      </div>
       <p className="hint">Read these, then press "I have studied this concept" below to practise them.</p>
       <SortableList
         className="question-list"
@@ -227,7 +236,10 @@ function ItemList({ items, conceptId }: { items: Schemas["LearningItemRead"][]; 
         }}
         renderItem={(item) => (
           <article className="item-entry">
-            <h3 className="item-title">{item.title}</h3>
+            <div className="title-row item-head">
+              <h3 className="item-title">{item.title}</h3>
+              <PriorityBadge priority={item.priority} />
+            </div>
             {item.objective && <p className="hint">{item.objective}</p>}
             <p className="reading">{item.expected_knowledge}</p>
             {item.essential_points.length > 0 && (
@@ -237,6 +249,9 @@ function ItemList({ items, conceptId }: { items: Schemas["LearningItemRead"][]; 
                 ))}
               </ul>
             )}
+            <Link className="test-me" to={studyLink(courseId, "PRACTICE", { itemIds: [item.id] })}>
+              🔁 Test me on this
+            </Link>
             <button
               type="button"
               className="link item-details-toggle"

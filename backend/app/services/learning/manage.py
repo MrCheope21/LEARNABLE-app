@@ -129,6 +129,11 @@ def bulk(
         db.flush()
     elif payload.action in ("pause", "resume"):
         _set_paused(items, paused=payload.action == "pause")
+    elif payload.action == "set_priority":
+        if payload.priority is None:
+            raise InvalidRequestError("Choose a priority: 1 Essential, 2 Important or 3 Extra.")
+        for item in items:
+            item.priority = payload.priority
     elif payload.action == "move":
         _move(db, course_id, items, payload, counts)
     if payload.action in ("delete", "move") and payload.delete_emptied_concepts:

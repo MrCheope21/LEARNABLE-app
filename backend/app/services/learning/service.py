@@ -31,7 +31,7 @@ from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, Topic
 from app.models.curriculum import ConceptSource
 from app.models.document import Document, DocumentChunk
-from app.models.enums import TRAINABLE_ROLES, ItemGenerationStatus, QuestionType
+from app.models.enums import TRAINABLE_ROLES, ItemGenerationStatus, QuestionType, default_priority
 from app.models.learning import LearningItem, LearningItemSource, QuestionFormulation, ReviewState
 from app.schemas.learning import (
     LearningItemCreate,
@@ -281,6 +281,7 @@ def new_item(
         expected_knowledge=proposed.expected_knowledge,
         essential_points=list(proposed.essential_points),
         role=proposed.role,
+        priority=getattr(proposed, "priority", None) or default_priority(proposed.role),
         # An item can only be trained if there is something to ask.
         in_training=proposed.role in TRAINABLE_ROLES and bool(proposed.questions),
         difficulty=proposed.difficulty,

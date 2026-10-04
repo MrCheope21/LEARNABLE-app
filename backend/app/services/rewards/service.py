@@ -16,7 +16,13 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.orm import Session
 
-from app.models.enums import EvaluationClassification, MemoryState, SessionIntent, XpReason
+from app.models.enums import (
+    EvaluationClassification,
+    MemoryState,
+    ReviewOutcome,
+    SessionIntent,
+    XpReason,
+)
 from app.models.learning import LearningItem
 from app.models.review import Answer, ReviewSession
 from app.models.rewards import DailyActivity, HintReveal, ItemSuccessCounter, XpAward
@@ -94,14 +100,15 @@ def record_attempt(
     occasion: Occasion | None,
     classification: EvaluationClassification | None,
     at: datetime,
+    self_grade: ReviewOutcome | None = None,
 ) -> XpAward | None:
     """The attempt is complete (first final outcome). Writes its award (when eligible) and its
     day's activity. Returns the award row, or None when the attempt wasn't eligible.
-    `classification` is the AI evaluation's, or None when the user graded the answer
-    themselves: a self-selected grade never makes an answer correct for XP."""
+    `classification` is the AI evaluation's; `self_grade` the student's own grade when they
+    graded it themselves, which earns XP like an AI-correct answer."""
     award: XpAward | None = None
     if occasion is not None:
-        correct = policy.is_correct(classification, answer.resolved_outcome)
+        correct = policy.is_correct(classification, answer.resolved_outcome, self_grade)
         ordinal = _count_success(db, user.id, item) if correct else None
         base = policy.base_xp(ordinal) if ordinal is not None else 0
         xp = policy.awarded_xp(ordinal, answer.hint_used) if ordinal is not None else 0
@@ -124,6 +131,22 @@ def record_attempt(
         db.add(award)
     _add_activity(db, user, at, xp=award.xp if award else 0)
     return award
+
+
+def regrade(db: Session, user: User, item: LearningItem, answer: Answer, at: datetime) -> None:
+    """The student changed the grade of an answer already decided (e.g. the AI said AGAIN, the
+    student says GOOD). A success now earns the XP the answer didn't get; an answer is rewarded
+    at most once, and XP already earned is never taken back."""
+    award = award_for(db, answer.id)
+    if award is None or award.correct:
+        return
+    if not policy.is_correct(None, None, self_grade=answer.final_outcome):
+        return
+    award.correct = True
+    award.ordinal = _count_success(db, user.id, item)
+    award.base_xp = policy.base_xp(award.ordinal)
+    award.xp = policy.awarded_xp(award.ordinal, answer.hint_used)
+    _add_activity(db, user, at, xp=award.xp, attempts=0)
 
 
 def _insert(db: Session, table: Any) -> Any:
@@ -152,20 +175,20 @@ def _count_success(db: Session, user_id: uuid.UUID, item: LearningItem) -> int:
     return int(db.execute(stmt).scalar_one())
 
 
-def _add_activity(db: Session, user: User, at: datetime, *, xp: int) -> None:
+def _add_activity(db: Session, user: User, at: datetime, *, xp: int, attempts: int = 1) -> None:
     stmt = (
         _insert(db, DailyActivity)
         .values(
             id=uuid.uuid4(),
             user_id=user.id,
             day=local_day(user.timezone, at),
-            attempts=1,
+            attempts=attempts,
             xp=xp,
         )
         .on_conflict_do_update(
             index_elements=["user_id", "day"],
             set_={
-                "attempts": DailyActivity.attempts + 1,
+                "attempts": DailyActivity.attempts + attempts,
                 "xp": DailyActivity.xp + xp,
             },
         )
