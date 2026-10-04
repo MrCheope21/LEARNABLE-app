@@ -36,7 +36,7 @@ from app.ai.schemas import (
 from app.ai.structured import response_schema
 from app.ai.transport import ChatCompletion, ChatMessage, ChatTransport
 from app.core.errors import AIInvalidOutputError
-from app.prompts import answer_evaluation_v1 as evaluation_prompt
+from app.prompts import answer_evaluation_v2 as evaluation_prompt
 from app.prompts import chapter_curriculum_v1 as chapter_prompt
 from app.prompts import curriculum_generation_v1 as curriculum_prompt
 from app.prompts import learning_item_generation_v1 as items_prompt

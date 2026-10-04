@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
+import { Tooltip } from "../../components/Tooltip";
 import { studyLink } from "../study/StudyPage";
 
 export type CourseCardData = Schemas["CourseCard"];
@@ -91,9 +92,11 @@ export function LearnButton({ courseId, learn }: { courseId: string; learn: Cour
     );
   }
   return (
-    <Link className="button learn" to={target.to} title={target.hint}>
-      {target.label}
-    </Link>
+    <Tooltip text={target.hint}>
+      <Link className="button learn" to={target.to}>
+        {target.label}
+      </Link>
+    </Tooltip>
   );
 }
 
