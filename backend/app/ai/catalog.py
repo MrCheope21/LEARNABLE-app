@@ -86,9 +86,14 @@ class RouteOperation(StrEnum):
     QUESTION_GENERATION = "QUESTION_GENERATION"
     ANSWER_EVALUATION = "ANSWER_EVALUATION"
     FEEDBACK_GENERATION = "FEEDBACK_GENERATION"
+    # Comparing a drawn answer with a reference drawing: only models that read images.
+    DRAWING_EVALUATION = "DRAWING_EVALUATION"
 
 
-ALL_OPERATIONS = frozenset(RouteOperation)
+# Every text operation. Drawing evaluation needs a model that reads images, so it is granted per
+# model (VISION_OPERATIONS) and never by default.
+ALL_OPERATIONS = frozenset(RouteOperation) - {RouteOperation.DRAWING_EVALUATION}
+VISION_OPERATIONS = frozenset(RouteOperation)
 # Inexpensive work a small free model may do: simple questions, extraction, feedback. Grading
 # is allowed only after benchmark approval (evaluation_requires_approval).
 LIGHT_OPERATIONS = frozenset(
@@ -330,7 +335,7 @@ MODELS: dict[str, ModelCapability] = {
         ModelCapability(
             provider_id="mock",
             model_id="mock",
-            operations=ALL_OPERATIONS,
+            operations=VISION_OPERATIONS,
             supports_json=True,
             supports_json_schema=True,
             supports_strict_json_schema=True,
@@ -352,6 +357,7 @@ MODELS: dict[str, ModelCapability] = {
         _model(
             "gemini",
             "gemini-3.5-flash-lite",
+            operations=VISION_OPERATIONS,
             privacy=PrivacyClass.DEVELOPMENT_ONLY,
             notes="Verified live 2026-09-29 and benchmarked (9/9 cases). Free tier content may be "
             "used by Google: development/demo material only.",
@@ -359,6 +365,7 @@ MODELS: dict[str, ModelCapability] = {
         _model(
             "gemini",
             "gemini-3.5-flash",
+            operations=VISION_OPERATIONS,
             privacy=PrivacyClass.DEVELOPMENT_ONLY,
             notes="Verified live 2026-09-29. Small free daily allowance; free tier content may be "
             "used by Google.",
@@ -366,12 +373,14 @@ MODELS: dict[str, ModelCapability] = {
         _model(
             "gemini",
             "gemini-2.5-flash",
+            operations=VISION_OPERATIONS,
             privacy=PrivacyClass.DEVELOPMENT_ONLY,
             notes="Free tier content may be used by Google: development/demo material only.",
         ),
         _model(
             "gemini",
             "gemini-2.5-flash-lite",
+            operations=VISION_OPERATIONS,
             privacy=PrivacyClass.DEVELOPMENT_ONLY,
             notes="Free tier content may be used by Google: development/demo material only.",
         ),
@@ -532,4 +541,5 @@ DEFAULT_ROUTES: dict[RouteOperation, str] = {
         "nvidia:openai/gpt-oss-20b"
     ),
     RouteOperation.FEEDBACK_GENERATION: "",
+    RouteOperation.DRAWING_EVALUATION: "gemini:gemini-3.5-flash-lite,gemini:gemini-3.5-flash",
 }

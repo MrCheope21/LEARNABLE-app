@@ -24,6 +24,7 @@ from app.ai.schemas import (
     ChapterCurriculumRequest,
     CurriculumOutput,
     CurriculumRequest,
+    DrawingEvaluationRequest,
     EvaluationOutput,
     EvaluationRequest,
     ExistingTopic,
@@ -39,6 +40,7 @@ from app.core.errors import AIInvalidOutputError
 from app.prompts import answer_evaluation_v1 as evaluation_prompt
 from app.prompts import chapter_curriculum_v1 as chapter_prompt
 from app.prompts import curriculum_generation_v1 as curriculum_prompt
+from app.prompts import drawing_evaluation_v1 as drawing_prompt
 from app.prompts import learning_item_generation_v1 as items_prompt
 from app.prompts import question_generation_v1 as questions_prompt
 
@@ -51,6 +53,7 @@ class AIOperation(StrEnum):
     GENERATE_LEARNING_ITEMS = "generate_learning_items"
     GENERATE_QUESTIONS = "generate_questions"
     EVALUATE_ANSWER = "evaluate_answer"
+    EVALUATE_DRAWING = "evaluate_drawing"
 
 
 class StructuredOutput(StrEnum):
@@ -78,6 +81,7 @@ OPERATION_MODEL_GROUP = {
     AIOperation.GENERATE_LEARNING_ITEMS: ModelGroup.GENERATION,
     AIOperation.GENERATE_QUESTIONS: ModelGroup.GENERATION,
     AIOperation.EVALUATE_ANSWER: ModelGroup.EVALUATION,
+    AIOperation.EVALUATE_DRAWING: ModelGroup.EVALUATION,
 }
 
 
@@ -138,6 +142,8 @@ class AIProvider(Protocol):
     def generate_questions(self, request: QuestionsRequest) -> QuestionsResult: ...
 
     def evaluate_answer(self, request: EvaluationRequest) -> EvaluationResult: ...
+
+    def evaluate_drawing(self, request: DrawingEvaluationRequest) -> EvaluationResult: ...
 
 
 @dataclass(frozen=True)
@@ -308,6 +314,35 @@ class LLMAIProvider:
             messages,
             EvaluationOutput,
             evaluation_prompt.RETRY.substitute,
+        )
+        return EvaluationResult(output=output, info=info)
+
+    def evaluate_drawing(self, request: DrawingEvaluationRequest) -> EvaluationResult:
+        text = drawing_prompt.USER.substitute(
+            question=request.question,
+            objective=request.objective or "(not stated)",
+            expected_knowledge=request.expected_knowledge or "(none)",
+            note=request.note or "(none)",
+        )
+        if request.user_argument:
+            text += drawing_prompt.OBJECTION.substitute(argument=request.user_argument)
+        messages = [
+            ChatMessage("system", drawing_prompt.SYSTEM.substitute(language=request.language)),
+            ChatMessage(
+                "user",
+                [
+                    {"type": "text", "text": text},
+                    {"type": "image_url", "image_url": {"url": request.reference.data_url()}},
+                    {"type": "image_url", "image_url": {"url": request.drawing.data_url()}},
+                ],
+            ),
+        ]
+        output, info = self._structured_call(
+            AIOperation.EVALUATE_DRAWING,
+            drawing_prompt.VERSION,
+            messages,
+            EvaluationOutput,
+            drawing_prompt.RETRY.substitute,
         )
         return EvaluationResult(output=output, info=info)
 

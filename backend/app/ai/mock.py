@@ -26,6 +26,7 @@ from app.ai.schemas import (
     ChapterCurriculumRequest,
     CurriculumOutput,
     CurriculumRequest,
+    DrawingEvaluationRequest,
     EvaluationOutput,
     EvaluationRequest,
     LearningItemsOutput,
@@ -55,6 +56,7 @@ MOCK_INFO = AICallInfo(
 MOCK_CHAPTER_INFO = replace(MOCK_INFO, prompt_version="mock_chapter_curriculum_v1")
 MOCK_ITEMS_INFO = replace(MOCK_INFO, prompt_version="mock_learning_items_v1")
 MOCK_EVALUATION_INFO = replace(MOCK_INFO, prompt_version="mock_evaluation_v1")
+MOCK_DRAWING_INFO = replace(MOCK_INFO, prompt_version="mock_drawing_evaluation_v1")
 MOCK_QUESTIONS_INFO = replace(MOCK_INFO, prompt_version="mock_questions_v1")
 # Passages turned into Learning Items by the mechanical generator, at most.
 _MOCK_ITEMS_PER_CONCEPT = 3
@@ -91,6 +93,7 @@ class MockAIProvider:
         self.learning_item_requests: list[LearningItemsRequest] = []
         self._evaluation = evaluation
         self.evaluation_requests: list[EvaluationRequest] = []
+        self.drawing_requests: list[DrawingEvaluationRequest] = []
         self.question_requests: list[QuestionsRequest] = []
 
     def generate_curriculum(self, request: CurriculumRequest) -> CurriculumResult:
@@ -121,6 +124,42 @@ class MockAIProvider:
         if self._error is not None:
             raise self._error
         return QuestionsResult(output=_mechanical_questions(request), info=MOCK_QUESTIONS_INFO)
+
+    def evaluate_drawing(self, request: DrawingEvaluationRequest) -> EvaluationResult:
+        """The mock can't see images: an identical drawing is correct, anything else is left to
+        the student to grade (UNCERTAIN, low confidence), never guessed."""
+        self.drawing_requests.append(request)
+        if self._error is not None:
+            raise self._error
+        if callable(self._evaluation):
+            output = self._evaluation(request)  # type: ignore[arg-type]
+        elif request.drawing.data == request.reference.data:
+            output = EvaluationOutput(
+                classification=EvaluationClassification.CORRECT,
+                correctness=1.0,
+                completeness=1.0,
+                conceptual_understanding=1.0,
+                precision=1.0,
+                confidence=0.9,
+                context_sufficient=True,
+                correct_points=["The drawing matches the reference."],
+                feedback="Mock evaluation: the drawing is identical to the reference.",
+            )
+        else:
+            output = EvaluationOutput(
+                classification=EvaluationClassification.UNCERTAIN,
+                correctness=0.0,
+                completeness=0.0,
+                conceptual_understanding=0.0,
+                precision=0.0,
+                confidence=0.1,
+                context_sufficient=True,
+                feedback=(
+                    "The offline mock can't compare drawings: compare yours with the reference "
+                    "and grade it."
+                ),
+            )
+        return EvaluationResult(output=output, info=MOCK_DRAWING_INFO)
 
     def evaluate_answer(self, request: EvaluationRequest) -> EvaluationResult:
         self.evaluation_requests.append(request)

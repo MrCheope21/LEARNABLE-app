@@ -20,7 +20,9 @@ from app.core.errors import AIUnavailableError
 @dataclass(frozen=True)
 class ChatMessage:
     role: str  # "system" | "user" | "assistant"
-    content: str
+    # Plain text, or OpenAI-style content parts ({"type": "text" | "image_url", ...}) for models
+    # that read images.
+    content: str | list[dict[str, Any]]
 
 
 @dataclass(frozen=True)

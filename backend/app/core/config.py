@@ -144,6 +144,7 @@ class Settings(BaseSettings):
     ai_route_question_generation: str = ""
     ai_route_answer_evaluation: str = ""
     ai_route_feedback_generation: str = ""
+    ai_route_drawing_evaluation: str = ""
     # Router credentials: one per provider. CI maps its own secret names onto these.
     ai_groq_api_key: SecretStr = SecretStr("")
     ai_mistral_api_key: SecretStr = SecretStr("")
@@ -307,6 +308,7 @@ class Settings(BaseSettings):
             "ai_route_question_generation",
             "ai_route_answer_evaluation",
             "ai_route_feedback_generation",
+            "ai_route_drawing_evaluation",
             "ai_free_models",
             "ai_private_approved_models",
             "ai_evaluation_approved_models",

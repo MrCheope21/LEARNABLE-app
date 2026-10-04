@@ -131,6 +131,8 @@ class Answer(Base):
     consolidation_round: Mapped[int | None] = mapped_column(Integer, default=None)
     # A hint was revealed for this attempt before the answer was submitted (halves its XP).
     hint_used: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # A drawn answer: its media type; the image is stored under drawings.answer_key(answer).
+    drawing_type: Mapped[str | None] = mapped_column(String(32), default=None)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
 
 

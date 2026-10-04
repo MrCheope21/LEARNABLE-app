@@ -39,6 +39,7 @@ from app.ai.provider import (
 from app.ai.schemas import (
     ChapterCurriculumRequest,
     CurriculumRequest,
+    DrawingEvaluationRequest,
     EvaluationRequest,
     LearningItemsRequest,
     QuestionsRequest,
@@ -120,7 +121,7 @@ def _exclusion_reason(
         return f"not_free_only_eligible ({capability.cost_class})"
     if data_policy == "private" and capability.privacy_class is not PrivacyClass.PRIVATE_APPROVED:
         return f"not_approved_for_private_material ({capability.privacy_class})"
-    if operation is RouteOperation.ANSWER_EVALUATION:
+    if operation in (RouteOperation.ANSWER_EVALUATION, RouteOperation.DRAWING_EVALUATION):
         if is_dynamic_router(capability.provider_id, capability.model_id):
             return "dynamic_router_not_allowed_for_evaluation"
         if require_approved_evaluator and not capability.evaluation_approved:
@@ -187,6 +188,9 @@ class RoutedAIProvider:
 
     def evaluate_answer(self, request: EvaluationRequest) -> EvaluationResult:
         return self._run(RouteOperation.ANSWER_EVALUATION, lambda p: p.evaluate_answer(request))
+
+    def evaluate_drawing(self, request: DrawingEvaluationRequest) -> EvaluationResult:
+        return self._run(RouteOperation.DRAWING_EVALUATION, lambda p: p.evaluate_drawing(request))
 
     def _run[R: _Result](self, operation: RouteOperation, call: Callable[[AIProvider], R]) -> R:
         attempts: list[dict[str, str]] = []
