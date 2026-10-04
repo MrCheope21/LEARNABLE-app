@@ -59,25 +59,25 @@ export function learnTarget(courseId: string, learn: CourseCardData["learn"]): {
     case "resume":
       return {
         to: learn.session_id ? `/study/${courseId}?session=${learn.session_id}` : null,
-        label: "Resume",
-        hint: "Continue your unfinished consolidation",
+        label: "Resume practice",
+        hint: "Continue the round you left unfinished",
       };
     case "study":
       return {
         to: learn.concept ? `/courses/${courseId}/concepts/${learn.concept.id}` : null,
-        label: "Learn",
+        label: "Learn next",
         hint: learn.concept ? `Study ${learn.concept.title}` : "Learn new material",
       };
     case "activate":
       return {
         to: learn.concept ? `/courses/${courseId}/concepts/${learn.concept.id}` : null,
-        label: "Set up next",
-        hint: learn.concept ? `Activate ${learn.concept.title} to prepare its questions` : "Activate a concept",
+        label: "Start learning",
+        hint: learn.concept ? `Prepare the questions of ${learn.concept.title} and start studying it` : "Start studying the next concept",
       };
     case "setup":
       return { to: `/courses/${courseId}`, label: "Add material", hint: "Add study material or your own questions to start" };
     case "none":
-      return { to: null, label: "All learned", hint: "Everything in this course has been learned" };
+      return { to: null, label: "All learned ✓", hint: "Everything in this course has been learned" };
   }
 }
 
@@ -100,8 +100,8 @@ export function LearnButton({ courseId, learn }: { courseId: string; learn: Cour
 export function ReviewButton({ courseId, due }: { courseId: string; due: number }) {
   if (due <= 0) {
     return (
-      <span className="button review" aria-disabled="true" title="Nothing is due for review in this course">
-        No reviews due
+      <span className="no-due" title="Nothing in this course needs reviewing right now">
+        ✓ Nothing to review now
       </span>
     );
   }

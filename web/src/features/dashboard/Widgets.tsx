@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { HelpTip } from "../../components/HelpTip";
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
@@ -20,7 +21,10 @@ export function StreakWidget({ streak }: { streak: Dashboard["streak"] }) {
   const days = streak.current;
   return (
     <section className="card widget" aria-labelledby="streak-title">
-      <h2 id="streak-title">Daily streak</h2>
+      <div className="title-row">
+        <h2 id="streak-title">Daily streak</h2>
+        <HelpTip text="help.streak" topic="Daily streak" guide="progress" />
+      </div>
       <p className="big-number">
         <FlameIcon size={30} /> {days} <span className="hint">{days === 1 ? "day" : "days"}</span>
       </p>
@@ -49,7 +53,10 @@ export function StreakWidget({ streak }: { streak: Dashboard["streak"] }) {
 export function ExperienceWidget({ xp }: { xp: Dashboard["xp"] }) {
   return (
     <section className="card widget" aria-labelledby="xp-title">
-      <h2 id="xp-title">Experience</h2>
+      <div className="title-row">
+        <h2 id="xp-title">Experience</h2>
+        <HelpTip text="help.xp" topic="Experience" guide="progress" />
+      </div>
       <p className="big-number">
         <XpIcon size={28} /> {xp.total.toLocaleString()} <span className="hint">XP</span>
       </p>
@@ -95,7 +102,10 @@ export function GoalWidget({ goal }: { goal: Dashboard["goal"] }) {
   const length = Math.PI * radius;
   return (
     <section className="card widget" aria-labelledby="goal-title">
-      <h2 id="goal-title">Daily goal</h2>
+      <div className="title-row">
+        <h2 id="goal-title">Daily goal</h2>
+        <HelpTip text="help.goal" topic="Daily goal" guide="progress" />
+      </div>
       <div className="gauge">
         <svg viewBox="0 0 180 100" aria-hidden="true" focusable="false">
           <path d="M20,90 A70,70 0 0 1 160,90" fill="none" stroke="var(--track)" strokeWidth="14" strokeLinecap="round" />
@@ -161,7 +171,10 @@ const HORIZON_LABEL: Record<Schemas["PlannerHorizon"]["key"], string> = {
 export function PlannerWidget({ planner }: { planner: Dashboard["planner"] }) {
   return (
     <section className="card widget" aria-labelledby="planner-title">
-      <h2 id="planner-title">Time planner</h2>
+      <div className="title-row">
+        <h2 id="planner-title">Time planner</h2>
+        <HelpTip text="help.planner" topic="Time planner" guide="review" />
+      </div>
       {planner.horizons[0]?.key === "now" && planner.horizons[0].items > 0 && (
         <p className="planner-now">
           <strong>{planner.horizons[0].items.toLocaleString()}</strong> due now: about{" "}
@@ -267,7 +280,10 @@ export function ActivityCalendar({ activity, large = false }: { activity: Schema
 export function ActivityWidget({ activity }: { activity: Dashboard["activity"] }) {
   return (
     <section className="card widget" aria-labelledby="activity-title">
-      <h2 id="activity-title">Activity</h2>
+      <div className="title-row">
+        <h2 id="activity-title">Activity</h2>
+        <HelpTip text="help.activity" topic="Activity" guide="progress" />
+      </div>
       <ActivityCalendar activity={activity} />
       <Link to="/activity">See more</Link>
     </section>

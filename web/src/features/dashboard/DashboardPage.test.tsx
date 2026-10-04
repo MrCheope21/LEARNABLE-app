@@ -76,11 +76,12 @@ describe("dashboard", () => {
     expect(within(first).getByText(/concepts studied/)).toBeInTheDocument();
     expect(within(first).getByText(/learning items introduced/)).toBeInTheDocument();
     expect(within(first).getByRole("link", { name: "Review 12 items" })).toBeInTheDocument();
-    expect(within(first).getByRole("link", { name: "Learn" })).toHaveAttribute("href", `/courses/${COURSE_ID}/concepts/${CONCEPT_ID}`);
-    // A course with nothing due shows a disabled Review, and "Set up next" when activation is needed.
+    expect(within(first).getByRole("link", { name: "Learn next" })).toHaveAttribute("href", `/courses/${COURSE_ID}/concepts/${CONCEPT_ID}`);
+    // A course with nothing due says so in plain text (not a dead button), and "Start learning" when activation is needed.
     const second = screen.getAllByRole("article")[1]!;
-    expect(within(second).getByText("No reviews due")).toHaveAttribute("aria-disabled", "true");
-    expect(within(second).getByRole("link", { name: "Set up next" })).toBeInTheDocument();
+    expect(within(second).getByText("✓ Nothing to review now")).toBeInTheDocument();
+    expect(within(second).queryByRole("link", { name: /Review/ })).not.toBeInTheDocument();
+    expect(within(second).getByRole("link", { name: "Start learning" })).toBeInTheDocument();
 
     // Widgets: streak, XP, goal (count may exceed the target; the gauge caps), planner, activity.
     expect(screen.getByRole("region", { name: "Daily streak" })).toHaveTextContent("5");

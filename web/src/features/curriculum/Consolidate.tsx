@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { HelpTip } from "../../components/HelpTip";
 import { Link, useNavigate } from "react-router-dom";
 import { concepts, courses } from "../../api/endpoints";
 import { ErrorBanner } from "../../components/QueryState";
@@ -57,7 +58,10 @@ export function ConsolidatePanel({ courseId, conceptId, active }: { courseId: st
   }
   return (
     <section className="card consolidate" aria-labelledby="consolidate-title">
-      <h2 id="consolidate-title">Studied this concept?</h2>
+      <div className="title-row">
+        <h2 id="consolidate-title">Studied this concept?</h2>
+        <HelpTip text="help.consolidate" topic="Studied this concept?" guide="study" />
+      </div>
       <p>
         Read its learning items below first. When you're ready, each question is asked <strong>{p.rounds_per_item} times in a row</strong>,
         with feedback after every round.

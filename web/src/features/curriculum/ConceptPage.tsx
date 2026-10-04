@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { ApiError, type Schemas } from "../../api/client";
 import { concepts, learningItems, progress, reorder, type ConceptAction } from "../../api/endpoints";
 import { EditableTitle } from "../../components/EditableTitle";
+import { HelpTip } from "../../components/HelpTip";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { MemoryBlock } from "../../components/ProgressBlocks";
 import { SortableList } from "../../components/SortableList";
@@ -14,20 +15,28 @@ import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
 /** Polling interval while the backend generates Learning Items. Exported for tests. */
 export const GENERATION_POLL_MS = { value: 1500 };
 
-const actionsFor: Record<Schemas["StudyState"], { action: ConceptAction; label: string; primary?: boolean }[]> = {
+type Action = { action: ConceptAction; label: string; explains: string; primary?: boolean };
+
+const ACTIVATE: Action = {
+  action: "activate",
+  label: "Activate",
+  explains: "Prepares this concept's questions from your material so you can study it.",
+  primary: true,
+};
+const actionsFor: Record<Schemas["StudyState"], Action[]> = {
   NOT_STUDIED: [
-    { action: "activate", label: "Activate", primary: true },
-    { action: "mark-studied", label: "Mark as studied" },
+    ACTIVATE,
+    { action: "mark-studied", label: "Mark as studied", explains: "You studied it elsewhere: it is noted, without preparing questions yet." },
   ],
-  STUDIED: [{ action: "activate", label: "Activate", primary: true }],
-  COMPLETED: [{ action: "activate", label: "Activate", primary: true }],
+  STUDIED: [ACTIVATE],
+  COMPLETED: [{ ...ACTIVATE, explains: "Studies it again: its questions come back into your sessions." }],
   ACTIVE: [
-    { action: "pause", label: "Pause" },
-    { action: "deactivate", label: "Deactivate" },
+    { action: "pause", label: "Pause", explains: "Stops its questions for a while. Nothing is lost." },
+    { action: "deactivate", label: "Deactivate", explains: "Takes it out of study and reviews. Your answers and history are kept." },
   ],
   PAUSED: [
-    { action: "resume", label: "Resume", primary: true },
-    { action: "deactivate", label: "Deactivate" },
+    { action: "resume", label: "Resume", explains: "Brings its questions back into study and reviews.", primary: true },
+    { action: "deactivate", label: "Deactivate", explains: "Takes it out of study and reviews. Your answers and history are kept." },
   ],
 };
 
@@ -101,27 +110,34 @@ export function ConceptPage() {
                     refreshTitles(queryClient, courseId);
                   }}
                 />
-                <span className={`pill state-${data.study_state.toLowerCase()}`}>{studyStateLabel[data.study_state]}</span>
+                <span className="title-row">
+                  <span className={`pill state-${data.study_state.toLowerCase()}`}>{studyStateLabel[data.study_state]}</span>
+                  <HelpTip text="help.concept" topic="Concept" guide="study" />
+                </span>
               </header>
               {data.needs_source_review && (
                 <p className="banner warning">
                   The material this concept came from was deleted. Keep, edit or delete it.
                 </p>
               )}
-              <section className="card">
-                <div className="actions">
-                  {actionsFor[data.study_state].map(({ action, label, primary }) => (
-                    <button
-                      key={action}
-                      type="button"
-                      className={primary ? "primary" : undefined}
-                      disabled={act.isPending}
-                      onClick={() => act.mutate(action)}
-                    >
-                      {label}
-                    </button>
+              {/* The main action of an active concept comes first; managing it comes after. */}
+              <ConsolidatePanel courseId={courseId} conceptId={conceptId} active={data.study_state === "ACTIVE"} />
+              <section className="card" aria-label="Manage this concept">
+                <ul className="concept-actions">
+                  {actionsFor[data.study_state].map(({ action, label, explains, primary }) => (
+                    <li key={action}>
+                      <button
+                        type="button"
+                        className={primary ? "primary" : undefined}
+                        disabled={act.isPending}
+                        onClick={() => act.mutate(action)}
+                      >
+                        {label}
+                      </button>
+                      <span className="hint">{explains}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
                 <ErrorBanner error={act.error} />
                 <GenerationStatus
                   concept={data}
@@ -130,7 +146,6 @@ export function ConceptPage() {
                   error={generate.error}
                 />
               </section>
-              <ConsolidatePanel courseId={courseId} conceptId={conceptId} active={data.study_state === "ACTIVE"} />
               {conceptProgress && conceptProgress.memory.items_trained > 0 && (
                 <div className="stat-grid">
                   <MemoryBlock memory={conceptProgress.memory} />

@@ -21,6 +21,8 @@
 .next-step h2 { margin: 0; font-size: 1.15rem; overflow-wrap: anywhere; }
 .timezone-note { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 
+.library { display: grid; gap: 0.9rem; }
+.library .toolbar { margin-bottom: 0.4rem; }
 .library-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .library-header h2 { font-size: 1.35rem; margin: 0; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }

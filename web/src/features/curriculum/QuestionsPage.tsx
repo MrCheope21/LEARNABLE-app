@@ -5,6 +5,7 @@ import type { Schemas } from "../../api/client";
 import { courses, learningItems, reorder } from "../../api/endpoints";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { CollapsibleSection, useCollapsed } from "../../components/Collapsible";
+import { HelpTip } from "../../components/HelpTip";
 import { SortableList } from "../../components/SortableList";
 import { memoryStateLabel } from "../../components/labels";
 import { Breadcrumbs } from "./Consolidate";
@@ -121,7 +122,10 @@ export function QuestionsPage() {
     <div className="page questions-page">
       <Breadcrumbs courseId={courseId} current="Questions" />
       <header className="page-header">
-        <h1>Questions</h1>
+        <div className="title-row">
+          <h1>Questions</h1>
+          <HelpTip text="help.questions" topic="Questions" guide="organise" />
+        </div>
         <p className="hint">Select questions to delete, pause, resume or move them; drag ⠿ to reorder them; edit one to fix its title, wording or expected answer.</p>
       </header>
 
