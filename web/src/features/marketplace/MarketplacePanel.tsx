@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { marketplace } from "../../api/endpoints";
 import { ErrorBanner } from "../../components/QueryState";
-import { CATEGORIES, LEVELS, categoryLabel, levelLabel } from "./labels";
+import { CATEGORIES, LEVELS, categoryLabel, count, levelLabel } from "./labels";
 
 type Info = Schemas["ListingInfo"];
 type MyListing = Schemas["MyListing"];
@@ -118,7 +118,7 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
       </p>
       {listing && status === "PUBLISHED" && (
         <p>
-          <Link to={`/marketplace/${listing.id}`}>See it as others do</Link> · {listing.acquisition_count} students
+          <Link to={`/marketplace/${listing.id}`}>See it as others do</Link> · {count(listing.acquisition_count, "student", "students")}
         </p>
       )}
       {!open ? (

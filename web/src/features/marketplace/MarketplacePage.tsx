@@ -3,12 +3,14 @@ import { useId, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { marketplace, type ListingFilters } from "../../api/endpoints";
+import { HelpTip } from "../../components/HelpTip";
 import { QueryState } from "../../components/QueryState";
 import {
   CATEGORIES,
   LEVELS,
   categoryIcon,
   categoryLabel,
+  count,
   languageLabel,
   levelLabel,
   priceLabel,
@@ -36,12 +38,17 @@ export function MarketplacePage() {
   return (
     <div className="page marketplace">
       <header className="page-header">
-        <h1>Marketplace</h1>
+        <div className="title-row">
+          <h1>Marketplace</h1>
+          <HelpTip text="help.marketplace" topic="Marketplace" guide="marketplace" />
+        </div>
         <p className="hint">
           Courses made by other LEARNABLE users. Add one to your courses and study it with your own schedule: its author keeps it
           up to date. To share one of yours, open it and fill in its <em>Marketplace page</em>.
         </p>
       </header>
+
+      <PublishedByMe />
 
       <nav className="category-chips" aria-label="Categories">
         <button type="button" aria-pressed={!filters.category} onClick={() => set({ category: undefined })}>
@@ -131,6 +138,33 @@ export function MarketplacePage() {
   );
 }
 
+/** The author's own listings: drafts, published and unpublished, with how many students. */
+function PublishedByMe() {
+  const mine = useQuery({ queryKey: ["marketplace", "mine"], queryFn: marketplace.mine });
+  if (!mine.data?.length) return null;
+  return (
+    <details className="card published-by-me">
+      <summary>
+        <strong>Published by me</strong> <span className="hint">({mine.data.length})</span>
+      </summary>
+      <ul>
+        {mine.data.map((listing) => (
+          <li key={listing.id}>
+            {listing.status === "DRAFT" ? <span>{listing.title}</span> : <Link to={`/marketplace/${listing.id}`}>{listing.title}</Link>}
+            <span className="hint">
+              {statusLabel[listing.status] ?? listing.status}
+              {listing.version > 0 && ` · version ${listing.version}`} · {count(listing.acquisition_count, "student", "students")}
+            </span>
+            {listing.source_course_id && <Link to={`/courses/${listing.source_course_id}`}>Edit the course and its page</Link>}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+const statusLabel: Record<string, string> = { DRAFT: "Draft", PUBLISHED: "Published", UNPUBLISHED: "Not published" };
+
 function ListingCard({ listing }: { listing: Listing }) {
   return (
     <article className="card listing-card" aria-labelledby={`listing-${listing.id}`}>
@@ -143,12 +177,12 @@ function ListingCard({ listing }: { listing: Listing }) {
       {listing.subtitle && <p className="listing-subtitle">{listing.subtitle}</p>}
       <p className="hint">by {listing.author}</p>
       <p className="listing-facts">
-        {listing.item_count} questions · {listing.chapter_count} {listing.chapter_count === 1 ? "chapter" : "chapters"} ·{" "}
+        {count(listing.item_count, "question", "questions")} · {count(listing.chapter_count, "chapter", "chapters")} ·{" "}
         {levelLabel[listing.level]} · {languageLabel[listing.language] ?? listing.language}
       </p>
       <div className="listing-foot">
         <strong>{priceLabel(listing)}</strong>
-        {listing.course_id ? <span className="pill">In your courses</span> : <span className="hint">{listing.acquisition_count} students</span>}
+        {listing.course_id ? <span className="pill">In your courses</span> : <span className="hint">{count(listing.acquisition_count, "student", "students")}</span>}
       </div>
     </article>
   );

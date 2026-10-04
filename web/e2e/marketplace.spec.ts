@@ -61,7 +61,7 @@ test("an author publishes a course and another user adds it to their courses", a
   await page.getByRole("link", { name: title }).click();
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
   await expect(page.getByText("Definire l'imprenditore")).toBeVisible();
-  await expect(page.getByText("1 questions")).toBeVisible();
+  await expect(page.getByText("1 question", { exact: true })).toBeVisible();
   await expect(page.getByText("Chi è imprenditore ai sensi")).toHaveCount(0);
 
   await page.getByRole("button", { name: /Add to my courses/ }).click();
@@ -69,11 +69,19 @@ test("an author publishes a course and another user adds it to their courses", a
   await expect(page.getByText("Prof. Rossi").first()).toBeVisible();
   await expect(page.getByRole("button", { name: /^Rename/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Add chapter" })).toHaveCount(0);
+  const courseUrl = new URL(page.url()).pathname;
 
   await page.goto("/");
   await expect(page.getByText("From the marketplace · by Prof. Rossi")).toBeVisible();
-  // Nothing in the page overflows sideways (the new badges and filters included).
-  await page.goto("/marketplace");
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(1);
+  // On a phone: five nav links, the filters, and the questions with their own priority all fit,
+  // with no sideways scrolling.
+  await page.setViewportSize({ width: 360, height: 800 });
+  for (const path of ["/", "/marketplace", `${courseUrl}/questions`]) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, `sideways overflow on ${path}`).toBeLessThanOrEqual(0);
+  }
+  await expect(page.getByLabel("Your priority").first()).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Guide" })).toBeInViewport();
 });

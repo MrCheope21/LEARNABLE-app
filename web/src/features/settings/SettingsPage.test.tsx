@@ -81,7 +81,7 @@ describe("guide", () => {
     backend({ ...me, language: "es" });
     renderApp("/guide");
     expect(await screen.findByRole("heading", { level: 1, name: "Cómo funciona LEARNABLE" })).toBeInTheDocument();
-    expect(screen.getAllByRole("region")).toHaveLength(11);
+    expect(screen.getAllByRole("region")).toHaveLength(12);
     expect(screen.getByRole("link", { name: "Repasa a tiempo" })).toHaveAttribute("href", "#guide-review");
   });
 });

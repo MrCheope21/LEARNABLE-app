@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useI18n } from "../../i18n";
 import type { MessageKey } from "../../i18n/messages/en";
 
-const SECTIONS = ["structure", "material", "curriculum", "study", "answer", "disagree", "review", "progress", "organise"] as const;
+const SECTIONS = ["structure", "material", "curriculum", "study", "answer", "disagree", "review", "progress", "organise", "marketplace"] as const;
 // Real screens of the app (web/public/guide), one per step.
 const IMAGES: Record<(typeof SECTIONS)[number], string> = {
   structure: "/guide/course.jpg",
@@ -15,6 +15,7 @@ const IMAGES: Record<(typeof SECTIONS)[number], string> = {
   review: "/guide/dashboard.jpg",
   progress: "/guide/weak-spots.jpg",
   organise: "/guide/questions.jpg",
+  marketplace: "/guide/marketplace.jpg",
 };
 const TERMS = ["concept", "item", "active", "grades", "mastery", "xp"] as const;
 

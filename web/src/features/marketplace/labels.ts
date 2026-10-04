@@ -56,6 +56,10 @@ export const languageLabel: Record<string, string> = { it: "Italian", en: "Engli
 export const CATEGORIES = Object.keys(categoryLabel) as Schemas["Category"][];
 export const LEVELS = Object.keys(levelLabel) as Schemas["Level"][];
 
+export function count(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
 export function priceLabel(listing: { price_cents: number; currency: string }): string {
   if (listing.price_cents === 0) return "Free";
   return new Intl.NumberFormat(undefined, { style: "currency", currency: listing.currency }).format(listing.price_cents / 100);

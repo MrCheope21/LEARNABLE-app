@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { marketplace } from "../../api/endpoints";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { dateTime } from "../../components/labels";
-import { categoryIcon, categoryLabel, languageLabel, levelLabel, priceLabel } from "./labels";
+import { categoryIcon, categoryLabel, count, languageLabel, levelLabel, priceLabel } from "./labels";
 
 /**
  * A course's marketplace page, as its author wrote it: what it covers, who it's for, what you'll
@@ -102,7 +102,7 @@ export function ListingPage() {
                 {data.chapters.map((chapter, i) => (
                   <li key={i}>
                     <span>{chapter.title}</span>
-                    <span className="hint">{chapter.questions} questions</span>
+                    <span className="hint">{count(chapter.questions, "question", "questions")}</span>
                   </li>
                 ))}
               </ol>

@@ -116,9 +116,7 @@ def upgrade() -> None:
     with op.batch_alter_table("courses") as batch:
         batch.add_column(sa.Column("marketplace_listing_id", sa.Uuid(), nullable=True))
         batch.add_column(sa.Column("marketplace_version", sa.Integer(), nullable=True))
-        batch.create_index(
-            batch.f("ix_courses_marketplace_listing_id"), ["marketplace_listing_id"]
-        )
+        batch.create_index(batch.f("ix_courses_marketplace_listing_id"), ["marketplace_listing_id"])
         batch.create_foreign_key(
             batch.f("fk_courses_marketplace_listing_id_marketplace_listings"),
             "marketplace_listings",
@@ -151,8 +149,6 @@ def downgrade() -> None:
     )
     op.drop_table("marketplace_acquisitions")
     op.drop_index("ix_marketplace_listings_status_category", table_name="marketplace_listings")
-    op.drop_index(
-        "ix_marketplace_listings_status_published_at", table_name="marketplace_listings"
-    )
+    op.drop_index("ix_marketplace_listings_status_published_at", table_name="marketplace_listings")
     op.drop_index(op.f("ix_marketplace_listings_author_id"), table_name="marketplace_listings")
     op.drop_table("marketplace_listings")
