@@ -314,7 +314,7 @@ def test_hint_after_answering_is_refused(client, course, ai_provider):
 # --- Eligibility and anti-farming ---
 
 
-def test_self_graded_answers_earn_no_correctness_xp(client, course):
+def test_self_graded_successes_earn_xp_like_correct_answers(client, course):
     headers, _, topic_id = course
     c = concept(client, headers, topic_id)
     item(client, headers, c["id"])
@@ -330,12 +330,29 @@ def test_self_graded_answers_earn_no_correctness_xp(client, course):
     ).json()
 
     assert graded["final_outcome"] == "EASY"
+    assert graded["xp"]["correct"] is True
+    assert graded["xp"]["xp"] > 0
+    summary = dashboard(client, headers)
+    assert summary["goal"]["done"] == 1
+    assert summary["xp"]["total"] == graded["xp"]["xp"]
+
+
+def test_a_self_graded_failure_earns_nothing(client, course):
+    headers, _, topic_id = course
+    c = concept(client, headers, topic_id)
+    item(client, headers, c["id"])
+    session = studied(client, headers, c["id"]).json()
+    app.dependency_overrides[get_ai_provider] = lambda: None
+    pending = answer(client, headers, session["id"], FULL).json()
+    graded = client.post(
+        f"/api/v1/answers/{pending['answer_id']}/override",
+        json={"outcome": "AGAIN"},
+        headers=headers,
+    ).json()
     assert (graded["xp"]["correct"], graded["xp"]["xp"]) == (False, 0)
-    # The attempt still counts as study activity.
-    assert dashboard(client, headers)["goal"]["done"] == 1
 
 
-def test_a_later_regrade_never_changes_the_award(client, course):
+def test_regrading_a_wrong_answer_as_a_success_earns_its_xp_once(client, course):
     headers, _, topic_id = course
     c = concept(client, headers, topic_id)
     item(client, headers, c["id"])
@@ -349,8 +366,17 @@ def test_a_later_regrade_never_changes_the_award(client, course):
         headers=headers,
     ).json()
     assert upgraded["final_outcome"] == "EASY"
-    assert xp_of(upgraded) == 0
-    assert dashboard(client, headers)["xp"]["total"] == 0
+    earned = xp_of(upgraded)
+    assert earned > 0
+    assert dashboard(client, headers)["xp"]["total"] == earned
+    # Grading it down again doesn't take the XP back, and up again doesn't add more.
+    for outcome in ("AGAIN", "GOOD"):
+        client.post(
+            f"/api/v1/answers/{wrong['answer_id']}/override",
+            json={"outcome": outcome},
+            headers=headers,
+        )
+    assert dashboard(client, headers)["xp"]["total"] == earned
 
 
 def test_scheduled_reviews_earn_once_per_due_date(client, course, db_session):

@@ -25,7 +25,10 @@ function itemFixture(id: string, text: string): Schemas["LearningItemRead"] {
   };
 }
 
-const items = [itemFixture("i1", "Che cos'è il mutuo?"), itemFixture("i2", "Che cos'è il deposito?")];
+const items = [
+  { ...itemFixture("i1", "Che cos'è il mutuo?"), priority: 1 },
+  { ...itemFixture("i2", "Che cos'è il deposito?"), priority: 3 },
+];
 
 function backend() {
   return mockApi([
@@ -105,6 +108,36 @@ describe("question manager", () => {
       }),
     );
     confirm.mockRestore();
+  });
+
+  it("labels priorities, filters by them and sets them in bulk", async () => {
+    const user = userEvent.setup();
+    const { requests } = backend();
+    renderApp(`/courses/${course}/questions`);
+
+    expect(await screen.findByText("Essential")).toBeInTheDocument();
+    expect(screen.getByText("Extra")).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Priority"), "1");
+    expect(screen.getByText("Che cos'è il mutuo?")).toBeInTheDocument();
+    expect(screen.queryByText("Che cos'è il deposito?")).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Priority"), "");
+
+    await user.click(screen.getByRole("button", { name: "Select all (2)" }));
+    await user.selectOptions(screen.getByLabelText("Set priority"), "2");
+    await waitFor(() =>
+      expect(requests.find((r) => r.path.endsWith("/bulk"))?.body).toMatchObject({ item_ids: ["i1", "i2"], action: "set_priority", priority: 2 }),
+    );
+  });
+
+  it("starts an own review of the selected questions, outside the plan", async () => {
+    const user = userEvent.setup();
+    backend();
+    renderApp(`/courses/${course}/questions`);
+    await user.click(await screen.findByRole("checkbox", { name: "Select: Che cos'è il mutuo?" }));
+    expect(screen.getByRole("link", { name: /Review on your own/ })).toHaveAttribute(
+      "href",
+      `/study/${course}?intent=PRACTICE&items=i1`,
+    );
   });
 
   it("selects and deselects everything with one button", async () => {

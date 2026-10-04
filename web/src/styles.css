@@ -411,3 +411,16 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .reference-drawing .hint { margin: 0; }
 .reference-drawing label.button { cursor: pointer; }
 .drawing-note { min-height: 3.5rem; }
+.pill.priority { font-weight: 600; margin-left: 0.35rem; }
+.priority-1 { background: #fde8e8; color: #9b1c1c; }
+.priority-2 { background: #fef3c7; color: #8a5a00; }
+.priority-3 { background: #e5edff; color: #3346a6; }
+@media (prefers-color-scheme: dark) {
+  .priority-1 { background: #4c1d1d; color: #fecaca; }
+  .priority-2 { background: #4a3810; color: #fde68a; }
+  .priority-3 { background: #1e2a55; color: #c7d2fe; }
+}
+.priority-filter { width: auto; min-height: 44px; }
+.study-content-head { justify-content: space-between; flex-wrap: wrap; }
+.item-head { flex-wrap: wrap; }
+.test-me { justify-self: start; font-size: 0.9rem; }

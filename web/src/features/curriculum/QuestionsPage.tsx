@@ -7,8 +7,11 @@ import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { CollapsibleSection, useCollapsed } from "../../components/Collapsible";
 import { HelpTip } from "../../components/HelpTip";
 import { SortableList } from "../../components/SortableList";
-import { memoryStateLabel } from "../../components/labels";
+import { memoryStateLabel, priorityLabel } from "../../components/labels";
 import { Breadcrumbs } from "./Consolidate";
+import { PriorityBadge } from "../../components/PriorityBadge";
+import { Tooltip } from "../../components/Tooltip";
+import { studyLink } from "../study/StudyPage";
 import { ReferenceDrawingEditor } from "./ReferenceDrawingEditor";
 import { removalFor, type Removal } from "./selection";
 import { courseProgressKey, outlineKey } from "./CourseLayout";
@@ -30,6 +33,7 @@ export function QuestionsPage() {
   const items = useQuery({ queryKey: courseItemsKey(courseId), queryFn: () => learningItems.listForCourse(courseId) });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState<number | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [moving, setMoving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -48,7 +52,7 @@ export function QuestionsPage() {
   const bulk = useMutation({
     mutationFn: (body: Schemas["BulkItemAction"]) => learningItems.bulk(courseId, body),
     onSuccess: (result, body) => {
-      const verb = { delete: "Deleted", pause: "Paused", resume: "Resumed", move: "Moved" }[body.action];
+      const verb = { delete: "Deleted", pause: "Paused", resume: "Resumed", move: "Moved", set_priority: "Updated" }[body.action];
       const extra = [
         result.created_concepts ? `${result.created_concepts} new ${result.created_concepts === 1 ? "concept" : "concepts"}` : null,
         result.deleted_concepts ? `${result.deleted_concepts} empty ${result.deleted_concepts === 1 ? "concept" : "concepts"} removed` : null,
@@ -81,7 +85,7 @@ export function QuestionsPage() {
 
   const visible = useMemo(() => {
     const needle = filter.trim().toLocaleLowerCase();
-    const all = items.data ?? [];
+    const all = (items.data ?? []).filter((item) => priorityFilter === null || item.priority === priorityFilter);
     if (!needle) return all;
     return all.filter(
       (item) =>
@@ -89,7 +93,7 @@ export function QuestionsPage() {
         item.expected_knowledge.toLocaleLowerCase().includes(needle) ||
         item.questions.some((q) => q.text.toLocaleLowerCase().includes(needle)),
     );
-  }, [items.data, filter]);
+  }, [items.data, filter, priorityFilter]);
 
   const toggle = (ids: string[], on: boolean) =>
     setSelected((current) => {
@@ -135,6 +139,22 @@ export function QuestionsPage() {
           Search questions
         </label>
         <input id={searchId} type="search" placeholder="Search questions and answers" value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <label className="sr-only" htmlFor={`${searchId}-priority`}>
+          Priority
+        </label>
+        <select
+          id={`${searchId}-priority`}
+          className="priority-filter"
+          value={priorityFilter ?? ""}
+          onChange={(e) => setPriorityFilter(e.target.value ? Number(e.target.value) : null)}
+        >
+          <option value="">All priorities</option>
+          {[1, 2, 3].map((p) => (
+            <option key={p} value={p}>
+              {priorityLabel[p]} only ({(items.data ?? []).filter((i) => i.priority === p).length})
+            </option>
+          ))}
+        </select>
         <button type="button" disabled={visible.length === 0} onClick={() => toggle(visible.map((i) => i.id), !allVisibleSelected)}>
           {allVisibleSelected ? "Deselect all" : `Select all${filter.trim() ? " shown" : ""} (${visible.length})`}
         </button>
@@ -158,6 +178,27 @@ export function QuestionsPage() {
           <button type="button" disabled={bulk.isPending} onClick={() => bulk.mutate({ item_ids: ids, action: "resume", delete_emptied_concepts: false })}>
             Resume
           </button>
+          <label className="sr-only" htmlFor={`${searchId}-set-priority`}>
+            Set priority
+          </label>
+          <select
+            id={`${searchId}-set-priority`}
+            value=""
+            disabled={bulk.isPending}
+            onChange={(e) => e.target.value && bulk.mutate({ item_ids: ids, action: "set_priority", priority: Number(e.target.value), delete_emptied_concepts: false })}
+          >
+            <option value="">Set priority…</option>
+            {[1, 2, 3].map((p) => (
+              <option key={p} value={p}>
+                {priorityLabel[p]}
+              </option>
+            ))}
+          </select>
+          <Tooltip text="Be tested on the selected questions now. It doesn't change your review plan and earns no XP.">
+            <Link className="button" to={studyLink(courseId, "PRACTICE", { itemIds: ids.slice(0, 100) })}>
+              🔁 Review on your own
+            </Link>
+          </Tooltip>
           <button type="button" className="danger" disabled={bulk.isPending || remove.isPending} onClick={confirmDelete}>
             Delete
           </button>
@@ -299,7 +340,9 @@ function QuestionRow({
     <div className={selected ? "question-row selected" : "question-row"}>
       <input type="checkbox" checked={selected} onChange={(e) => onSelect(e.target.checked)} aria-label={`Select: ${first}`} />
       <div className="question-text">
-        <span>{first}</span>
+        <span>
+          {first} <PriorityBadge priority={item.priority} />
+        </span>
         <span className="hint">
           {others > 0 && `+${others} ${others === 1 ? "other wording" : "other wordings"} · `}
           {memoryStateLabel[item.review_state.state]}
@@ -327,6 +370,7 @@ function ItemEditor({ item, onSaved }: { item: Item; onSaved: () => void }) {
   const [removed, setRemoved] = useState<string[]>([]);
   const [answer, setAnswer] = useState(item.expected_knowledge);
   const [points, setPoints] = useState(item.essential_points.join("\n"));
+  const [priority, setPriority] = useState(item.priority);
   const save = useMutation({
     mutationFn: async () => {
       const keyPoints = points
@@ -334,7 +378,7 @@ function ItemEditor({ item, onSaved }: { item: Item; onSaved: () => void }) {
         .map((p) => p.trim())
         .filter(Boolean)
         .slice(0, 10);
-      await learningItems.update(item.id, { title: title.trim(), expected_knowledge: answer, essential_points: keyPoints });
+      await learningItems.update(item.id, { title: title.trim(), expected_knowledge: answer, essential_points: keyPoints, priority });
       for (const id of removed) await learningItems.deleteQuestion(id);
       for (const wording of wordings) {
         const text = wording.text.trim();
@@ -390,6 +434,14 @@ function ItemEditor({ item, onSaved }: { item: Item; onSaved: () => void }) {
       <label>
         Expected answer
         <textarea rows={5} value={answer} onChange={(e) => setAnswer(e.target.value)} />
+      </label>
+      <label>
+        Priority
+        <select value={priority} onChange={(e) => setPriority(Number(e.target.value))}>
+          <option value={1}>Essential: the core, must know</option>
+          <option value={2}>Important: should know</option>
+          <option value={3}>Extra: addendum, deeper detail</option>
+        </select>
       </label>
       <label>
         Key points (one per line, up to 10)

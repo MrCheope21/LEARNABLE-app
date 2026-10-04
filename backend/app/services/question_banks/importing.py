@@ -6,8 +6,9 @@ and whose expected knowledge is the user's answer. No AI is involved. The Concep
 NOT_STUDIED like any others; the user activates them to start reviewing (spec §21).
 """
 
+import re
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import PurePath
 
 from sqlalchemy import func, select
@@ -62,7 +63,8 @@ def import_question_bank(db: Session, document: Document, blocks: list[Block]) -
     default_topic = _DEFAULT_TOPIC.get(course.language.split("-")[0].lower(), _DEFAULT_TOPIC_EN)
     next_concept_order: dict[uuid.UUID, int] = {}
 
-    for position, pair in enumerate(parsed.pairs):
+    for position, labelled in enumerate(parsed.pairs):
+        pair, priority = _priority(labelled)
         chunk = DocumentChunk(
             id=uuid.uuid4(),
             document_id=document.id,
@@ -99,7 +101,7 @@ def import_question_bank(db: Session, document: Document, blocks: list[Block]) -
         db.add(concept)
         db.flush()
         db.add(ConceptSource(concept_id=concept.id, chunk_id=chunk.id, course_id=course.id))
-        item = new_item(db, concept, _item_for(pair), order=0)
+        item = new_item(db, concept, _item_for(pair, priority), order=0)
         db.add(LearningItemSource(learning_item_id=item.id, chunk_id=chunk.id, course_id=course.id))
 
     document.analyzed_at = utc_now()
@@ -148,7 +150,51 @@ def _topic_for(db: Session, chapter: Chapter, title: str) -> Topic:
     return topic
 
 
-def _item_for(pair: QuestionAnswer) -> LearningItemCreate:
+# "Priorità: 1", "Priorità: alta" or "Priority: extra" at the end of a line of a question or its
+# answer sets the question's priority; the label itself is not part of the text.
+_PRIORITY_LINE = re.compile(
+    # On its own line, or at the end of one (the parser joins a question's lines with spaces).
+    r"(?:^|\s)(?i:priorit[aà]|priority)\s*[:.\-\u2013]\s*(?P<value>[^\s.,;]+)[.,;]?\s*$",
+    re.MULTILINE,
+)
+_PRIORITY_WORDS = {
+    "1": 1,
+    "alta": 1,
+    "essenziale": 1,
+    "core": 1,
+    "high": 1,
+    "essential": 1,
+    "2": 2,
+    "media": 2,
+    "importante": 2,
+    "medium": 2,
+    "important": 2,
+    "3": 3,
+    "bassa": 3,
+    "extra": 3,
+    "approfondimento": 3,
+    "low": 3,
+    "addendum": 3,
+}
+
+
+def _priority(pair: QuestionAnswer) -> tuple[QuestionAnswer, int | None]:
+    found: int | None = None
+
+    def take(match: re.Match[str]) -> str:
+        nonlocal found
+        value = _PRIORITY_WORDS.get(match.group("value").lower())
+        if value is None:
+            return match.group(0)
+        found = found or value
+        return ""
+
+    question = _PRIORITY_LINE.sub(take, pair.question).strip()
+    answer = _PRIORITY_LINE.sub(take, pair.answer).strip()
+    return replace(pair, question=question, answer=answer), found
+
+
+def _item_for(pair: QuestionAnswer, priority: int | None) -> LearningItemCreate:
     # model_construct: the user's full answer is kept even beyond the API's input limits, which
     # exist for hand-typed edits; only database column sizes are enforced, by cutting.
     sentences = [s for line in pair.answer.split("\n") for s in split_sentences(line)]
@@ -161,6 +207,7 @@ def _item_for(pair: QuestionAnswer) -> LearningItemCreate:
         essential_points=points,
         role=LearningItemRole.CORE_TRAINABLE,
         difficulty=3,
+        priority=priority,
         questions=[question],
     )
 

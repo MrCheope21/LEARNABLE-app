@@ -1698,7 +1698,7 @@ export interface components {
              * Action
              * @enum {string}
              */
-            action: "delete" | "pause" | "resume" | "move";
+            action: "delete" | "pause" | "resume" | "move" | "set_priority";
             /**
              * Delete Emptied Concepts
              * @default true
@@ -1706,6 +1706,8 @@ export interface components {
             delete_emptied_concepts: boolean;
             /** Item Ids */
             item_ids: string[];
+            /** Priority */
+            priority?: number | null;
             /** Target Concept Id */
             target_concept_id?: string | null;
             /** Target Topic Id */
@@ -2463,6 +2465,8 @@ export interface components {
              * @default
              */
             objective: string;
+            /** Priority */
+            priority?: number | null;
             /** Questions */
             questions?: components["schemas"]["QuestionCreate"][];
             /** @default CORE_TRAINABLE */
@@ -2514,6 +2518,8 @@ export interface components {
             order: number;
             /** Paused */
             paused: boolean;
+            /** Priority */
+            priority: number;
             /** Prompt Version */
             prompt_version: string | null;
             /** Questions */
@@ -2549,6 +2555,8 @@ export interface components {
             objective?: string | null;
             /** Order */
             order?: number | null;
+            /** Priority */
+            priority?: number | null;
             role?: components["schemas"]["LearningItemRole"] | null;
             /** Title */
             title?: string | null;

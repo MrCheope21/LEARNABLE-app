@@ -622,7 +622,8 @@
               "delete",
               "pause",
               "resume",
-              "move"
+              "move",
+              "set_priority"
             ],
             "title": "Action",
             "type": "string"
@@ -641,6 +642,19 @@
             "minItems": 1,
             "title": "Item Ids",
             "type": "array"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
           },
           "target_concept_id": {
             "anyOf": [
@@ -2731,6 +2745,19 @@
             "title": "Objective",
             "type": "string"
           },
+          "priority": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
           "questions": {
             "items": {
               "$ref": "#/components/schemas/QuestionCreate"
@@ -2839,6 +2866,10 @@
             "title": "Paused",
             "type": "boolean"
           },
+          "priority": {
+            "title": "Priority",
+            "type": "integer"
+          },
           "prompt_version": {
             "anyOf": [
               {
@@ -2880,6 +2911,7 @@
         "required": [
           "id",
           "answer_format",
+          "priority",
           "concept_id",
           "topic_id",
           "chapter_id",
@@ -2985,6 +3017,19 @@
               }
             ],
             "title": "Order"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
           },
           "role": {
             "anyOf": [

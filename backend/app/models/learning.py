@@ -71,6 +71,8 @@ class LearningItem(Base):
     # TEXT: answered in words. DRAWING: answered by drawing, compared with the reference drawing
     # stored under drawings.reference_key(item); its media type is kept here.
     answer_format: Mapped[str] = mapped_column(String(16), default="TEXT", server_default="TEXT")
+    # 1 Essential, 2 Important, 3 Extra: set by the user (enums.default_priority when generated).
+    priority: Mapped[int] = mapped_column(Integer, default=2, server_default="2")
     reference_drawing_type: Mapped[str | None] = mapped_column(String(32), default=None)
     order: Mapped[int] = mapped_column(Integer, default=0)
     # Item-level pause (spec §56); the schedule shift is in ReviewState.paused_at.

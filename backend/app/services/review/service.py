@@ -562,7 +562,7 @@ def override(
     transition: Transition | None = None
     if answer.final_outcome is None:
         _set_override(answer, payload)
-        # The user's grade completes the attempt, but it can't create correctness XP.
+        # The user's grade completes the attempt and earns XP like an AI-correct answer.
         transition = _apply_outcome(db, session, item, answer, payload.outcome, classification=None)
     else:
         applied = db.scalar(
@@ -581,8 +581,11 @@ def override(
                     details={"reason": "later_reviews_exist"},
                 )
             transition = _replay(db, item, answer, applied, payload.outcome)
-        # A regrade after the fact changes the schedule, never the XP already decided.
         _set_override(answer, payload)
+        # A regrade to a success earns the XP the answer didn't get (never taken back).
+        user = db.get(User, user_id)
+        if user is not None:
+            rewards.regrade(db, user, item, answer, utc_now())
     _commit_finalization(db)
     return _result(db, answer, session, item, transition)
 
@@ -758,6 +761,7 @@ def _apply_outcome(
             occasion=occasion,
             classification=classification,
             at=now,
+            self_grade=outcome if classification is None else None,
         )
     current = current_item(db, session)
     if current is not None and current.id == item.id:

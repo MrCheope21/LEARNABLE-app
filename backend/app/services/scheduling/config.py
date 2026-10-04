@@ -7,7 +7,13 @@ A ladder is versioned with its policy. Changing any value means a new version (e
 from datetime import timedelta
 
 CHESSABLE_POLICY_NAME = "chessable"
-CHESSABLE_POLICY_VERSION = "1"
+# v2 (2026-10-04, owner decision): same ladder; HARD keeps the level instead of advancing, and the
+# first slip of a learned item drops two levels instead of to level 1 (a second slip in a row
+# still goes to level 1). v1 stays registered for the history rows it produced.
+CHESSABLE_POLICY_VERSION = "2"
+CHESSABLE_V1_VERSION = "1"
+# How far a first slip drops a learned item under v2.
+GENTLE_LAPSE_DROP = 2
 
 # Level → interval until the next review. Level 1 is where an item lands right after encoding.
 CHESSABLE_V1_LADDER: tuple[timedelta, ...] = (

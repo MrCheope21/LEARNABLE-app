@@ -88,3 +88,6 @@ const SECONDS_PER_REVIEW = 45;
 export function studyMinutes(items: number): number {
   return items <= 0 ? 0 : Math.max(1, Math.round((items * SECONDS_PER_REVIEW) / 60));
 }
+
+/** Question priority, set by the user: what to concentrate on. Labels and filters only. */
+export const priorityLabel: Record<number, string> = { 1: "Essential", 2: "Important", 3: "Extra" };

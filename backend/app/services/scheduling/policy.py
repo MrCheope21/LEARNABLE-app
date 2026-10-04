@@ -21,6 +21,8 @@ from app.services.scheduling.config import (
     CHESSABLE_POLICY_NAME,
     CHESSABLE_POLICY_VERSION,
     CHESSABLE_V1_LADDER,
+    CHESSABLE_V1_VERSION,
+    GENTLE_LAPSE_DROP,
     MASTERY_LAPSE_DISCOUNT,
 )
 
@@ -86,12 +88,23 @@ class SchedulingPolicy(Protocol):
 
 class ChessableStyleSchedulingPolicy:
     name = CHESSABLE_POLICY_NAME
-    version = CHESSABLE_POLICY_VERSION
 
-    def __init__(self, ladder: tuple[timedelta, ...] = CHESSABLE_V1_LADDER) -> None:
+    def __init__(
+        self,
+        ladder: tuple[timedelta, ...] = CHESSABLE_V1_LADDER,
+        *,
+        version: str = CHESSABLE_POLICY_VERSION,
+        hard_holds_level: bool = True,
+        gentle_first_lapse: bool = True,
+    ) -> None:
         if not ladder:
             raise ValueError("the ladder needs at least one level")
         self._ladder = ladder
+        self.version = version
+        # v2: HARD repeats the same interval instead of advancing (v1 advanced like GOOD).
+        self._hard_holds_level = hard_holds_level
+        # v2: a learned item's first slip drops GENTLE_LAPSE_DROP levels; v1 always went to 1.
+        self._gentle_first_lapse = gentle_first_lapse
 
     @property
     def max_level(self) -> int:
@@ -124,13 +137,24 @@ class ChessableStyleSchedulingPolicy:
             # or at level 1, isn't a new one.
             lapse = snapshot.state in (MemoryState.REVIEW, MemoryState.MASTERED)
             learned_before = lapse or snapshot.state is MemoryState.RELEARNING
+            # Failing again while relearning (a second slip in a row) always restarts at 1.
+            level = (
+                max(1, snapshot.level - GENTLE_LAPSE_DROP)
+                if lapse and self._gentle_first_lapse
+                else 1
+            )
             after = self._place(
-                replace(counted, lapse_count=counted.lapse_count + (1 if lapse else 0)), 1, now
+                replace(counted, lapse_count=counted.lapse_count + (1 if lapse else 0)), level, now
             )
             if learned_before:
                 after = replace(after, state=MemoryState.RELEARNING)
             return Transition(snapshot, after, outcome, now, lateness)
-        step = 2 if outcome is ReviewOutcome.EASY else 1
+        if outcome is ReviewOutcome.EASY:
+            step = 2
+        elif outcome is ReviewOutcome.HARD and self._hard_holds_level:
+            step = 0
+        else:
+            step = 1
         level = min(snapshot.level + step, self.max_level)
         return Transition(snapshot, self._place(counted, level, now), outcome, now, lateness)
 
@@ -180,6 +204,9 @@ def _count(snapshot: MemorySnapshot, outcome: ReviewOutcome, now: datetime) -> M
 
 _POLICIES: dict[tuple[str, str], SchedulingPolicy] = {
     (CHESSABLE_POLICY_NAME, CHESSABLE_POLICY_VERSION): ChessableStyleSchedulingPolicy(),
+    (CHESSABLE_POLICY_NAME, CHESSABLE_V1_VERSION): ChessableStyleSchedulingPolicy(
+        version=CHESSABLE_V1_VERSION, hard_holds_level=False, gentle_first_lapse=False
+    ),
 }
 
 

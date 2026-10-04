@@ -34,12 +34,16 @@ def awarded_xp(ordinal: int, hint_used: bool) -> int:
 
 
 def is_correct(
-    classification: EvaluationClassification | None, resolved_outcome: ReviewOutcome | None
+    classification: EvaluationClassification | None,
+    resolved_outcome: ReviewOutcome | None,
+    self_grade: ReviewOutcome | None = None,
 ) -> bool:
     """Correct for XP: the AI classified the answer CORRECT and the deterministic resolver turned
-    that into a success. PARTIALLY_CORRECT never counts (no XP, the success counter neither
-    advances nor resets), even when the resolver schedules it as HARD. The user's own grade is
-    not an input: a self-selected grade can't create correctness XP."""
+    that into a success; or the student graded it themselves as a success (owner decision,
+    2026-10-04: a self-graded answer earns XP the normal way). PARTIALLY_CORRECT from the AI
+    never counts, even when the resolver schedules it as HARD."""
+    if self_grade is not None:
+        return self_grade in _SUCCESS
     return (
         classification is EvaluationClassification.CORRECT
         and resolved_outcome is not None

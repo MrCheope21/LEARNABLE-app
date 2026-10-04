@@ -12,6 +12,8 @@ EssentialPoints = Annotated[
     list[Annotated[str, Field(min_length=1, max_length=500)]], Field(max_length=10)
 ]
 Difficulty = Annotated[int, Field(ge=1, le=5)]
+# 1 Essential, 2 Important, 3 Extra.
+Priority = Annotated[int, Field(ge=1, le=3)]
 QuestionText = Annotated[str, Field(min_length=1, max_length=2000)]
 
 
@@ -61,6 +63,7 @@ class LearningItemRead(BaseModel):
     id: UUID
     # TEXT or DRAWING (answered by drawing, against a reference drawing).
     answer_format: str
+    priority: int
     concept_id: UUID
     topic_id: UUID
     chapter_id: UUID
@@ -92,6 +95,8 @@ class LearningItemCreate(InputModel):
     essential_points: EssentialPoints = Field(default_factory=list)
     role: LearningItemRole = LearningItemRole.CORE_TRAINABLE
     difficulty: Difficulty = 3
+    # None: from the role (CORE_TRAINABLE → Essential, ...).
+    priority: Priority | None = None
     questions: list[QuestionCreate] = Field(default_factory=list, max_length=5)
 
 
@@ -102,6 +107,7 @@ class LearningItemUpdate(PatchModel):
     essential_points: EssentialPoints | None = None
     role: LearningItemRole | None = None
     difficulty: Difficulty | None = None
+    priority: Priority | None = None
     order: Order | None = None
 
 
@@ -114,7 +120,9 @@ class BulkItemAction(InputModel):
     """One action on many Learning Items of a Course (all or nothing)."""
 
     item_ids: list[UUID] = Field(min_length=1, max_length=500)
-    action: Literal["delete", "pause", "resume", "move"]
+    action: Literal["delete", "pause", "resume", "move", "set_priority"]
+    # set_priority only.
+    priority: Priority | None = None
     # move: exactly one destination. Into a concept: the items join it. Into a topic: each item
     # keeps a concept of its own there (whole concepts move; partly selected ones are split).
     target_concept_id: UUID | None = None

@@ -38,10 +38,12 @@ export function sessionRequestFrom(params: URLSearchParams): Schemas["SessionCre
   const intent = (params.get("intent") ?? "SCHEDULED_REVIEW") as Schemas["SessionIntent"];
   const mode = params.get("mode") as Schemas["SelectionMode"] | null;
   const concepts = params.get("concepts");
+  const items = params.get("items");
   return {
     intent,
-    selection_mode: mode,
+    selection_mode: items ? "SELECTED" : mode,
     concept_ids: concepts ? concepts.split(",").filter(Boolean) : null,
+    learning_item_ids: items ? items.split(",").filter(Boolean) : null,
     limit: 20,
     update_schedule: false,
   };
@@ -50,11 +52,12 @@ export function sessionRequestFrom(params: URLSearchParams): Schemas["SessionCre
 export function studyLink(
   courseId: string,
   intent: Schemas["SessionIntent"],
-  options: { mode?: Schemas["SelectionMode"]; conceptIds?: string[] } = {},
+  options: { mode?: Schemas["SelectionMode"]; conceptIds?: string[]; itemIds?: string[] } = {},
 ): string {
   const params = new URLSearchParams({ intent });
   if (options.mode) params.set("mode", options.mode);
   if (options.conceptIds?.length) params.set("concepts", options.conceptIds.join(","));
+  if (options.itemIds?.length) params.set("items", options.itemIds.join(","));
   return `/study/${courseId}?${params.toString()}`;
 }
 
@@ -147,7 +150,7 @@ export function StudyPage() {
             </span>
           )}
           {s.session && !s.session.affects_schedule && (
-            <span className="pill">Practice: your schedule isn't changed</span>
+            <span className="pill">Own review: no change to your plan, no XP</span>
           )}
         </div>
         <button type="button" onClick={() => void close()}>
@@ -487,7 +490,9 @@ function Result({
 
       {gradeMode ? (
         <section className="grades" aria-label="Your grade">
-          {showDispute && <DisputeForm working={s.working} onAsk={s.dispute} />}
+          {showDispute && (
+            <DisputeForm working={s.working} onAsk={s.dispute} testAi={evaluation?.ai_provider === "mock"} />
+          )}
           <h3>{gradeTitle}</h3>
           <div className="grade-row">
             {userGrades.map((grade, index) => (
@@ -722,7 +727,7 @@ function Award({ result }: { result: AnswerView }) {
         </span>
         <span className="hint">
           {selfGraded
-            ? "Answers you grade yourself don't earn correctness XP."
+            ? "Only correct answers earn XP: your own Hard, Good or Easy counts too."
             : "Only fully correct answers earn XP. Your progress towards the next award is kept."}
         </span>
       </p>
