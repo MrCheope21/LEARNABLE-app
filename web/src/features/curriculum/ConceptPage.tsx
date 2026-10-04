@@ -4,6 +4,8 @@ import { useParams } from "react-router-dom";
 import { ApiError, type Schemas } from "../../api/client";
 import { concepts, learningItems, progress, reorder, type ConceptAction } from "../../api/endpoints";
 import { EditableTitle } from "../../components/EditableTitle";
+import { HelpTip } from "../../components/HelpTip";
+import { Tooltip } from "../../components/Tooltip";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { MemoryBlock } from "../../components/ProgressBlocks";
 import { SortableList } from "../../components/SortableList";
@@ -14,20 +16,28 @@ import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
 /** Polling interval while the backend generates Learning Items. Exported for tests. */
 export const GENERATION_POLL_MS = { value: 1500 };
 
-const actionsFor: Record<Schemas["StudyState"], { action: ConceptAction; label: string; primary?: boolean }[]> = {
+type Action = { action: ConceptAction; label: string; explains: string; primary?: boolean };
+
+const ACTIVATE: Action = {
+  action: "activate",
+  label: "Activate",
+  explains: "Prepares this concept's questions from your material so you can study it.",
+  primary: true,
+};
+const actionsFor: Record<Schemas["StudyState"], Action[]> = {
   NOT_STUDIED: [
-    { action: "activate", label: "Activate", primary: true },
-    { action: "mark-studied", label: "Mark as studied" },
+    ACTIVATE,
+    { action: "mark-studied", label: "Mark as studied", explains: "You studied it elsewhere: it is noted, without preparing questions yet." },
   ],
-  STUDIED: [{ action: "activate", label: "Activate", primary: true }],
-  COMPLETED: [{ action: "activate", label: "Activate", primary: true }],
+  STUDIED: [ACTIVATE],
+  COMPLETED: [{ ...ACTIVATE, explains: "Studies it again: its questions come back into your sessions." }],
   ACTIVE: [
-    { action: "pause", label: "Pause" },
-    { action: "deactivate", label: "Deactivate" },
+    { action: "pause", label: "Pause", explains: "Stops its questions for a while. Nothing is lost." },
+    { action: "deactivate", label: "Deactivate", explains: "Takes it out of study and reviews. Your answers and history are kept." },
   ],
   PAUSED: [
-    { action: "resume", label: "Resume", primary: true },
-    { action: "deactivate", label: "Deactivate" },
+    { action: "resume", label: "Resume", explains: "Brings its questions back into study and reviews.", primary: true },
+    { action: "deactivate", label: "Deactivate", explains: "Takes it out of study and reviews. Your answers and history are kept." },
   ],
 };
 
@@ -101,25 +111,34 @@ export function ConceptPage() {
                     refreshTitles(queryClient, courseId);
                   }}
                 />
-                <span className={`pill state-${data.study_state.toLowerCase()}`}>{studyStateLabel[data.study_state]}</span>
+                <span className="title-row">
+                  <span className={`pill state-${data.study_state.toLowerCase()}`}>{studyStateLabel[data.study_state]}</span>
+                  <HelpTip text="help.concept" topic="Concept" guide="study" />
+                </span>
               </header>
               {data.needs_source_review && (
                 <p className="banner warning">
                   The material this concept came from was deleted. Keep, edit or delete it.
                 </p>
               )}
-              <section className="card">
+              {/* What to study comes first, then "I have studied it", then managing the concept. */}
+              <QueryState query={items} label="Loading learning items…">
+                {(list) => (list.length > 0 ? <ItemList items={list} conceptId={conceptId} /> : null)}
+              </QueryState>
+              <ConsolidatePanel courseId={courseId} conceptId={conceptId} active={data.study_state === "ACTIVE"} />
+              <section className="card" aria-label="Manage this concept">
                 <div className="actions">
-                  {actionsFor[data.study_state].map(({ action, label, primary }) => (
-                    <button
-                      key={action}
-                      type="button"
-                      className={primary ? "primary" : undefined}
-                      disabled={act.isPending}
-                      onClick={() => act.mutate(action)}
-                    >
-                      {label}
-                    </button>
+                  {actionsFor[data.study_state].map(({ action, label, explains, primary }) => (
+                    <Tooltip key={action} text={explains}>
+                      <button
+                        type="button"
+                        className={primary ? "primary" : undefined}
+                        disabled={act.isPending}
+                        onClick={() => act.mutate(action)}
+                      >
+                        {label}
+                      </button>
+                    </Tooltip>
                   ))}
                 </div>
                 <ErrorBanner error={act.error} />
@@ -130,7 +149,6 @@ export function ConceptPage() {
                   error={generate.error}
                 />
               </section>
-              <ConsolidatePanel courseId={courseId} conceptId={conceptId} active={data.study_state === "ACTIVE"} />
               {conceptProgress && conceptProgress.memory.items_trained > 0 && (
                 <div className="stat-grid">
                   <MemoryBlock memory={conceptProgress.memory} />
@@ -146,9 +164,6 @@ export function ConceptPage() {
                   )}
                 </div>
               )}
-              <QueryState query={items} label="Loading learning items…">
-                {(list) => (list.length > 0 ? <ItemList items={list} conceptId={conceptId} /> : null)}
-              </QueryState>
             </>
           );
         }}
@@ -192,12 +207,14 @@ function GenerationStatus({
   return null;
 }
 
+/** What the concept teaches, readable at once; each item's memory, questions and sources on demand. */
 function ItemList({ items, conceptId }: { items: Schemas["LearningItemRead"][]; conceptId: string }) {
   const [open, setOpen] = useState<string | null>(null);
   const queryClient = useQueryClient();
   return (
-    <section className="card">
-      <h2>Learning items</h2>
+    <section className="card study-content" aria-labelledby="study-content-title">
+      <h2 id="study-content-title">What to study</h2>
+      <p className="hint">Read these, then press "I have studied this concept" below to practise them.</p>
       <SortableList
         className="question-list"
         items={items}
@@ -208,23 +225,34 @@ function ItemList({ items, conceptId }: { items: Schemas["LearningItemRead"][]; 
           void queryClient.invalidateQueries({ queryKey: ["course-items"] });
         }}
         renderItem={(item) => (
-          <div className="item-entry">
+          <article className="item-entry">
+            <h3 className="item-title">{item.title}</h3>
+            {item.objective && <p className="hint">{item.objective}</p>}
+            <p className="reading">{item.expected_knowledge}</p>
+            {item.essential_points.length > 0 && (
+              <ul className="key-points">
+                {item.essential_points.map((point, index) => (
+                  <li key={index}>{point}</li>
+                ))}
+              </ul>
+            )}
             <button
               type="button"
-              className="item-row"
+              className="link item-details-toggle"
               aria-expanded={open === item.id}
               onClick={() => setOpen(open === item.id ? null : item.id)}
             >
-              <strong>{item.title}</strong>
+              {open === item.id ? "Hide details" : "Details"}
               <span className="hint">
-                {roleLabel[item.role]} · {memoryStateLabel[item.review_state.state]}
+                {" "}
+                · {roleLabel[item.role]} · {memoryStateLabel[item.review_state.state]}
                 {item.review_state.level > 0 && ` · Level ${item.review_state.level}`}
                 {item.review_state.marked_hard && " · Marked hard"}
                 {!item.in_training && " · Not in training"}
               </span>
             </button>
             {open === item.id && <ItemDetail item={item} conceptId={conceptId} />}
-          </div>
+          </article>
         )}
       />
     </section>
@@ -241,15 +269,6 @@ function ItemDetail({ item, conceptId }: { item: Schemas["LearningItemRead"]; co
   const memory = item.review_state;
   return (
     <div className="item-detail">
-      {item.objective && <p className="hint">{item.objective}</p>}
-      <p className="reading">{item.expected_knowledge}</p>
-      {item.essential_points.length > 0 && (
-        <ul>
-          {item.essential_points.map((p, i) => (
-            <li key={i}>{p}</li>
-          ))}
-        </ul>
-      )}
       <dl className="stats compact">
         <div className="stat">
           <dt>State</dt>

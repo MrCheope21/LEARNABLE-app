@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { HelpTip } from "../../components/HelpTip";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { courses } from "../../api/endpoints";
@@ -71,7 +72,10 @@ export function CourseLibrary({ cards, heading = "My courses" }: { cards: Course
   return (
     <section className="library" aria-labelledby="library-heading">
       <div className="library-header">
-        <h2 id="library-heading">{heading}</h2>
+        <div className="title-row">
+          <h2 id="library-heading">{heading}</h2>
+          <HelpTip text="help.courses" topic={heading} guide="structure" />
+        </div>
         <span className="hint">
           {shown.length === cards.length ? `${cards.length} ${cards.length === 1 ? "course" : "courses"}` : `${shown.length} of ${cards.length} shown`}
         </span>

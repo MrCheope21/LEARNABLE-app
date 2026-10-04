@@ -5,6 +5,7 @@ import type { Schemas } from "../../api/client";
 import { concepts, courses, dashboard } from "../../api/endpoints";
 import { dashboardKey, XpIcon } from "../../app/AppShell";
 import { BrandLogo } from "../../brand/BrandLogo";
+import { HelpTip } from "../../components/HelpTip";
 import { ErrorBanner } from "../../components/QueryState";
 import {
   dateTime,
@@ -16,6 +17,7 @@ import {
 import { courseProgressKey, weakSpotsKey } from "../curriculum/CourseLayout";
 import { homeKey } from "../home/HomePage";
 import { SourceLink, SourcePanel, type SourceRef } from "../source/SourcePanel";
+import { ConceptPanel } from "./ConceptPanel";
 import { DisputeForm } from "./DisputeForm";
 import { recognitionLanguage, useDictation } from "./useDictation";
 import { EvaluationView } from "./EvaluationView";
@@ -70,6 +72,16 @@ export function StudyPage() {
   const resumeId = useMemo(() => searchParams.get("session"), []);
   const s = useStudySession(courseId, request, resumeId);
   const [source, setSource] = useState<SourceRef | null>(null);
+  // One side panel at a time: a source passage, or the whole concept.
+  const [conceptPanel, setConceptPanel] = useState<string | null>(null);
+  const openSource = (ref: SourceRef) => {
+    setConceptPanel(null);
+    setSource(ref);
+  };
+  const openConcept = (conceptId: string) => {
+    setSource(null);
+    setConceptPanel(conceptId);
+  };
   const queryClient = useQueryClient();
   const course = useQuery({ queryKey: ["course", courseId], queryFn: () => courses.get(courseId) });
   const intent = s.session?.intent ?? request.intent;
@@ -141,18 +153,20 @@ export function StudyPage() {
         </button>
       </header>
 
-      <div className={source ? "study-body with-panel" : "study-body"}>
+      <div className={source || conceptPanel ? "study-body with-panel" : "study-body"}>
         <main className="study-main">
           <ErrorBanner error={s.error} onDismiss={s.clearError} />
           <PhaseView
             s={s}
-            openSource={setSource}
+            openSource={openSource}
+            openConcept={openConcept}
             courseId={courseId}
             language={recognitionLanguage(course.data?.language)}
             onClose={() => void close()}
           />
         </main>
         {source && <SourcePanel source={source} onClose={() => setSource(null)} />}
+        {conceptPanel && <ConceptPanel courseId={courseId} conceptId={conceptPanel} onClose={() => setConceptPanel(null)} />}
       </div>
     </div>
   );
@@ -163,12 +177,14 @@ type Session = ReturnType<typeof useStudySession>;
 function PhaseView({
   s,
   openSource,
+  openConcept,
   courseId,
   language,
   onClose,
 }: {
   s: Session;
   openSource: (source: SourceRef) => void;
+  openConcept: (conceptId: string) => void;
   courseId: string;
   language: string;
   onClose: () => void;
@@ -185,9 +201,17 @@ function PhaseView({
       return <Introduction card={phase.card} onReady={s.beginRecall} openSource={openSource} />;
     case "answering":
     case "submitting":
-      return <Answer card={phase.card} s={s} submitting={phase.kind === "submitting"} language={language} />;
+      return (
+        <Answer
+          card={phase.card}
+          s={s}
+          submitting={phase.kind === "submitting"}
+          language={language}
+          openConcept={openConcept}
+        />
+      );
     case "result":
-      return <Result card={phase.card} result={phase.result} s={s} openSource={openSource} />;
+      return <Result card={phase.card} result={phase.result} s={s} openSource={openSource} openConcept={openConcept} />;
     case "finished":
       return <Finished s={s} onClose={onClose} />;
     case "empty":
@@ -240,7 +264,19 @@ function Introduction({
   );
 }
 
-function Answer({ card, s, submitting, language }: { card: Card; s: Session; submitting: boolean; language: string }) {
+function Answer({
+  card,
+  s,
+  submitting,
+  language,
+  openConcept,
+}: {
+  card: Card;
+  s: Session;
+  submitting: boolean;
+  language: string;
+  openConcept: (conceptId: string) => void;
+}) {
   const editor = useRef<HTMLTextAreaElement>(null);
   useEffect(() => editor.current?.focus(), [card.question.id]);
   const dictation = useDictation(language, s.appendDictation);
@@ -258,9 +294,13 @@ function Answer({ card, s, submitting, language }: { card: Card; s: Session; sub
 
   return (
     <article className="card">
-      <span className="eyebrow">{card.concept_title}</span>
+      <div className="title-row card-top">
+        <span className="eyebrow">{card.concept_title}</span>
+        <HelpTip text="help.study" topic="Answering" guide="answer" />
+      </div>
       <h2 className="question">{card.question.text}</h2>
       <PotentialXp card={card} />
+      <StudyConceptButton card={card} s={s} disabled={submitting} openConcept={openConcept} />
       <HintBox card={card} s={s} disabled={submitting} />
       <label className="sr-only" htmlFor="answer">
         Your answer
@@ -318,11 +358,13 @@ function Result({
   result,
   s,
   openSource,
+  openConcept,
 }: {
   card: Card;
   result: AnswerView;
   s: Session;
   openSource: (source: SourceRef) => void;
+  openConcept: (conceptId: string) => void;
 }) {
   const [disputing, setDisputing] = useState(false);
   const gradeMode = result.needs_self_grade || disputing;
@@ -404,6 +446,9 @@ function Result({
       </details>
 
       <ScheduleNote result={result} />
+      <button type="button" className="link" onClick={() => openConcept(card.concept_id)}>
+        📖 Study this concept
+      </button>
 
       {gradeMode ? (
         <section className="grades" aria-label="Your grade">
@@ -712,6 +757,60 @@ function ConsolidationDone({ s, onClose }: { s: Session; onClose: () => void }) 
           Done
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * "Study this concept" before answering. Seeing the concept shows the answer, so where a hint
+ * exists it is recorded first (half XP), exactly like "Show hint"; the user is told before.
+ */
+function StudyConceptButton({
+  card,
+  s,
+  disabled,
+  openConcept,
+}: {
+  card: Card;
+  s: Session;
+  disabled: boolean;
+  openConcept: (conceptId: string) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const costsXp = Boolean(card.hint?.available && !card.hint.revealed && card.potential_xp?.eligible);
+  if (confirming) {
+    return (
+      <div className="hint-box" role="note">
+        <p>Looking at the concept now counts as using a hint: this answer earns half XP.</p>
+        <div className="actions" style={{ marginTop: 0 }}>
+          <button
+            type="button"
+            className="primary"
+            disabled={disabled || s.working}
+            onClick={() => {
+              void s.revealHint().then(() => openConcept(card.concept_id));
+              setConfirming(false);
+            }}
+          >
+            Open the concept
+          </button>
+          <button type="button" className="link" onClick={() => setConfirming(false)}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <button
+        type="button"
+        className="link"
+        disabled={disabled}
+        onClick={() => (costsXp ? setConfirming(true) : openConcept(card.concept_id))}
+      >
+        📖 Don't remember? Study this concept
+      </button>
     </div>
   );
 }

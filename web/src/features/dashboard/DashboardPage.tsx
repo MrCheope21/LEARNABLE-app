@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { HelpTip } from "../../components/HelpTip";
+import { QuickStart } from "../help/QuickStart";
 import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { auth, dashboard, deviceTimezone } from "../../api/endpoints";
@@ -23,6 +25,7 @@ export function DashboardPage() {
           <div className="dashboard-main">
             <h1 className="sr-only">Dashboard</h1>
             <TodayStrip data={d} />
+            <QuickStart />
             <TimezoneNote timezone={d.timezone} />
             <NextStepPanel step={d.next_step} />
             <CourseLibrary cards={d.courses} />
@@ -88,7 +91,9 @@ export function NextStepPanel({ step }: { step: Schemas["NextStep"] }) {
   return (
     <section className={`card next-step${step.kind === "review" ? " review-step" : ""}`} aria-labelledby="next-step-title">
       <div className="next-text">
-        <span className="eyebrow">Your next step</span>
+        <span className="eyebrow title-row">
+          Your next step <HelpTip text="help.nextStep" topic="Your next step" guide="review" />
+        </span>
         <h2 id="next-step-title">{content.title}</h2>
         {content.detail && <span className="hint">{content.detail}</span>}
       </div>

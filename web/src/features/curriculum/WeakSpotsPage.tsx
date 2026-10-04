@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { dashboard } from "../../api/endpoints";
 import { QueryState } from "../../components/QueryState";
+import { HelpTip } from "../../components/HelpTip";
 import { dateTime } from "../../components/labels";
 import { weakSpotsKey } from "./CourseLayout";
 import { CheckRow } from "../study/EvaluationView";
@@ -19,7 +20,10 @@ export function WeakSpotsPage() {
   return (
     <div className="page">
       <header className="page-header">
-        <h1>What you keep getting wrong</h1>
+        <div className="title-row">
+          <h1>What you keep getting wrong</h1>
+          <HelpTip text="help.weakSpots" topic="What you keep getting wrong" guide="progress" />
+        </div>
         <p className="hint">
           Mistakes found in your recent answers, by concept. They disappear once your latest answers to the item no
           longer show them. Practice doesn't change your review schedule.

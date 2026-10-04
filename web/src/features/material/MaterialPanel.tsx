@@ -4,6 +4,7 @@ import type { Schemas } from "../../api/client";
 import { documents } from "../../api/endpoints";
 import { userMessage } from "../../api/client";
 import { CollapseToggle, useCollapsed } from "../../components/Collapsible";
+import { HelpTip } from "../../components/HelpTip";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { dateTime } from "../../components/labels";
 import { outlineKey } from "../curriculum/CourseLayout";
@@ -85,6 +86,7 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
             controls={`${panelId}-body`}
           />
           <h2 id="material-heading">{chapterId ? "Chapter material" : "All study material"}</h2>
+          <HelpTip text="help.material" topic="Study material" guide="material" />
           {!expanded && list.data && (
             <span className="hint">
               {list.data.length} {list.data.length === 1 ? "file" : "files"}
