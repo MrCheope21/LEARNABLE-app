@@ -68,6 +68,10 @@ class LearningItem(Base):
     # is the user's to change; turning it off keeps sources, questions and history.
     in_training: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     difficulty: Mapped[int] = mapped_column(Integer, default=3)  # 1 (easy) - 5 (hard)
+    # TEXT: answered in words. DRAWING: answered by drawing, compared with the reference drawing
+    # stored under drawings.reference_key(item); its media type is kept here.
+    answer_format: Mapped[str] = mapped_column(String(16), default="TEXT", server_default="TEXT")
+    reference_drawing_type: Mapped[str | None] = mapped_column(String(32), default=None)
     order: Mapped[int] = mapped_column(Integer, default=0)
     # Item-level pause (spec §56); the schedule shift is in ReviewState.paused_at.
     paused: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())

@@ -59,6 +59,8 @@ class LearningItemRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    # TEXT or DRAWING (answered by drawing, against a reference drawing).
+    answer_format: str
     concept_id: UUID
     topic_id: UUID
     chapter_id: UUID

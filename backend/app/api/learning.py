@@ -2,13 +2,14 @@
 
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Response, UploadFile, status
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.ai.factory import get_ai_provider
 from app.ai.provider import AIProvider
 from app.api.curriculum import get_max_context_chars
 from app.auth.dependencies import get_current_user
+from app.core.errors import PayloadTooLargeError
 from app.core.rate_limit import per_user
 from app.db.session import get_db, get_session_factory
 from app.models.course import Concept
@@ -28,7 +29,9 @@ from app.schemas.learning import (
     QuestionRead,
     QuestionUpdate,
 )
+from app.services import drawings
 from app.services.learning import manage, service
+from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(tags=["learning-items"])
 
@@ -199,3 +202,45 @@ def update_question(
 def delete_question(question_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> None:
     """Deletes one wording (409 `last_question` for the item's only one: delete the item)."""
     manage.delete_question(db, user.id, question_id)
+
+
+@router.put(
+    "/learning-items/{item_id}/reference-drawing",
+    response_model=LearningItemRead,
+    dependencies=[Depends(per_user("upload", 60, 3600))],
+)
+def set_reference_drawing(
+    item_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = DB,
+    user: User = CurrentUser,
+    storage: DocumentStorage = Depends(get_document_storage),
+) -> LearningItem:
+    """Makes the question a drawing question: its answer is this image (PNG, JPEG or WebP,
+    3 MB at most). Students then answer by drawing, and the AI compares the two drawings."""
+    data = file.file.read(drawings.MAX_DRAWING_BYTES + 1)
+    if len(data) > drawings.MAX_DRAWING_BYTES:
+        raise PayloadTooLargeError("The drawing is too large (3 MB at most).")
+    return drawings.set_reference(db, storage, user.id, item_id, data)
+
+
+@router.delete("/learning-items/{item_id}/reference-drawing", response_model=LearningItemRead)
+def remove_reference_drawing(
+    item_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    storage: DocumentStorage = Depends(get_document_storage),
+) -> LearningItem:
+    """Back to a question answered in words."""
+    return drawings.remove_reference(db, storage, user.id, item_id)
+
+
+@router.get("/learning-items/{item_id}/reference-drawing", response_class=Response)
+def reference_drawing(
+    item_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    storage: DocumentStorage = Depends(get_document_storage),
+) -> Response:
+    data, media_type = drawings.load_reference(db, storage, user.id, item_id)
+    return Response(data, media_type=media_type, headers={"Cache-Control": "private, no-store"})

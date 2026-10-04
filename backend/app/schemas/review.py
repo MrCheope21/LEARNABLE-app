@@ -66,6 +66,8 @@ class Introduction(BaseModel):
     expected_knowledge: str
     essential_points: list[str]
     sources: list[ProposalSource]
+    # The answer is a reference drawing (GET /learning-items/{id}/reference-drawing).
+    drawing: bool = False
 
 
 class PotentialXp(BaseModel):
@@ -102,6 +104,8 @@ class Card(BaseModel):
     rounds_total: int | None = None
     potential_xp: PotentialXp | None = None
     hint: HintState | None = None
+    # DRAWING: answered by drawing (GET /learning-items/{id}/reference-drawing after answering).
+    answer_format: str = "TEXT"
 
 
 class SessionCard(BaseModel):
@@ -112,8 +116,11 @@ class SessionCard(BaseModel):
 
 class AnswerCreate(InputModel):
     question_formulation_id: UUID
-    text: Annotated[str, Field(min_length=1, max_length=10_000)]
+    # Required for a text question; an optional note beside a drawing.
+    text: Annotated[str, Field(max_length=10_000)] = ""
     method: AnswerMethod = AnswerMethod.TEXT
+    # A drawing question's answer: the drawing as a data URL ("data:image/png;base64,...").
+    drawing: Annotated[str, Field(max_length=5_000_000)] | None = None
 
 
 class OverrideCreate(InputModel):
@@ -167,6 +174,8 @@ class Reference(BaseModel):
     expected_knowledge: str
     essential_points: list[str]
     sources: list[ProposalSource]
+    # The answer is a reference drawing (GET /learning-items/{id}/reference-drawing).
+    drawing: bool = False
 
 
 class XpResult(BaseModel):
@@ -204,6 +213,8 @@ class AnswerResult(BaseModel):
     hint_used: bool = False
     # Null when the attempt wasn't XP-eligible, or has no final outcome yet.
     xp: XpResult | None = None
+    # A drawn answer (GET /answers/{id}/drawing).
+    has_drawing: bool = False
 
 
 class AnswerDetail(AnswerResult):

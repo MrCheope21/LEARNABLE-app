@@ -32,7 +32,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.ai.provider import AIProvider
-from app.ai.schemas import EvaluationOutput, EvaluationRequest, SourcePassage
+from app.ai.schemas import (
+    DrawingEvaluationRequest,
+    DrawingImage,
+    EvaluationOutput,
+    EvaluationRequest,
+    SourcePassage,
+)
 from app.core.errors import AppError, ConflictError, InvalidRequestError, NotFoundError
 from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, Topic
@@ -68,6 +74,7 @@ from app.schemas.review import (
     SessionRead,
     XpResult,
 )
+from app.services import drawings
 from app.services.courses.service import get_owned_course
 from app.services.evaluation.resolver import RESOLVER_VERSION, resolve_outcome
 from app.services.review import pool
@@ -81,6 +88,7 @@ from app.services.scheduling.store import (
     snapshot_to_json,
     store,
 )
+from app.storage.documents import DocumentStorage, StoredFileMissingError
 
 logger = logging.getLogger(__name__)
 
@@ -214,6 +222,7 @@ def next_card(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> Session
             expected_knowledge=item.expected_knowledge,
             essential_points=list(item.essential_points),
             sources=_item_sources(db, item),
+            drawing=item.answer_format == "DRAWING",
         )
     round_number, rounds_total = _round(session, item)
     potential = rewards.potential(db, session, item, utc_now())
@@ -224,6 +233,7 @@ def next_card(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> Session
         done=False,
         card=Card(
             learning_item_id=item.id,
+            answer_format=item.answer_format,
             concept_id=item.concept_id,
             concept_title=concept.title if concept else "",
             question=CardQuestion(
@@ -393,6 +403,7 @@ def end_session(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> Sessi
 def submit_answer(
     db: Session,
     provider: AIProvider | None,
+    storage: DocumentStorage,
     user_id: uuid.UUID,
     session_id: uuid.UUID,
     payload: AnswerCreate,
@@ -415,9 +426,11 @@ def submit_answer(
             details={"reason": "answer_pending", "answer_id": str(pending.id)},
         )
 
+    drawing = _drawn_answer(item, payload)
     now = utc_now()
     round_number, _ = _round(session, item)
     answer = Answer(
+        id=uuid.uuid4(),
         user_id=user_id,
         course_id=session.course_id,
         session_id=session.id,
@@ -430,7 +443,11 @@ def submit_answer(
         consolidation_round=round_number,
         # Decided by the server from the stored reveal, never by the client.
         hint_used=rewards.hint_for_slot(db, session.id, session.position) is not None,
+        drawing_type=drawing[1] if drawing else None,
     )
+    if drawing:
+        # Stored before the row is committed: an answer never points at a missing drawing.
+        storage.save(drawings.answer_key(answer), drawing[0])
     question.times_asked += 1
     question.last_asked_at = now
     db.add(answer)
@@ -438,9 +455,22 @@ def submit_answer(
     # transaction is held open while the model thinks.
     db.commit()
 
-    transition = _evaluate_and_apply(db, provider, session, item, answer, question)
+    transition = _evaluate_and_apply(db, provider, storage, session, item, answer, question)
     _commit_finalization(db)
     return _result(db, answer, session, item, transition)
+
+
+def _drawn_answer(item: LearningItem, payload: AnswerCreate) -> tuple[bytes, str] | None:
+    """The drawing of a drawing question; nothing for a text question, which needs words."""
+    if item.answer_format == "DRAWING":
+        if not payload.drawing:
+            raise InvalidRequestError("This question is answered by drawing: send the drawing.")
+        return drawings.decode_data_url(payload.drawing)
+    if payload.drawing is not None:
+        raise InvalidRequestError("This question is answered in words, not by drawing.")
+    if not payload.text.strip():
+        raise InvalidRequestError("Write an answer first.")
+    return None
 
 
 def _commit_finalization(db: Session) -> None:
@@ -455,7 +485,11 @@ def _commit_finalization(db: Session) -> None:
 
 
 def retry_evaluation(
-    db: Session, provider: AIProvider | None, user_id: uuid.UUID, answer_id: uuid.UUID
+    db: Session,
+    provider: AIProvider | None,
+    storage: DocumentStorage,
+    user_id: uuid.UUID,
+    answer_id: uuid.UUID,
 ) -> AnswerResult:
     answer, session, item = _owned_answer(db, user_id, answer_id)
     if answer.final_outcome is not None:
@@ -468,7 +502,9 @@ def retry_evaluation(
             "This answer was evaluated but the result was inconclusive: grade it yourself.",
             details={"reason": "evaluation_inconclusive"},
         )
-    transition = _evaluate_and_apply(db, provider, session, item, answer, _question_of(db, answer))
+    transition = _evaluate_and_apply(
+        db, provider, storage, session, item, answer, _question_of(db, answer)
+    )
     _commit_finalization(db)
     return _result(db, answer, session, item, transition)
 
@@ -479,6 +515,7 @@ MAX_SECOND_OPINIONS = 3
 def dispute(
     db: Session,
     provider: AIProvider | None,
+    storage: DocumentStorage,
     user_id: uuid.UUID,
     answer_id: uuid.UUID,
     payload: DisputeCreate,
@@ -504,7 +541,9 @@ def dispute(
             details={"reason": "dispute_limit"},
         )
     question = _question_of(db, answer)
-    db.add(_evaluate(db, provider, item, answer, question, argument=payload.argument.strip()))
+    db.add(
+        _evaluate(db, provider, storage, item, answer, question, argument=payload.argument.strip())
+    )
     db.commit()
     return _result(db, answer, session, item, None)
 
@@ -558,12 +597,13 @@ def _set_override(answer: Answer, payload: OverrideCreate) -> None:
 def _evaluate_and_apply(
     db: Session,
     provider: AIProvider | None,
+    storage: DocumentStorage,
     session: ReviewSession,
     item: LearningItem,
     answer: Answer,
     question: QuestionFormulation,
 ) -> Transition | None:
-    evaluation = _evaluate(db, provider, item, answer, question)
+    evaluation = _evaluate(db, provider, storage, item, answer, question)
     db.add(evaluation)
     if evaluation.status is not EvaluationStatus.COMPLETED:
         return None
@@ -581,6 +621,7 @@ def _evaluate_and_apply(
 def _evaluate(
     db: Session,
     provider: AIProvider | None,
+    storage: DocumentStorage,
     item: LearningItem,
     answer: Answer,
     question: QuestionFormulation,
@@ -592,18 +633,25 @@ def _evaluate(
         base.error_message = _NOT_CONFIGURED
         return base
     course = db.get(Course, item.course_id)
-    request = EvaluationRequest(
-        language=course.language if course else "en",
-        question=question.text,
-        objective=item.objective,
-        expected_knowledge=item.expected_knowledge,
-        essential_points=list(item.essential_points),
-        passages=_item_passages(db, item),
-        answer=answer.text,
-        user_argument=argument,
-    )
+    language = course.language if course else "en"
     try:
-        result = provider.evaluate_answer(request)
+        if answer.drawing_type is not None:
+            result = provider.evaluate_drawing(
+                _drawing_request(storage, item, answer, question, language, argument)
+            )
+        else:
+            result = provider.evaluate_answer(
+                EvaluationRequest(
+                    language=language,
+                    question=question.text,
+                    objective=item.objective,
+                    expected_knowledge=item.expected_knowledge,
+                    essential_points=list(item.essential_points),
+                    passages=_item_passages(db, item),
+                    answer=answer.text,
+                    user_argument=argument,
+                )
+            )
     except AppError as exc:
         base.status = EvaluationStatus.FAILED
         base.error_message = exc.message[:500]
@@ -632,6 +680,33 @@ def _evaluate(
     base.ai_model_version = info.model_version[:200]
     base.prompt_version = info.prompt_version[:100]
     return base
+
+
+def _drawing_request(
+    storage: DocumentStorage,
+    item: LearningItem,
+    answer: Answer,
+    question: QuestionFormulation,
+    language: str,
+    argument: str | None,
+) -> DrawingEvaluationRequest:
+    if item.reference_drawing_type is None or answer.drawing_type is None:
+        raise InvalidRequestError("This question has no reference drawing to compare with.")
+    try:
+        reference = storage.load(drawings.reference_key(item))
+        drawing = storage.load(drawings.answer_key(answer))
+    except StoredFileMissingError as exc:
+        raise InvalidRequestError("A drawing file is missing.") from exc
+    return DrawingEvaluationRequest(
+        language=language,
+        question=question.text,
+        objective=item.objective,
+        expected_knowledge=item.expected_knowledge,
+        reference=DrawingImage(reference, item.reference_drawing_type),
+        drawing=DrawingImage(drawing, answer.drawing_type),
+        note=answer.text,
+        user_argument=argument,
+    )
 
 
 def _evidence(evaluation: Evaluation) -> EvaluationOutput:
@@ -899,11 +974,13 @@ def _result(
             expected_knowledge=item.expected_knowledge,
             essential_points=list(item.essential_points),
             sources=_item_sources(db, item),
+            drawing=item.answer_format == "DRAWING",
         ),
         session=session_read(db, session),
         consolidation_round=answer.consolidation_round,
         hint_used=answer.hint_used,
         xp=_xp_result(db, answer),
+        has_drawing=answer.drawing_type is not None,
     )
 
 

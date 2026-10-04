@@ -167,6 +167,19 @@ export const learningItems = {
     ),
   updateQuestion: (questionId: Id, text: string) =>
     call(api.PATCH("/api/v1/questions/{question_id}", { params: { path: { question_id: questionId } }, body: { text } })),
+  /** Makes the question a drawing question: this image is its answer. */
+  setReferenceDrawing: (itemId: Id, file: Blob) => {
+    const form = new FormData();
+    form.append("file", file, "reference.png");
+    return rawRequest<Schemas["LearningItemRead"]>(`/api/v1/learning-items/${itemId}/reference-drawing`, {
+      method: "PUT",
+      body: form,
+    });
+  },
+  removeReferenceDrawing: (itemId: Id) =>
+    call(api.DELETE("/api/v1/learning-items/{item_id}/reference-drawing", { params: { path: { item_id: itemId } } })),
+  referenceDrawing: (itemId: Id) => downloadBlob(`/api/v1/learning-items/${itemId}/reference-drawing`),
+  answerDrawing: (answerId: Id) => downloadBlob(`/api/v1/answers/${answerId}/drawing`),
   deleteQuestion: (questionId: Id) =>
     call(api.DELETE("/api/v1/questions/{question_id}", { params: { path: { question_id: questionId } } })),
 };
@@ -272,11 +285,11 @@ export const study = {
         params: { path: { session_id: sessionId } },
       }),
     ),
-  answer: (sessionId: Id, questionId: Id, text: string, method: Schemas["AnswerMethod"] = "TEXT") =>
+  answer: (sessionId: Id, questionId: Id, text: string, method: Schemas["AnswerMethod"] = "TEXT", drawing?: string) =>
     call(
       api.POST("/api/v1/review-sessions/{session_id}/answers", {
         params: { path: { session_id: sessionId } },
-        body: { question_formulation_id: questionId, text, method },
+        body: { question_formulation_id: questionId, text, method, ...(drawing ? { drawing } : {}) },
       }),
     ),
   skip: (sessionId: Id) =>

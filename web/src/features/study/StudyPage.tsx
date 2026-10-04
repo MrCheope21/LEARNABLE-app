@@ -2,9 +2,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { Schemas } from "../../api/client";
-import { concepts, courses, dashboard } from "../../api/endpoints";
+import { concepts, courses, dashboard, learningItems } from "../../api/endpoints";
 import { dashboardKey, XpIcon } from "../../app/AppShell";
 import { BrandLogo } from "../../brand/BrandLogo";
+import { AuthImage } from "../../components/AuthImage";
+import { DrawingPad } from "../../components/DrawingPad";
 import { HelpTip } from "../../components/HelpTip";
 import { ErrorBanner } from "../../components/QueryState";
 import {
@@ -254,6 +256,9 @@ function Introduction({
       <span className="eyebrow">New material</span>
       <h2>{intro.title}</h2>
       {intro.objective && <p className="hint">{intro.objective}</p>}
+      {intro.drawing && (
+        <ReferenceDrawing itemId={card.learning_item_id} />
+      )}
       <p className="reading">{intro.expected_knowledge}</p>
       {intro.essential_points.length > 0 && <Points title="Key points" points={intro.essential_points} />}
       <Sources sources={intro.sources} openSource={openSource} />
@@ -302,8 +307,14 @@ function Answer({
       <PotentialXp card={card} />
       <StudyConceptButton card={card} s={s} disabled={submitting} openConcept={openConcept} />
       <HintBox card={card} s={s} disabled={submitting} />
-      <label className="sr-only" htmlFor="answer">
-        Your answer
+      {card.answer_format === "DRAWING" && (
+        <>
+          <p className="hint">Draw your answer below. The AI compares it with the reference drawing.</p>
+          <DrawingPad key={card.question.id} onChange={s.setDrawing} disabled={submitting} />
+        </>
+      )}
+      <label className={card.answer_format === "DRAWING" ? "drawing-note-label" : "sr-only"} htmlFor="answer">
+        {card.answer_format === "DRAWING" ? "Note (optional)" : "Your answer"}
       </label>
       <textarea
         id="answer"
@@ -312,8 +323,9 @@ function Answer({
         onChange={(e) => s.setDraft(e.target.value)}
         onKeyDown={onKeyDown}
         disabled={submitting}
-        rows={9}
-        placeholder="Answer in your own words…"
+        rows={card.answer_format === "DRAWING" ? 2 : 9}
+        className={card.answer_format === "DRAWING" ? "drawing-note" : undefined}
+        placeholder={card.answer_format === "DRAWING" ? "Anything to add to your drawing…" : "Answer in your own words…"}
       />
       {dictation.listening && dictation.interim && (
         <p className="interim" aria-live="polite">
@@ -326,7 +338,7 @@ function Answer({
         </p>
       )}
       <div className="actions">
-        {dictation.supported && (
+        {dictation.supported && card.answer_format !== "DRAWING" && (
           <button
             type="button"
             className={dictation.listening ? "mic listening" : "mic"}
@@ -344,11 +356,13 @@ function Answer({
           Skip this question
         </button>
       </div>
-      <p className="hint">
-        {dictation.supported
-          ? "Dictation is transcribed by your browser, which may send the audio to its speech service. Only the text is kept; edit it before you submit."
-          : "Voice answers need Chrome, Edge or Safari. You can type your answer here."}
-      </p>
+      {card.answer_format !== "DRAWING" && (
+        <p className="hint">
+          {dictation.supported
+            ? "Dictation is transcribed by your browser, which may send the audio to its speech service. Only the text is kept; edit it before you submit."
+            : "Voice answers need Chrome, Edge or Safari. You can type your answer here."}
+        </p>
+      )}
     </article>
   );
 }
@@ -404,10 +418,31 @@ function Result({
     <article className="card result">
       <span className="eyebrow">{card.concept_title}</span>
       <h2 className="question">{card.question.text}</h2>
-      <section className="your-answer" aria-label="Your answer">
-        <h3>Your answer</h3>
-        <p>{result.text}</p>
-      </section>
+      {result.has_drawing ? (
+        <section className="drawing-compare" aria-label="Your drawing and the reference">
+          <figure>
+            <figcaption>Your drawing</figcaption>
+            <AuthImage
+              queryKey={["answer-drawing", result.answer_id]}
+              load={() => learningItems.answerDrawing(result.answer_id)}
+              alt="Your drawing"
+              className="drawing-image"
+            />
+            {result.text && <p className="hint">{result.text}</p>}
+          </figure>
+          {result.reference.drawing && (
+            <figure>
+              <figcaption>Reference</figcaption>
+              <ReferenceDrawing itemId={result.learning_item_id} />
+            </figure>
+          )}
+        </section>
+      ) : (
+        <section className="your-answer" aria-label="Your answer">
+          <h3>Your answer</h3>
+          <p>{result.text}</p>
+        </section>
+      )}
 
       <header className="outcome" aria-live="polite">
         {outcome ? (
@@ -812,5 +847,16 @@ function StudyConceptButton({
         📖 Don't remember? Study this concept
       </button>
     </div>
+  );
+}
+
+function ReferenceDrawing({ itemId }: { itemId: string }) {
+  return (
+    <AuthImage
+      queryKey={["reference-drawing", itemId]}
+      load={() => learningItems.referenceDrawing(itemId)}
+      alt="The reference drawing"
+      className="drawing-image"
+    />
   );
 }

@@ -5,6 +5,7 @@ provider's free-form prose (docs/PROJECT_SPEC.md §36). Limits mirror the column
 is eventually stored in, and cap how much a single response can create.
 """
 
+import base64
 from dataclasses import dataclass
 from typing import Annotated
 
@@ -196,6 +197,32 @@ class EvaluationRequest:
     # The Learning Item's own source passages: the authority for this evaluation (spec §19).
     passages: list[SourcePassage]
     answer: str
+    # A second opinion only: why the student disagrees with the first evaluation.
+    user_argument: str | None = None
+
+
+@dataclass(frozen=True)
+class DrawingImage:
+    data: bytes
+    media_type: str  # image/png, image/jpeg or image/webp
+
+    def data_url(self) -> str:
+        return f"data:{self.media_type};base64,{base64.b64encode(self.data).decode('ascii')}"
+
+
+@dataclass(frozen=True)
+class DrawingEvaluationRequest:
+    """A drawn answer: the student's drawing against the item's reference drawing."""
+
+    language: str
+    question: str
+    objective: str
+    # An optional text description of the reference (the item's expected knowledge).
+    expected_knowledge: str
+    reference: DrawingImage
+    drawing: DrawingImage
+    # What the student typed beside the drawing, if anything.
+    note: str = ""
     # A second opinion only: why the student disagrees with the first evaluation.
     user_argument: str | None = None
 
