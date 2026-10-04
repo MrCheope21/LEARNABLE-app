@@ -2,6 +2,7 @@ import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { NavLink, Outlet, useParams } from "react-router-dom";
 import { courses } from "../../api/endpoints";
 import { CollapseToggle, useCollapsed } from "../../components/Collapsible";
+import { ReadOnlyCourseProvider } from "../../components/CourseAccess";
 import { QueryState } from "../../components/QueryState";
 import { studyStateLabel } from "../../components/labels";
 
@@ -25,8 +26,10 @@ export function CourseLayout() {
   const course = useQuery({ queryKey: ["course", courseId], queryFn: () => courses.get(courseId) });
   const tree = useCollapsed(`learnable.tree-collapsed.${courseId}`);
   const outline = useQuery({ queryKey: outlineKey(courseId), queryFn: () => courses.outline(courseId) });
+  const readOnly = Boolean(course.data?.marketplace_listing_id);
 
   return (
+    <ReadOnlyCourseProvider value={readOnly}>
     <div className="course-workspace">
       <nav className="tree" aria-label="Curriculum">
         <NavLink end to={`/courses/${courseId}`} className="tree-course">
@@ -109,9 +112,11 @@ export function CourseLayout() {
             );
           }}
         </QueryState>
-        <NavLink to={`/courses/${courseId}/material`} className="tree-extra">
-          All study material
-        </NavLink>
+        {!readOnly && (
+          <NavLink to={`/courses/${courseId}/material`} className="tree-extra">
+            All study material
+          </NavLink>
+        )}
         <NavLink to={`/courses/${courseId}/questions`} className="tree-extra">
           Manage questions
         </NavLink>
@@ -123,5 +128,6 @@ export function CourseLayout() {
         <Outlet />
       </div>
     </div>
+    </ReadOnlyCourseProvider>
   );
 }

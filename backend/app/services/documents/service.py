@@ -20,6 +20,7 @@ from app.models.course import Chapter, Concept
 from app.models.curriculum import ConceptSource
 from app.models.document import Document, DocumentChunk
 from app.models.enums import DocumentKind, DocumentPurpose, DocumentStatus
+from app.services import managed_courses
 from app.services.courses.service import get_owned_course
 from app.services.documents.chunking import chunk_blocks
 from app.services.documents.detection import SUPPORTED_DESCRIPTION, clean_filename, detect_type
@@ -57,7 +58,7 @@ def upload_document(
     chapter_id: uuid.UUID | None = None,
     purpose: DocumentPurpose = DocumentPurpose.MATERIAL,
 ) -> Document:
-    get_owned_course(db, user_id, course_id)
+    managed_courses.ensure_editable(get_owned_course(db, user_id, course_id))
     if chapter_id is not None:
         _check_chapter(db, course_id, chapter_id)
     if not data:

@@ -7,6 +7,7 @@ export const it: Messages = {
   "nav.review": "Ripasso",
   "nav.progress": "Progressi",
   "nav.guide": "Guida",
+  "nav.marketplace": "Marketplace",
   "nav.streak": "Serie di giorni: {n}",
   "nav.xp": "Esperienza totale: {n} XP",
 

@@ -8,6 +8,7 @@ export const ar: Messages = {
   "nav.review": "المراجعة",
   "nav.progress": "التقدّم",
   "nav.guide": "الدليل",
+  "nav.marketplace": "السوق",
   "nav.streak": "أيام الدراسة المتتالية: {n}",
   "nav.xp": "إجمالي الخبرة: {n} XP",
 

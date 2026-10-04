@@ -7,6 +7,7 @@ export const en = {
   "nav.review": "Review",
   "nav.progress": "Progress",
   "nav.guide": "Guide",
+  "nav.marketplace": "Marketplace",
   "nav.streak": "Daily streak: {n}",
   "nav.xp": "Total experience: {n} XP",
 

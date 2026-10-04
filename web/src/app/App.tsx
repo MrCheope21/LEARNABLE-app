@@ -13,6 +13,8 @@ import { ProposalPage } from "../features/curriculum/ProposalPage";
 import { QuestionsPage } from "../features/curriculum/QuestionsPage";
 import { WeakSpotsPage } from "../features/curriculum/WeakSpotsPage";
 import { GuidePage } from "../features/guide/GuidePage";
+import { ListingPage } from "../features/marketplace/ListingPage";
+import { MarketplacePage } from "../features/marketplace/MarketplacePage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { I18nProvider } from "../i18n";
 import { TopicPage } from "../features/curriculum/TopicPage";
@@ -79,6 +81,8 @@ function SignedInRoutes() {
         <Route path="activity" element={<ActivityPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="guide" element={<GuidePage />} />
+        <Route path="marketplace" element={<MarketplacePage />} />
+        <Route path="marketplace/:listingId" element={<ListingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

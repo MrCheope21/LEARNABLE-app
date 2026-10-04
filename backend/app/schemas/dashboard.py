@@ -45,6 +45,8 @@ class CourseCard(BaseModel):
     description: str
     language: str
     paused: bool
+    # A course from the marketplace: its author's display name.
+    marketplace_author: str | None
     created_at: UTCTimestamp
     # The user's last completed answer in this course.
     last_studied_at: UTCTimestamp | None

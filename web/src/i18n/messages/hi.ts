@@ -8,6 +8,7 @@ export const hi: Messages = {
   "nav.review": "दोहराव",
   "nav.progress": "प्रगति",
   "nav.guide": "गाइड",
+  "nav.marketplace": "मार्केटप्लेस",
   "nav.streak": "लगातार पढ़ाई के दिन: {n}",
   "nav.xp": "कुल अनुभव: {n} XP",
 

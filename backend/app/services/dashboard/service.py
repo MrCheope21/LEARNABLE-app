@@ -8,6 +8,7 @@ session (app/services/review/pool.py), so "12 due" is 12 items a review would as
 
 import uuid
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
@@ -18,6 +19,7 @@ from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, Topic
 from app.models.enums import EvaluationStatus, MemoryState, SessionIntent, StudyState
 from app.models.learning import LearningItem, ReviewState
+from app.models.marketplace import MarketplaceListing
 from app.models.review import Answer, Evaluation, ReviewSession
 from app.models.rewards import DailyActivity
 from app.models.user import User
@@ -291,6 +293,8 @@ def _course_cards(
     )
     unfinished = {s.course_id: s for s in _unfinished_consolidations(db, user.id)}
 
+    authors = _marketplace_authors(db, courses)
+
     by_course: dict[uuid.UUID, list[_ConceptRow]] = defaultdict(list)
     for concept in concepts:
         by_course[concept.course_id].append(concept)
@@ -312,6 +316,7 @@ def _course_cards(
                 description=course.description,
                 language=course.language,
                 paused=course.paused,
+                marketplace_author=authors.get(course.id),
                 created_at=course.created_at,
                 last_studied_at=last_studied.get(course.id),
                 concepts_total=len(course_concepts),
@@ -324,6 +329,27 @@ def _course_cards(
             )
         )
     return cards
+
+
+def _marketplace_authors(db: Session, courses: Sequence[Course]) -> dict[uuid.UUID, str]:
+    """Courses from the marketplace → their author's display name."""
+    listing_ids = {c.marketplace_listing_id for c in courses if c.marketplace_listing_id}
+    if not listing_ids:
+        return {}
+    names = dict(
+        db.execute(
+            select(MarketplaceListing.id, User.display_name)
+            .join(User, User.id == MarketplaceListing.author_id)
+            .where(MarketplaceListing.id.in_(listing_ids))
+        )
+        .tuples()
+        .all()
+    )
+    return {
+        c.id: names.get(c.marketplace_listing_id) or "A LEARNABLE user"
+        for c in courses
+        if c.marketplace_listing_id
+    }
 
 
 def _learn_action(

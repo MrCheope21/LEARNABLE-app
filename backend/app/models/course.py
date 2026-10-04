@@ -30,6 +30,16 @@ class Course(Base):
     # docs/PROJECT_SPEC.md §56: pausing a section excludes everything under it from review
     # without touching each Concept's own study state (see Concept.is_reviewable).
     paused: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # Access to a marketplace course: its content is the author's (kept in sync with the listing,
+    # read-only here); the study state, schedule and answers are this user's.
+    marketplace_listing_id: Mapped[uuid.UUID | None] = mapped_column(
+        # use_alter: listings point back at their source course (a cycle for create/drop_all).
+        Uuid,
+        ForeignKey("marketplace_listings.id", ondelete="SET NULL", use_alter=True),
+        default=None,
+        index=True,
+    )
+    marketplace_version: Mapped[int | None] = mapped_column(Integer, default=None)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now, onupdate=utc_now)
 
@@ -65,6 +75,8 @@ class Chapter(Base):
     course_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("courses.id", ondelete="CASCADE"), index=True
     )
+    # Marketplace copies: the id of the author's row this one mirrors (sync key).
+    origin_key: Mapped[str | None] = mapped_column(String(32), default=None)
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(String(2000), default="")
     order: Mapped[int] = mapped_column(Integer, default=0)
@@ -95,6 +107,8 @@ class Topic(Base):
     course_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("courses.id", ondelete="CASCADE"), index=True
     )
+    # Marketplace copies: the id of the author's row this one mirrors (sync key).
+    origin_key: Mapped[str | None] = mapped_column(String(32), default=None)
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(String(2000), default="")
     order: Mapped[int] = mapped_column(Integer, default=0)
@@ -131,6 +145,8 @@ class Concept(Base):
     course_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("courses.id", ondelete="CASCADE"), index=True
     )
+    # Marketplace copies: the id of the author's row this one mirrors (sync key).
+    origin_key: Mapped[str | None] = mapped_column(String(32), default=None)
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(String(2000), default="")
     # Position within the Topic, like Chapter/Topic `order`; ties fall back to creation time.

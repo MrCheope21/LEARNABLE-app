@@ -59,6 +59,9 @@ class CourseRead(BaseModel):
     description: str
     language: str
     paused: bool
+    # Set on a course reached through the marketplace: its content is read-only here.
+    marketplace_listing_id: UUID | None
+    marketplace_version: int | None
     created_at: UTCTimestamp
     updated_at: UTCTimestamp
 

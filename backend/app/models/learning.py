@@ -73,6 +73,10 @@ class LearningItem(Base):
     answer_format: Mapped[str] = mapped_column(String(16), default="TEXT", server_default="TEXT")
     # 1 Essential, 2 Important, 3 Extra: set by the user (enums.default_priority when generated).
     priority: Mapped[int] = mapped_column(Integer, default=2, server_default="2")
+    # Marketplace courses: the id of the author's item this one mirrors (sync key), and the
+    # author's priority. `priority` is then the acquirer's own, starting from the author's.
+    origin_key: Mapped[str | None] = mapped_column(String(32), default=None)
+    origin_priority: Mapped[int | None] = mapped_column(Integer, default=None)
     reference_drawing_type: Mapped[str | None] = mapped_column(String(32), default=None)
     order: Mapped[int] = mapped_column(Integer, default=0)
     # Item-level pause (spec §56); the schedule shift is in ReviewState.paused_at.

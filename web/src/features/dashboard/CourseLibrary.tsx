@@ -108,6 +108,9 @@ export function CourseLibrary({ cards, heading = "My courses" }: { cards: Course
         <button type="button" className="primary new-course" aria-expanded={creating} onClick={() => setCreating((v) => !v)}>
           + New course
         </button>
+        <Link className="button" to="/marketplace">
+          🛒 Marketplace
+        </Link>
       </div>
       {creating && <NewCourseForm onDone={() => setCreating(false)} />}
       {cards.length === 0 ? (
@@ -144,6 +147,11 @@ export function CourseCardView({ card }: { card: CourseCardData }) {
         <Link id={`course-${card.id}`} className="course-title" to={courseUrl}>
           {card.title}
         </Link>
+        {card.marketplace_author && (
+          <span className="pill marketplace-pill" title="Its author keeps the content up to date; your study is your own.">
+            🛒 From the marketplace · by {card.marketplace_author}
+          </span>
+        )}
         {card.description && <p className="course-description">{card.description}</p>}
         {next && (
           <p className="course-next">
@@ -155,7 +163,7 @@ export function CourseCardView({ card }: { card: CourseCardData }) {
         <Metric done={card.items_introduced} total={card.items_trained} label="learning items introduced" />
       </div>
       <div className="course-actions">
-        <CardMenu courseId={card.id} title={card.title} />
+        <CardMenu courseId={card.id} title={card.title} fromMarketplace={Boolean(card.marketplace_author)} />
         <ReviewButton courseId={card.id} due={card.due_now} />
         <LearnButton courseId={card.id} learn={card.learn} />
       </div>
@@ -163,7 +171,7 @@ export function CourseCardView({ card }: { card: CourseCardData }) {
   );
 }
 
-function CardMenu({ courseId, title }: { courseId: string; title: string }) {
+function CardMenu({ courseId, title, fromMarketplace }: { courseId: string; title: string; fromMarketplace: boolean }) {
   const [open, setOpen] = useState(false);
   const menu = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -188,9 +196,11 @@ function CardMenu({ courseId, title }: { courseId: string; title: string }) {
           <li>
             <Link to={`/courses/${courseId}`}>Course details</Link>
           </li>
-          <li>
-            <Link to={`/courses/${courseId}/material`}>Study material</Link>
-          </li>
+          {!fromMarketplace && (
+            <li>
+              <Link to={`/courses/${courseId}/material`}>Study material</Link>
+            </li>
+          )}
           <li>
             <Link to="/progress">Progress</Link>
           </li>

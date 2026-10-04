@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../../api/client";
 import { courses, curriculum, progress, reorder } from "../../api/endpoints";
+import { useReadOnlyCourse } from "../../components/CourseAccess";
 import { EditableTitle } from "../../components/EditableTitle";
 import { QueryState } from "../../components/QueryState";
 import { SortableList } from "../../components/SortableList";
@@ -21,6 +22,7 @@ export function ChapterPage() {
     onSuccess: (proposal) => navigate(`/courses/${courseId}/proposals/${proposal.id}`),
   });
   const chapterProgress = courseProgress.data?.chapters.find((c) => c.id === chapterId);
+  const readOnly = useReadOnlyCourse();
 
   return (
     <div className="page">
@@ -51,14 +53,18 @@ export function ChapterPage() {
               <section className="card">
                 <header className="card-header">
                   <h2>Topics</h2>
-                  <button type="button" className="primary" disabled={analyze.isPending} onClick={() => analyze.mutate()}>
-                    {analyze.isPending ? "Starting analysis…" : "Analyze new material"}
-                  </button>
+                  {!readOnly && (
+                    <button type="button" className="primary" disabled={analyze.isPending} onClick={() => analyze.mutate()}>
+                      {analyze.isPending ? "Starting analysis…" : "Analyze new material"}
+                    </button>
+                  )}
                 </header>
-                <p className="hint">
-                  The AI proposes topics and concepts from material not analyzed yet. You review the proposal before anything
-                  changes.
-                </p>
+                {!readOnly && (
+                  <p className="hint">
+                    The AI proposes topics and concepts from material not analyzed yet. You review the proposal before anything
+                    changes.
+                  </p>
+                )}
                 {analyze.error && (
                   <p className="banner error" role="alert">
                     {analyze.error instanceof ApiError && analyze.error.status === 409
@@ -89,7 +95,7 @@ export function ChapterPage() {
                   />
                 )}
               </section>
-              <MaterialPanel courseId={courseId} chapterId={chapterId} />
+              {!readOnly && <MaterialPanel courseId={courseId} chapterId={chapterId} />}
             </>
           );
         }}

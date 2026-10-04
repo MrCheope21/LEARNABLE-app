@@ -5,7 +5,7 @@ import { ApiError, type Schemas } from "../../api/client";
 import { concepts, learningItems, progress, reorder, type ConceptAction } from "../../api/endpoints";
 import { EditableTitle } from "../../components/EditableTitle";
 import { HelpTip } from "../../components/HelpTip";
-import { PriorityBadge } from "../../components/PriorityBadge";
+import { PriorityBadge, PrioritySelect } from "../../components/PriorityBadge";
 import { Tooltip } from "../../components/Tooltip";
 import { studyLink } from "../study/StudyPage";
 import { ReferenceDrawingEditor } from "./ReferenceDrawingEditor";
@@ -316,6 +316,7 @@ function ItemDetail({ item, conceptId }: { item: Schemas["LearningItemRead"]; co
         />
         In training
       </label>
+      <PrioritySelect item={item} onSaved={() => void queryClient.invalidateQueries({ queryKey: ["items", conceptId] })} />
       <ReferenceDrawingEditor
         item={item}
         onChanged={() => void queryClient.invalidateQueries({ queryKey: ["items", conceptId] })}

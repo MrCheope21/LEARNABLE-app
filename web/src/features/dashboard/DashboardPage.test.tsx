@@ -15,6 +15,7 @@ function card(overrides: Partial<Schemas["CourseCard"]> = {}): Schemas["CourseCa
     description: "Imposta sul reddito delle società",
     language: "it",
     paused: false,
+    marketplace_author: null,
     created_at: "2026-09-01T10:00:00Z",
     last_studied_at: "2026-09-24T18:00:00Z",
     concepts_total: 30,

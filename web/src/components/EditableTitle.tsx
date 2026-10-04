@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent, type KeyboardEvent } from "react";
 import { userMessage } from "../api/client";
+import { useReadOnlyCourse } from "./CourseAccess";
 
 /**
  * A page title with "Rename": edits the title (and description) of a course, chapter, topic or
@@ -25,6 +26,7 @@ export function EditableTitle({
   const [busy, setBusy] = useState(false);
   const titleId = useId();
   const descriptionId = useId();
+  const readOnly = useReadOnlyCourse();
 
   const start = () => {
     setDraftTitle(title);
@@ -57,9 +59,11 @@ export function EditableTitle({
       <div className="editable-title">
         <div className="editable-title-row">
           <h1 id={headingId}>{title}</h1>
-          <button type="button" className="link" onClick={start} aria-label={`Rename ${label}`}>
-            Rename
-          </button>
+          {!readOnly && (
+            <button type="button" className="link" onClick={start} aria-label={`Rename ${label}`}>
+              Rename
+            </button>
+          )}
         </div>
         {description && <p className="hint">{description}</p>}
       </div>

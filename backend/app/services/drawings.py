@@ -21,6 +21,7 @@ from app.core.errors import (
 )
 from app.models.learning import LearningItem
 from app.models.review import Answer
+from app.services import managed_courses
 from app.services.courses.service import get_owned_course
 from app.services.learning.service import get_owned_item
 from app.storage.documents import DocumentStorage, StoredFileMissingError
@@ -70,6 +71,7 @@ def set_reference(
 ) -> LearningItem:
     """Makes the item a drawing question with this reference drawing (replacing any earlier one)."""
     item = get_owned_item(db, user_id, item_id)
+    managed_courses.ensure_editable(get_owned_course(db, user_id, item.course_id))
     media_type = image_type(data)
     storage.save(reference_key(item), data)
     item.answer_format = "DRAWING"
@@ -84,6 +86,7 @@ def remove_reference(
 ) -> LearningItem:
     """Back to a text question. Drawn answers already given keep their own images."""
     item = get_owned_item(db, user_id, item_id)
+    managed_courses.ensure_editable(get_owned_course(db, user_id, item.course_id))
     if item.reference_drawing_type is not None:
         storage.delete(reference_key(item))
     item.answer_format = "TEXT"

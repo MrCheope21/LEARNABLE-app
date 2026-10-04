@@ -63,7 +63,9 @@ class LearningItemRead(BaseModel):
     id: UUID
     # TEXT or DRAWING (answered by drawing, against a reference drawing).
     answer_format: str
+    # In a marketplace course `priority` is the user's own and `origin_priority` the author's.
     priority: int
+    origin_priority: int | None
     concept_id: UUID
     topic_id: UUID
     chapter_id: UUID

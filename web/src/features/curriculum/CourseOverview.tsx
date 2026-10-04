@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { courses, dashboard, progress, reorder } from "../../api/endpoints";
+import { useReadOnlyCourse } from "../../components/CourseAccess";
 import { EditableTitle } from "../../components/EditableTitle";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { SortableList } from "../../components/SortableList";
@@ -9,6 +10,7 @@ import { CurriculumBlock, MemoryBlock, ReviewLoadBlock } from "../../components/
 import { percent } from "../../components/labels";
 import { CourseCover, LearnButton, Metric, ReviewButton } from "../courses/CourseParts";
 import { studyLink } from "../study/StudyPage";
+import { MarketplacePanel } from "../marketplace/MarketplacePanel";
 import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
 
 export function CourseOverview() {
@@ -18,6 +20,7 @@ export function CourseOverview() {
   const outline = useQuery({ queryKey: outlineKey(courseId), queryFn: () => courses.outline(courseId) });
   const summary = useQuery({ queryKey: ["course-summary", courseId], queryFn: () => dashboard.courseSummary(courseId) });
   const [title, setTitle] = useState("");
+  const readOnly = useReadOnlyCourse();
   const addChapter = useMutation({
     mutationFn: () => courses.createChapter(courseId, title.trim(), outline.data?.length ?? 0),
     onSuccess: () => {
@@ -95,6 +98,7 @@ export function CourseOverview() {
                   )}
                 />
               )}
+              {!readOnly && (
               <form className="inline-form" onSubmit={submit}>
                 <label className="sr-only" htmlFor="chapter-title">
                   New chapter title
@@ -110,8 +114,10 @@ export function CourseOverview() {
                   Add chapter
                 </button>
               </form>
+              )}
               <ErrorBanner error={addChapter.error} />
             </section>
+            {summary.data && <MarketplacePanel courseId={courseId} courseTitle={summary.data.title} />}
           </>
         )}
       </QueryState>

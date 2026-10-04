@@ -8,6 +8,7 @@ export const zh: Messages = {
   "nav.review": "复习",
   "nav.progress": "进度",
   "nav.guide": "指南",
+  "nav.marketplace": "课程市场",
   "nav.streak": "连续学习天数：{n}",
   "nav.xp": "总经验值：{n} XP",
 

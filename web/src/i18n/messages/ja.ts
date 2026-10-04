@@ -7,6 +7,7 @@ export const ja: Messages = {
   "nav.review": "復習",
   "nav.progress": "進捗",
   "nav.guide": "ガイド",
+  "nav.marketplace": "マーケット",
   "nav.streak": "連続学習日数：{n}",
   "nav.xp": "合計経験値：{n} XP",
 

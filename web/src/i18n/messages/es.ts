@@ -7,6 +7,7 @@ export const es: Messages = {
   "nav.review": "Repaso",
   "nav.progress": "Progreso",
   "nav.guide": "Guía",
+  "nav.marketplace": "Mercado",
   "nav.streak": "Racha diaria: {n}",
   "nav.xp": "Experiencia total: {n} XP",
 
