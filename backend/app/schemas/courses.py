@@ -62,6 +62,7 @@ class CourseRead(BaseModel):
     # Set on a course reached through the marketplace: its content is read-only here.
     marketplace_listing_id: UUID | None
     marketplace_version: int | None
+    archived_at: UTCTimestamp | None
     created_at: UTCTimestamp
     updated_at: UTCTimestamp
 

@@ -44,6 +44,7 @@ function managedCourse(id: string): Schemas["CourseRead"] {
     paused: false,
     marketplace_listing_id: LISTING_ID,
     marketplace_version: 2,
+    archived_at: null,
     created_at: "2026-10-01T10:00:00Z",
     updated_at: "2026-10-01T10:00:00Z",
   };

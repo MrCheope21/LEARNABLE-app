@@ -54,6 +54,11 @@ export const courses = {
   create: (body: Schemas["CourseCreate"]) => call(api.POST("/api/v1/courses", { body })),
   update: (courseId: Id, body: Schemas["CourseUpdate"]) =>
     call(api.PATCH("/api/v1/courses/{course_id}", { params: { path: { course_id: courseId } }, body })),
+  setPaused: (courseId: Id, paused: boolean) =>
+    call(api.POST(paused ? "/api/v1/courses/{course_id}/pause" : "/api/v1/courses/{course_id}/resume", { params: { path: { course_id: courseId } } })),
+  setArchived: (courseId: Id, archived: boolean) =>
+    call(api.POST(archived ? "/api/v1/courses/{course_id}/archive" : "/api/v1/courses/{course_id}/unarchive", { params: { path: { course_id: courseId } } })),
+  remove: (courseId: Id) => call(api.DELETE("/api/v1/courses/{course_id}", { params: { path: { course_id: courseId } } })),
   updateChapter: (chapterId: Id, body: Schemas["ChapterUpdate"]) =>
     call(api.PATCH("/api/v1/chapters/{chapter_id}", { params: { path: { chapter_id: chapterId } }, body })),
   updateTopic: (topicId: Id, body: Schemas["TopicUpdate"]) =>

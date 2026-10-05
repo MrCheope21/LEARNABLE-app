@@ -317,6 +317,7 @@ def _course_cards(
                 language=course.language,
                 paused=course.paused,
                 marketplace_author=authors.get(course.id),
+                archived_at=course.archived_at,
                 created_at=course.created_at,
                 last_studied_at=last_studied.get(course.id),
                 concepts_total=len(course_concepts),
@@ -408,7 +409,11 @@ def _next_step(cards: list[CourseCard], unfinished: list[ReviewSession]) -> Next
     3. continue new learning (the most recently studied course with something to learn);
     4. a course with no material yet: set it up (the most recently created);
     5. no course yet: create one; otherwise all caught up."""
+    # Courses put away are out of the recommendation (an archived course is also paused, so it
+    # has nothing due either).
+    cards = [c for c in cards if c.archived_at is None]
     titles = {c.id: c.title for c in cards}
+    unfinished = [s for s in unfinished if s.course_id in titles]
     if unfinished:
         session = unfinished[0]
         key = session.item_ids[session.position]

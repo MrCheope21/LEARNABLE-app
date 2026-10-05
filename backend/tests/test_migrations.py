@@ -4,6 +4,8 @@ Catches the classic drift bug: a model column added/changed without a matching m
 would pass every other test (they build the schema from the models via create_all).
 """
 
+import uuid
+
 import pytest
 from alembic import command
 from alembic.autogenerate import compare_metadata
@@ -51,3 +53,41 @@ def test_migrations_match_models_and_downgrade_cleanly(migration_engine: Engine)
         command.downgrade(_alembic_config(connection), "base")
         remaining = set(inspect(connection).get_table_names()) - {"alembic_version"}
         assert remaining == set()
+
+
+def test_migrations_keep_existing_data(migration_engine: Engine):
+    """On SQLite, batch mode rebuilds a table (copy, drop, rename). With foreign keys enforced,
+    dropping the old `courses` table cascaded into every chapter, question and document. The
+    marketplace migration rebuilds `courses`: a course's content must survive it."""
+    user, course, chapter = uuid.uuid4().hex, uuid.uuid4().hex, uuid.uuid4().hex
+    now = "2026-10-01 10:00:00"
+    with migration_engine.connect() as connection:
+        command.upgrade(_alembic_config(connection), "a9c3e5f7b1d2")
+        connection.commit()
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        connection.execute(
+            text(
+                "INSERT INTO users (id, email, hashed_password, created_at) "
+                "VALUES (:id, 'keep@example.com', 'x', :now)"
+            ),
+            {"id": user, "now": now},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO courses (id, user_id, title, description, language, created_at, "
+                "updated_at) VALUES (:id, :user, 'Commercialista', '', 'it', :now, :now)"
+            ),
+            {"id": course, "user": user, "now": now},
+        )
+        connection.execute(
+            text(
+                'INSERT INTO chapters (id, course_id, title, description, "order", created_at, '
+                "updated_at) VALUES (:id, :course, 'Diritto commerciale', '', 0, :now, :now)"
+            ),
+            {"id": chapter, "course": course, "now": now},
+        )
+        connection.commit()
+    with migration_engine.connect() as connection:
+        command.upgrade(_alembic_config(connection), "head")
+        titles = connection.execute(text("SELECT title FROM chapters")).scalars().all()
+    assert titles == ["Diritto commerciale"]

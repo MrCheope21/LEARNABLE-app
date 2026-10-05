@@ -299,6 +299,16 @@ def pause_course(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUse
     return service.set_course_paused(db, user.id, course_id, paused=True)
 
 
+@router.post("/courses/{course_id}/archive", response_model=CourseRead)
+def archive_course(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> Course:
+    return service.set_course_archived(db, user.id, course_id, archived=True)
+
+
+@router.post("/courses/{course_id}/unarchive", response_model=CourseRead)
+def unarchive_course(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> Course:
+    return service.set_course_archived(db, user.id, course_id, archived=False)
+
+
 @router.post("/courses/{course_id}/resume", response_model=CourseRead)
 def resume_course(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> Course:
     return service.set_course_paused(db, user.id, course_id, paused=False)

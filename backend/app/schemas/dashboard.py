@@ -47,6 +47,8 @@ class CourseCard(BaseModel):
     paused: bool
     # A course from the marketplace: its author's display name.
     marketplace_author: str | None
+    # When it was put away; null for a course in use.
+    archived_at: UTCTimestamp | None
     created_at: UTCTimestamp
     # The user's last completed answer in this course.
     last_studied_at: UTCTimestamp | None

@@ -40,6 +40,9 @@ class Course(Base):
         index=True,
     )
     marketplace_version: Mapped[int | None] = mapped_column(Integer, default=None)
+    # Archived: put away. Hidden from the dashboard's main list, and paused (so out of reviews
+    # and the planner) until restored. Nothing is deleted.
+    archived_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now, onupdate=utc_now)
 

@@ -1416,6 +1416,17 @@
       "CourseCard": {
         "description": "One course in the library. Every figure is a count with its own denominator; none of\nthem is mastery (docs/XP_AND_ACTIVITY.md \u00a77).",
         "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
           "concepts_studied": {
             "title": "Concepts Studied",
             "type": "integer"
@@ -1498,6 +1509,7 @@
           "language",
           "paused",
           "marketplace_author",
+          "archived_at",
           "created_at",
           "last_studied_at",
           "concepts_total",
@@ -1630,6 +1642,17 @@
       },
       "CourseRead": {
         "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
@@ -1691,6 +1714,7 @@
           "paused",
           "marketplace_listing_id",
           "marketplace_version",
+          "archived_at",
           "created_at",
           "updated_at"
         ],
@@ -7702,6 +7726,54 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/archive": {
+      "post": {
+        "operationId": "archive_course_api_v1_courses__course_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Archive Course",
+        "tags": [
+          "courses"
+        ]
+      }
+    },
     "/api/v1/courses/{course_id}/chapter-order": {
       "put": {
         "operationId": "reorder_chapters_api_v1_courses__course_id__chapter_order_put",
@@ -8761,6 +8833,54 @@
         "summary": "Course Summary",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/unarchive": {
+      "post": {
+        "operationId": "unarchive_course_api_v1_courses__course_id__unarchive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unarchive Course",
+        "tags": [
+          "courses"
         ]
       }
     },
@@ -10419,7 +10539,7 @@
     },
     "/api/v1/questions/{question_id}": {
       "delete": {
-        "description": "Deletes one wording (409 `last_question` for the item's only one: delete the item).",
+        "description": "Deletes one wording (409 `last_question` for the item's only one: delete the item).\nAnswers given to it go too, drawn ones with their files.",
         "operationId": "delete_question_api_v1_questions__question_id__delete",
         "parameters": [
           {

@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Schemas } from "../../api/client";
 import { mockApi, ok } from "../../test/mockApi";
 import { renderApp } from "../../test/render";
@@ -16,6 +16,7 @@ function card(overrides: Partial<Schemas["CourseCard"]> = {}): Schemas["CourseCa
     language: "it",
     paused: false,
     marketplace_author: null,
+    archived_at: null,
     created_at: "2026-09-01T10:00:00Z",
     last_studied_at: "2026-09-24T18:00:00Z",
     concepts_total: 30,
@@ -113,6 +114,44 @@ describe("dashboard", () => {
     expect(within(screen.getAllByRole("article")[0]!).getByText("Banca")).toBeInTheDocument();
     await user.type(screen.getByLabelText("Search courses"), "tributario");
     expect(screen.getAllByRole("article")).toHaveLength(1);
+  });
+
+  it("pauses, archives, restores and deletes a course from its menu", async () => {
+    const user = userEvent.setup();
+    const BANCA = "33333333-3333-3333-3333-333333333333";
+    const archivedCard = card({ id: BANCA, title: "Banca", archived_at: "2026-09-24T10:00:00Z", paused: true });
+    const { requests } = mockApi([
+      ["GET", /\/dashboard$/, ok(dashboardData({ courses: [card(), archivedCard] }))],
+      ["GET", /\/auth\/me$/, ok(me)],
+      ["POST", /\/courses\/[^/]+\/(pause|resume|archive|unarchive)$/, ok({})],
+      ["DELETE", /\/courses\/[^/]+$/, () => ({ status: 204 })],
+    ]);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderApp("/");
+
+    // The archived course is put away: not in the main list.
+    await screen.findByRole("link", { name: /Diritto tributario/ });
+    expect(screen.queryByRole("link", { name: "Banca" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /More for Diritto tributario/ }));
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    await waitFor(() => expect(requests.some((r) => r.method === "POST" && r.path === `/api/v1/courses/${COURSE_ID}/pause`)).toBe(true));
+
+    await user.click(screen.getByRole("button", { name: /More for Diritto tributario/ }));
+    await user.click(screen.getByRole("button", { name: "Archive" }));
+    await waitFor(() => expect(requests.some((r) => r.path === `/api/v1/courses/${COURSE_ID}/archive`)).toBe(true));
+
+    await user.click(screen.getByRole("button", { name: /More for Diritto tributario/ }));
+    await user.click(screen.getByRole("button", { name: "Delete…" }));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("Archive it instead"));
+    await waitFor(() => expect(requests.some((r) => r.method === "DELETE" && r.path === `/api/v1/courses/${COURSE_ID}`)).toBe(true));
+
+    // The Archived view shows it, with a way back.
+    await user.selectOptions(screen.getByLabelText("Show"), "archived");
+    await user.click(await screen.findByRole("button", { name: /More for Banca/ }));
+    await user.click(screen.getByRole("button", { name: "Restore" }));
+    await waitFor(() => expect(requests.some((r) => r.path === `/api/v1/courses/${BANCA}/unarchive`)).toBe(true));
+    confirm.mockRestore();
   });
 
   it("resumes an unfinished consolidation first", async () => {

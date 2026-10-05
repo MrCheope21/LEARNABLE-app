@@ -593,6 +593,23 @@ export interface paths {
         patch: operations["update_course_api_v1_courses__course_id__patch"];
         trace?: never;
     };
+    "/api/v1/courses/{course_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Course */
+        post: operations["archive_course_api_v1_courses__course_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/{course_id}/chapter-order": {
         parameters: {
             query?: never;
@@ -909,6 +926,23 @@ export interface paths {
         get: operations["course_summary_api_v1_courses__course_id__summary_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Course */
+        post: operations["unarchive_course_api_v1_courses__course_id__unarchive_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1380,6 +1414,7 @@ export interface paths {
         /**
          * Delete Question
          * @description Deletes one wording (409 `last_question` for the item's only one: delete the item).
+         *     Answers given to it go too, drawn ones with their files.
          */
         delete: operations["delete_question_api_v1_questions__question_id__delete"];
         options?: never;
@@ -2141,6 +2176,8 @@ export interface components {
          *     them is mastery (docs/XP_AND_ACTIVITY.md §7).
          */
         CourseCard: {
+            /** Archived At */
+            archived_at: string | null;
             /** Concepts Studied */
             concepts_studied: number;
             /** Concepts Total */
@@ -2224,6 +2261,8 @@ export interface components {
         };
         /** CourseRead */
         CourseRead: {
+            /** Archived At */
+            archived_at: string | null;
             /** Created At */
             created_at: string;
             /** Description */
@@ -4953,6 +4992,37 @@ export interface operations {
             };
         };
     };
+    archive_course_api_v1_courses__course_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reorder_chapters_api_v1_courses__course_id__chapter_order_put: {
         parameters: {
             query?: never;
@@ -5569,6 +5639,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CourseCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_course_api_v1_courses__course_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseRead"];
                 };
             };
             /** @description Validation Error */

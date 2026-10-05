@@ -13,7 +13,7 @@ import {
   type CourseCardData,
 } from "../courses/CourseParts";
 
-type Status = "all" | "in_progress" | "not_started" | "due" | "completed";
+type Status = "all" | "in_progress" | "not_started" | "due" | "completed" | "paused" | "archived";
 type Sort = "recent_study" | "recent_created" | "alphabetical" | "most_due";
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -22,6 +22,8 @@ const STATUS_LABEL: Record<Status, string> = {
   not_started: "Not started",
   due: "Reviews due",
   completed: "Nothing new to learn",
+  paused: "Paused",
+  archived: "Archived",
 };
 const SORT_LABEL: Record<Sort, string> = {
   recent_study: "Recently studied",
@@ -39,6 +41,10 @@ function statusOf(card: CourseCardData): Exclude<Status, "all" | "due">[] {
 }
 
 function matches(card: CourseCardData, status: Status): boolean {
+  // Archived courses are put away: only the "Archived" view shows them.
+  if (status === "archived") return card.archived_at != null;
+  if (card.archived_at != null) return false;
+  if (status === "paused") return card.paused;
   if (status === "all") return true;
   if (status === "due") return card.due_now > 0;
   return statusOf(card).includes(status);
@@ -158,12 +164,12 @@ export function CourseCardView({ card }: { card: CourseCardData }) {
             {card.learn.kind === "resume" ? "Continue" : "Next"}: <strong>{next.title}</strong>
           </p>
         )}
-        {card.paused && <span className="pill warning">Paused</span>}
+        {card.archived_at ? <span className="pill">Archived</span> : card.paused && <span className="pill warning">Paused</span>}
         <Metric done={card.concepts_studied} total={card.concepts_total} label="concepts studied" />
         <Metric done={card.items_introduced} total={card.items_trained} label="learning items introduced" />
       </div>
       <div className="course-actions">
-        <CardMenu courseId={card.id} title={card.title} fromMarketplace={Boolean(card.marketplace_author)} />
+        <CardMenu card={card} />
         <ReviewButton courseId={card.id} due={card.due_now} />
         <LearnButton courseId={card.id} learn={card.learn} />
       </div>
@@ -171,8 +177,27 @@ export function CourseCardView({ card }: { card: CourseCardData }) {
   );
 }
 
-function CardMenu({ courseId, title, fromMarketplace }: { courseId: string; title: string; fromMarketplace: boolean }) {
+function CardMenu({ card }: { card: CourseCardData }) {
+  const { id: courseId, title } = card;
+  const fromMarketplace = Boolean(card.marketplace_author);
+  const archived = card.archived_at != null;
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const refresh = () => {
+    setOpen(false);
+    void queryClient.invalidateQueries({ queryKey: dashboardKey });
+    void queryClient.invalidateQueries({ queryKey: ["courses"] });
+  };
+  const pause = useMutation({ mutationFn: () => courses.setPaused(courseId, !card.paused), onSuccess: refresh });
+  const archive = useMutation({ mutationFn: () => courses.setArchived(courseId, !archived), onSuccess: refresh });
+  const remove = useMutation({ mutationFn: () => courses.remove(courseId), onSuccess: refresh });
+  const confirmDelete = () => {
+    const extra = fromMarketplace
+      ? " You can add it again from the Marketplace for free."
+      : " Its chapters, questions, material and your answers are deleted for good. Archive it instead to keep everything.";
+    if (window.confirm(`Delete "${title}"?${extra}`)) remove.mutate();
+  };
+  const busy = pause.isPending || archive.isPending || remove.isPending;
   const menu = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -204,8 +229,26 @@ function CardMenu({ courseId, title, fromMarketplace }: { courseId: string; titl
           <li>
             <Link to="/progress">Progress</Link>
           </li>
+          {!archived && (
+            <li>
+              <button type="button" disabled={busy} onClick={() => pause.mutate()}>
+                {card.paused ? "Resume" : "Pause"}
+              </button>
+            </li>
+          )}
+          <li>
+            <button type="button" disabled={busy} onClick={() => archive.mutate()}>
+              {archived ? "Restore" : "Archive"}
+            </button>
+          </li>
+          <li>
+            <button type="button" className="danger" disabled={busy} onClick={confirmDelete}>
+              Delete…
+            </button>
+          </li>
         </ul>
       )}
+      <ErrorBanner error={pause.error ?? archive.error ?? remove.error} />
     </div>
   );
 }
