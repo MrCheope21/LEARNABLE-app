@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
 import type { Schemas } from "../../api/client";
-import { classificationLabel } from "../../components/labels";
+import { useLabels } from "../../components/useLabels";
+import { useI18n } from "../../i18n";
+import type { MessageKey } from "../../i18n/messages/en";
 
 type Evaluation = Schemas["EvaluationRead"];
 
 const DIMENSIONS = [
-  ["correctness", "Correct"],
-  ["completeness", "Complete"],
-  ["conceptual_understanding", "Understanding"],
-  ["precision", "Precise"],
+  ["correctness", "eval.correct"],
+  ["completeness", "eval.complete"],
+  ["conceptual_understanding", "eval.understanding"],
+  ["precision", "eval.precise"],
 ] as const;
 
 function rating(value: number): "Strong" | "Partial" | "Weak" {
@@ -19,18 +21,19 @@ function rating(value: number): "Strong" | "Partial" | "Weak" {
 
 /** The evaluator's four scores, one short row each, instead of a single grade. */
 export function ScoreBreakdown({ evaluation }: { evaluation: Evaluation }) {
-  const rows = DIMENSIONS.flatMap(([key, label]) => {
+  const { t } = useI18n();
+  const rows = DIMENSIONS.flatMap(([key, labelKey]) => {
     const value = evaluation[key];
-    return value === null ? [] : [{ key, label, value, grade: rating(value) }];
+    return value === null ? [] : [{ key, label: t(labelKey), value, grade: rating(value) }];
   });
   if (rows.length === 0) return null;
   return (
-    <ul className="scores" aria-label="Score breakdown">
+    <ul className="scores" aria-label={t("eval.scoreBreakdown")}>
       {rows.map(({ key, label, value, grade }) => (
         <li key={key}>
           <span className="score-label">{label}</span>
-          <meter min={0} max={1} low={0.5} high={0.8} optimum={1} value={value} aria-label={`${label}: ${grade}`} />
-          <span className={`score-rating ${TONE[grade]}`}>{grade}</span>
+          <meter min={0} max={1} low={0.5} high={0.8} optimum={1} value={value} aria-label={`${label}: ${t(`eval.${grade}` as MessageKey)}`} />
+          <span className={`score-rating ${TONE[grade]}`}>{t(`eval.${grade}` as MessageKey)}</span>
         </li>
       ))}
     </ul>
@@ -40,10 +43,10 @@ export function ScoreBreakdown({ evaluation }: { evaluation: Evaluation }) {
 const TONE = { Strong: "tone-good", Partial: "tone-warn", Weak: "tone-bad" } as const;
 
 const CHECKS = [
-  ["correct_points", "good", "✓", "Right"],
-  ["missing_points", "warn", "✗", "Missing"],
-  ["misconceptions", "bad", "!", "Misconception"],
-  ["source_corrections", "info", "i", "The material says"],
+  ["correct_points", "good", "✓", "eval.right"],
+  ["missing_points", "warn", "✗", "eval.missing"],
+  ["misconceptions", "bad", "!", "eval.misconception"],
+  ["source_corrections", "info", "i", "eval.materialSays"],
 ] as const;
 
 /** One line of a checklist: a toned mark, then the text. `word` is read out by screen readers. */
@@ -61,12 +64,13 @@ export function CheckRow({ tone, mark, word, children }: { tone: "good" | "warn"
 
 /** What was right, what was missing, what was a misconception: one checklist. */
 export function PointChecklist({ evaluation }: { evaluation: Evaluation }) {
+  const { t } = useI18n();
   const rows = CHECKS.flatMap(([key, tone, mark, word]) =>
-    evaluation[key].map((text) => ({ tone, mark, word, text })),
+    evaluation[key].map((text) => ({ tone, mark, word: t(word), text })),
   );
   if (rows.length === 0) return null;
   return (
-    <ul className="checklist" aria-label="What your answer covered">
+    <ul className="checklist" aria-label={t("eval.covered")}>
       {rows.map((row, index) => (
         <CheckRow key={index} tone={row.tone} mark={row.mark} word={row.word}>
           {row.text}
@@ -78,10 +82,12 @@ export function PointChecklist({ evaluation }: { evaluation: Evaluation }) {
 
 /** One evaluation: its verdict, feedback, scores and checklist. Used for both opinions. */
 export function EvaluationView({ evaluation }: { evaluation: Evaluation }) {
+  const { t } = useI18n();
+  const { classificationLabel } = useLabels();
   if (evaluation.status !== "COMPLETED") {
     return (
       <p className="banner warning" role="status">
-        {evaluation.error_message ?? "The answer couldn't be evaluated."}
+        {evaluation.error_message ?? t("eval.failed")}
       </p>
     );
   }
@@ -89,11 +95,11 @@ export function EvaluationView({ evaluation }: { evaluation: Evaluation }) {
     <div className="evaluation-body">
       {evaluation.ai_provider === "mock" && <TestAiNotice />}
       {evaluation.classification && (
-        <span className="hint">AI evaluation: {classificationLabel[evaluation.classification]}</span>
+        <span className="hint">{t("eval.aiEvaluation", { verdict: classificationLabel[evaluation.classification] })}</span>
       )}
       {evaluation.feedback && <p>{evaluation.feedback}</p>}
       {evaluation.context_sufficient === false && (
-        <p className="banner warning">The course material doesn't cover this well enough to grade it.</p>
+        <p className="banner warning">{t("eval.insufficient")}</p>
       )}
       <ScoreBreakdown evaluation={evaluation} />
       <PointChecklist evaluation={evaluation} />
@@ -103,10 +109,10 @@ export function EvaluationView({ evaluation }: { evaluation: Evaluation }) {
 
 /** The server runs the offline test AI: its grades only compare words, so say so plainly. */
 export function TestAiNotice() {
+  const { t } = useI18n();
   return (
     <p className="banner warning test-ai" role="note">
-      <strong>Test AI.</strong> This grade comes from a stand-in that only compares words with the reference: it can't
-      understand paraphrases or objections. Check the reference and grade it yourself, or connect a real AI.
+      <strong>{t("eval.testAiTitle")}</strong> {t("eval.testAiBody")}
     </p>
   );
 }

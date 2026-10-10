@@ -8,12 +8,14 @@ import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { SortableList } from "../../components/SortableList";
 import { CurriculumBlock, MemoryBlock, ReviewLoadBlock } from "../../components/ProgressBlocks";
 import { percent } from "../../components/labels";
+import { useI18n } from "../../i18n";
 import { CourseCover, LearnButton, Metric, ReviewButton } from "../courses/CourseParts";
 import { studyLink } from "../study/StudyPage";
 import { MARKETPLACE_ANCHOR, MarketplacePanel } from "../marketplace/MarketplacePanel";
 import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
 
 export function CourseOverview() {
+  const { t } = useI18n();
   const { courseId = "" } = useParams();
   const queryClient = useQueryClient();
   const courseProgress = useQuery({ queryKey: courseProgressKey(courseId), queryFn: () => progress.course(courseId) });
@@ -47,7 +49,7 @@ export function CourseOverview() {
                   <EditableTitle
                     title={summary.data.title}
                     description={summary.data.description}
-                    label="course"
+                    label={t("label.course")}
                     headingId="course-title"
                     onSave={async (values) => {
                       await courses.update(courseId, values);
@@ -56,21 +58,21 @@ export function CourseOverview() {
                   />
                   {summary.data.learn.concept && (
                     <p className="course-next">
-                      {summary.data.learn.kind === "resume" ? "Continue" : "Next"}: <strong>{summary.data.learn.concept.title}</strong>
+                      {summary.data.learn.kind === "resume" ? t("card.continue") : t("card.next")}: <strong>{summary.data.learn.concept.title}</strong>
                     </p>
                   )}
-                  <Metric done={summary.data.concepts_studied} total={summary.data.concepts_total} label="concepts studied" />
-                  <Metric done={summary.data.items_introduced} total={summary.data.items_trained} label="learning items introduced" />
+                  <Metric done={summary.data.concepts_studied} total={summary.data.concepts_total} label={t("card.conceptsStudied")} />
+                  <Metric done={summary.data.items_introduced} total={summary.data.items_trained} label={t("card.itemsIntroduced")} />
                 </div>
                 <div className="course-actions">
                   <ReviewButton courseId={courseId} due={summary.data.due_now} />
                   <LearnButton courseId={courseId} learn={summary.data.learn} />
                   <Link className="button" to={studyLink(courseId, "PRACTICE", { mode: "MARKED_HARD" })}>
-                    Practice hard questions
+                    {t("course.practiceHard")}
                   </Link>
                   {!readOnly && (
                     <Link className="button" to={{ hash: MARKETPLACE_ANCHOR }} replace>
-                      🛒 Publish to the marketplace
+                      {t("menu.publish")}
                     </Link>
                   )}
                 </div>
@@ -82,9 +84,9 @@ export function CourseOverview() {
               <MemoryBlock memory={data.memory} />
             </div>
             <section className="card">
-              <h2>Chapters</h2>
+              <h2>{t("course.chapters")}</h2>
               {data.chapters.length === 0 ? (
-                <p className="hint">Add a chapter, then add study material to it.</p>
+                <p className="hint">{t("course.chaptersEmpty")}</p>
               ) : (
                 <SortableList
                   items={data.chapters}
@@ -97,7 +99,7 @@ export function CourseOverview() {
                     <>
                       <Link to={`/courses/${courseId}/chapters/${chapter.id}`}>{chapter.title}</Link>
                       <span className="row-meta">
-                        {chapter.curriculum.active} of {chapter.curriculum.concepts} concepts active · mastery {percent(chapter.memory.mastery)}
+                        {t("course.chapterMeta", { active: chapter.curriculum.active, total: chapter.curriculum.concepts, mastery: percent(chapter.memory.mastery) })}
                       </span>
                     </>
                   )}
@@ -106,17 +108,17 @@ export function CourseOverview() {
               {!readOnly && (
               <form className="inline-form" onSubmit={submit}>
                 <label className="sr-only" htmlFor="chapter-title">
-                  New chapter title
+                  {t("course.newChapter")}
                 </label>
                 <input
                   id="chapter-title"
-                  placeholder="New chapter title"
+                  placeholder={t("course.newChapter")}
                   value={title}
                   maxLength={200}
                   onChange={(e) => setTitle(e.target.value)}
                 />
                 <button type="submit" disabled={!title.trim() || addChapter.isPending}>
-                  Add chapter
+                  {t("course.addChapter")}
                 </button>
               </form>
               )}

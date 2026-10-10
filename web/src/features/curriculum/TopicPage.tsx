@@ -4,11 +4,15 @@ import { courses, progress, reorder } from "../../api/endpoints";
 import { EditableTitle } from "../../components/EditableTitle";
 import { QueryState } from "../../components/QueryState";
 import { SortableList } from "../../components/SortableList";
-import { percent, studyStateLabel } from "../../components/labels";
+import { percent } from "../../components/labels";
+import { useLabels } from "../../components/useLabels";
+import { useI18n } from "../../i18n";
 import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
 import { Breadcrumbs } from "./Consolidate";
 
 export function TopicPage() {
+  const { t } = useI18n();
+  const { studyStateLabel } = useLabels();
   const { courseId = "", topicId = "" } = useParams();
   const queryClient = useQueryClient();
   const outline = useQuery({ queryKey: outlineKey(courseId), queryFn: () => courses.outline(courseId) });
@@ -20,7 +24,7 @@ export function TopicPage() {
       <QueryState query={outline}>
         {(chapters) => {
           const topic = chapters.flatMap((c) => c.topics).find((t) => t.id === topicId);
-          if (!topic) return <p className="state">This topic no longer exists.</p>;
+          if (!topic) return <p className="state">{t("topic.gone")}</p>;
           return (
             <>
               <Breadcrumbs courseId={courseId} topicId={topic.id} current={topic.title} />
@@ -28,7 +32,7 @@ export function TopicPage() {
                 <EditableTitle
                   title={topic.title}
                   description={topic.description}
-                  label="topic"
+                  label={t("label.topic")}
                   onSave={async (values) => {
                     await courses.updateTopic(topic.id, values);
                     refreshTitles(queryClient, courseId);
@@ -36,9 +40,9 @@ export function TopicPage() {
                 />
               </header>
               <section className="card">
-                <h2>Concepts</h2>
+                <h2>{t("topic.concepts")}</h2>
                 {topic.concepts.length === 0 ? (
-                  <p className="hint">No concepts in this topic.</p>
+                  <p className="hint">{t("topic.empty")}</p>
                 ) : (
                   <SortableList
                     items={topic.concepts}
@@ -50,10 +54,9 @@ export function TopicPage() {
                     renderItem={(concept) => (
                       <>
                         <Link to={`/courses/${courseId}/concepts/${concept.id}`}>{concept.title}</Link>
-                        {concept.needs_source_review && <span className="pill warning">Needs source review</span>}
+                        {concept.needs_source_review && <span className="pill warning">{t("topic.needsReview")}</span>}
                         <span className="row-meta">
-                          {studyStateLabel[concept.study_state]} · mastery{" "}
-                          {percent(topicProgress?.concepts.find((c) => c.id === concept.id)?.memory.mastery)}
+                          {t("topic.conceptMeta", { state: studyStateLabel[concept.study_state], mastery: percent(topicProgress?.concepts.find((c) => c.id === concept.id)?.memory.mastery) })}
                         </span>
                       </>
                     )}

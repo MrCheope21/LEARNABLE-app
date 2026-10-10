@@ -9,13 +9,9 @@ import { AuthImage } from "../../components/AuthImage";
 import { DrawingPad } from "../../components/DrawingPad";
 import { HelpTip } from "../../components/HelpTip";
 import { ErrorBanner } from "../../components/QueryState";
-import {
-  dateTime,
-  outcomeExplanation,
-  outcomeLabel,
-  studyMinutes,
-  userGrades,
-} from "../../components/labels";
+import { dateTime, studyMinutes, userGrades } from "../../components/labels";
+import { useLabels } from "../../components/useLabels";
+import type { MessageKey } from "../../i18n/messages/en";
 import { courseProgressKey, weakSpotsKey } from "../curriculum/CourseLayout";
 import { homeKey } from "../home/HomePage";
 import { SourceLink, SourcePanel, type SourceRef } from "../source/SourcePanel";
@@ -25,14 +21,6 @@ import { DisputeForm } from "./DisputeForm";
 import { recognitionLanguage, useDictation } from "./useDictation";
 import { EvaluationView } from "./EvaluationView";
 import { useStudySession, type AnswerView, type Card } from "./useStudySession";
-
-const intentTitle: Record<Schemas["SessionIntent"], string> = {
-  LEARN: "Learn",
-  SCHEDULED_REVIEW: "Review",
-  PRACTICE: "Practice",
-  EXAM: "Exam",
-  CONSOLIDATION: "Consolidation",
-};
 
 /** Builds the session request from the URL: /study/:courseId?intent=…&mode=…&concepts=a,b */
 export function sessionRequestFrom(params: URLSearchParams): Schemas["SessionCreate"] {
@@ -68,6 +56,7 @@ export function studyLink(
  * continues, 1–4 grade when a grade is needed.
  */
 export function StudyPage() {
+  const { t } = useI18n();
   const { courseId = "" } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -121,12 +110,12 @@ export function StudyPage() {
     <div className="study">
       <header className="study-header">
         <div>
-          <Link to="/" className="home-link" aria-label="LEARNABLE home">
+          <Link to="/" className="home-link" aria-label={t("nav.home")}>
             <BrandLogo form="mark" height={28} />
           </Link>
-          <ol className="breadcrumb" aria-label="Breadcrumb">
+          <ol className="breadcrumb" aria-label={t("breadcrumb.aria")}>
             <li>
-              <Link to={`/courses/${courseId}`}>{course.data?.title ?? "Course"}</Link>
+              <Link to={`/courses/${courseId}`}>{course.data?.title ?? t("course.fallback")}</Link>
             </li>
             {card && (
               <li>
@@ -134,28 +123,28 @@ export function StudyPage() {
               </li>
             )}
           </ol>
-          <span className="eyebrow">{intentTitle[intent]}</span>
+          <span className="eyebrow">{t(`study.intent.${intent}` as MessageKey)}</span>
           {card?.round && card.rounds_total ? (
             <span className="round-badge">
-              Round {card.round} of {card.rounds_total}
+              {t("study.round", { n: card.round, total: card.rounds_total })}
             </span>
           ) : null}
           {position !== null && s.session && (
-            <span className="counter" aria-label="Progress in this session">
-              {position} of {s.session.total}
+            <span className="counter" aria-label={t("study.progressAria")}>
+              {t("study.progress", { n: position, total: s.session.total })}
             </span>
           )}
           {s.session && s.session.xp_earned > 0 && (
-            <span className="xp-chip" aria-label={`${s.session.xp_earned} XP this session`}>
-              <XpIcon /> {s.session.xp_earned} XP
+            <span className="xp-chip" aria-label={t("study.xpSessionAria", { n: s.session.xp_earned })}>
+              <XpIcon /> {t("community.xp", { n: s.session.xp_earned })}
             </span>
           )}
           {s.session && !s.session.affects_schedule && (
-            <span className="pill">Own review: no change to your plan, no XP</span>
+            <span className="pill">{t("study.ownReview")}</span>
           )}
         </div>
         <button type="button" onClick={() => void close()}>
-          {consolidating ? "Leave (resume later)" : "End session"}
+          {consolidating ? t("study.leaveResume") : t("study.end")}
         </button>
       </header>
 
@@ -195,12 +184,13 @@ function PhaseView({
   language: string;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const phase = s.phase;
   switch (phase.kind) {
     case "starting":
       return (
         <div className="state" role="status">
-          Preparing your session…
+          {t("study.preparing")}
         </div>
       );
     case "introduction":
@@ -223,10 +213,10 @@ function PhaseView({
     case "empty":
       return (
         <div className="state">
-          <h2>Nothing to study right now</h2>
-          <p>Nothing qualifies for this session. Activate a concept to add new material, or come back when reviews are due.</p>
+          <h2>{t("study.empty.title")}</h2>
+          <p>{t("study.empty.body")}</p>
           <Link className="button primary" to={`/courses/${courseId}`}>
-            Back to the course
+            {t("study.empty.back")}
           </Link>
         </div>
       );
@@ -235,7 +225,7 @@ function PhaseView({
         <div className="state error-state" role="alert">
           <p>{phase.message}</p>
           <button type="button" onClick={() => void (s.session ? s.loadNext() : s.start())}>
-            Try again
+            {t("common.tryAgain")}
           </button>
         </div>
       );
@@ -251,23 +241,24 @@ function Introduction({
   onReady: () => void;
   openSource: (source: SourceRef) => void;
 }) {
+  const { t } = useI18n();
   const intro = card.introduction;
   const ready = useRef<HTMLButtonElement>(null);
   useEffect(() => ready.current?.focus(), []);
   if (!intro) return null;
   return (
     <article className="card">
-      <span className="eyebrow">New material</span>
+      <span className="eyebrow">{t("study.newMaterial")}</span>
       <h2>{intro.title}</h2>
       {intro.objective && <p className="hint">{intro.objective}</p>}
       {intro.drawing && (
         <ReferenceDrawing itemId={card.learning_item_id} />
       )}
       <p className="reading">{intro.expected_knowledge}</p>
-      {intro.essential_points.length > 0 && <Points title="Key points" points={intro.essential_points} />}
+      {intro.essential_points.length > 0 && <Points title={t("study.keyPoints")} points={intro.essential_points} />}
       <Sources sources={intro.sources} openSource={openSource} />
       <button ref={ready} type="button" className="primary large" onClick={onReady}>
-        I'm ready: test me <kbd>Enter</kbd>
+        {t("study.ready")} <kbd>Enter</kbd>
       </button>
     </article>
   );
@@ -286,6 +277,7 @@ function Answer({
   language: string;
   openConcept: (conceptId: string) => void;
 }) {
+  const { t } = useI18n();
   const editor = useRef<HTMLTextAreaElement>(null);
   useEffect(() => editor.current?.focus(), [card.question.id]);
   const dictation = useDictation(language, s.appendDictation);
@@ -305,7 +297,7 @@ function Answer({
     <article className="card">
       <div className="title-row card-top">
         <span className="eyebrow">{card.concept_title}</span>
-        <HelpTip text="help.study" topic="Answering" guide="answer" />
+        <HelpTip text="help.study" topic={t("study.answering")} guide="answer" />
       </div>
       <h2 className="question">{card.question.text}</h2>
       <PotentialXp card={card} />
@@ -313,12 +305,12 @@ function Answer({
       <HintBox card={card} s={s} disabled={submitting} />
       {card.answer_format === "DRAWING" && (
         <>
-          <p className="hint">Draw your answer below. The AI compares it with the reference drawing.</p>
+          <p className="hint">{t("study.drawHint")}</p>
           <DrawingPad key={card.question.id} onChange={s.setDrawing} disabled={submitting} />
         </>
       )}
       <label className={card.answer_format === "DRAWING" ? "drawing-note-label" : "sr-only"} htmlFor="answer">
-        {card.answer_format === "DRAWING" ? "Note (optional)" : "Your answer"}
+        {card.answer_format === "DRAWING" ? t("study.note") : t("study.yourAnswer")}
       </label>
       <textarea
         id="answer"
@@ -329,7 +321,7 @@ function Answer({
         disabled={submitting}
         rows={card.answer_format === "DRAWING" ? 2 : 9}
         className={card.answer_format === "DRAWING" ? "drawing-note" : undefined}
-        placeholder={card.answer_format === "DRAWING" ? "Anything to add to your drawing…" : "Answer in your own words…"}
+        placeholder={card.answer_format === "DRAWING" ? t("study.notePlaceholder") : t("study.answerPlaceholder")}
       />
       {dictation.listening && dictation.interim && (
         <p className="interim" aria-live="polite">
@@ -350,21 +342,21 @@ function Answer({
             disabled={submitting}
             onClick={dictation.listening ? dictation.stop : dictation.start}
           >
-            {dictation.listening ? "Stop listening" : "Speak your answer"}
+            {dictation.listening ? t("study.stopListening") : t("study.speak")}
           </button>
         )}
         <button type="button" className="primary" disabled={!s.canSubmit || submitting} onClick={() => void s.submit()}>
-          {submitting ? "Evaluating…" : "Submit"} <kbd>Ctrl/⌘ Enter</kbd>
+          {submitting ? t("study.evaluating") : t("study.submit")} <kbd>Ctrl/⌘ Enter</kbd>
         </button>
         <button type="button" className="link" disabled={submitting || s.working} onClick={() => void s.skip()}>
-          Skip this question
+          {t("study.skip")}
         </button>
       </div>
       {card.answer_format !== "DRAWING" && (
         <p className="hint">
           {dictation.supported
-            ? "Dictation is transcribed by your browser, which may send the audio to its speech service. Only the text is kept; edit it before you submit."
-            : "Voice answers need Chrome, Edge or Safari. You can type your answer here."}
+            ? t("study.dictationOn")
+            : t("study.dictationOff")}
         </p>
       )}
     </article>
@@ -385,6 +377,7 @@ function Result({
   openConcept: (conceptId: string) => void;
 }) {
   const { t } = useI18n();
+  const { outcomeLabel, outcomeExplanation } = useLabels();
   const [disputing, setDisputing] = useState(false);
   // Green on most scores: the student repeats the answer (it then counts as correct) instead of
   // grading; they can still choose to grade it themselves.
@@ -422,37 +415,37 @@ function Result({
   const evaluationFailed = evaluation && evaluation.status !== "COMPLETED";
   const showDispute = disputing && evaluation?.status === "COMPLETED";
   const gradeTitle = result.needs_self_grade
-    ? "How well did you know it?"
+    ? t("study.gradeHow")
     : showDispute
-      ? "Or grade it yourself"
-      : "Your grade";
+      ? t("study.gradeYourself")
+      : t("study.yourGrade");
 
   return (
     <article className="card result">
       <span className="eyebrow">{card.concept_title}</span>
       <h2 className="question">{card.question.text}</h2>
       {result.has_drawing ? (
-        <section className="drawing-compare" aria-label="Your drawing and the reference">
+        <section className="drawing-compare" aria-label={t("study.drawingCompare")}>
           <figure>
-            <figcaption>Your drawing</figcaption>
+            <figcaption>{t("study.yourDrawing")}</figcaption>
             <AuthImage
               queryKey={["answer-drawing", result.answer_id]}
               load={() => learningItems.answerDrawing(result.answer_id)}
-              alt="Your drawing"
+              alt={t("study.yourDrawing")}
               className="drawing-image"
             />
             {result.text && <p className="hint">{result.text}</p>}
           </figure>
           {result.reference.drawing && (
             <figure>
-              <figcaption>Reference</figcaption>
+              <figcaption>{t("study.reference")}</figcaption>
               <ReferenceDrawing itemId={result.learning_item_id} />
             </figure>
           )}
         </section>
       ) : (
-        <section className="your-answer" aria-label="Your answer">
-          <h3>Your answer</h3>
+        <section className="your-answer" aria-label={t("study.yourAnswer")}>
+          <h3>{t("study.yourAnswer")}</h3>
           <p>{result.text}</p>
         </section>
       )}
@@ -461,43 +454,43 @@ function Result({
         {outcome ? (
           <>
             <span className={`outcome-badge outcome-${outcome.toLowerCase()}`}>{outcomeLabel[outcome]}</span>
-            {result.override_outcome && <span className="hint">Graded by you</span>}
+            {result.override_outcome && <span className="hint">{t("study.gradedByYou")}</span>}
           </>
         ) : repeating ? (
           <span className="outcome-badge outcome-good">{t("study.repeat.badge")}</span>
         ) : (
-          <span className="outcome-badge">Needs your grade</span>
+          <span className="outcome-badge">{t("study.needsGrade")}</span>
         )}
       </header>
 
       <Award result={result} />
 
       {evaluation && (
-        <section className="evaluation" aria-label="First evaluation">
-          {result.second_opinion && <h3>First evaluation</h3>}
+        <section className="evaluation" aria-label={t("study.firstEval")}>
+          {result.second_opinion && <h3>{t("study.firstEval")}</h3>}
           <EvaluationView evaluation={evaluation} />
         </section>
       )}
       {result.second_opinion && (
-        <section className="evaluation second-opinion" aria-label="Second opinion">
-          <h3>Second opinion</h3>
-          <p className="hint">After your objection: “{result.second_opinion.user_argument}”</p>
+        <section className="evaluation second-opinion" aria-label={t("study.secondOpinion")}>
+          <h3>{t("study.secondOpinion")}</h3>
+          <p className="hint">{t("study.afterObjection", { text: result.second_opinion.user_argument ?? "" })}</p>
           <EvaluationView evaluation={result.second_opinion} />
         </section>
       )}
 
       <details className="reference" open={!outcome || outcome === "AGAIN" || repeating}>
-        <summary>Reference answer and sources</summary>
+        <summary>{t("study.referenceSummary")}</summary>
         <p className="reading">{result.reference.expected_knowledge}</p>
         {result.reference.essential_points.length > 0 && (
-          <Points title="Key points" points={result.reference.essential_points} />
+          <Points title={t("study.keyPoints")} points={result.reference.essential_points} />
         )}
         <Sources sources={result.reference.sources} openSource={openSource} />
       </details>
 
       <ScheduleNote result={result} />
       <button type="button" className="link" onClick={() => openConcept(card.concept_id)}>
-        📖 Study this concept
+        {t("study.studyConcept")}
       </button>
 
       {repeating && !disputing && (
@@ -518,7 +511,7 @@ function Result({
         </section>
       )}
       {gradeMode ? (
-        <section className="grades" aria-label="Your grade">
+        <section className="grades" aria-label={t("study.yourGrade")}>
           {showDispute && (
             <DisputeForm working={s.working} onAsk={s.dispute} testAi={evaluation?.ai_provider === "mock"} />
           )}
@@ -544,17 +537,17 @@ function Result({
           <div className="actions">
             {evaluationFailed && (
               <button type="button" disabled={s.working} onClick={() => void s.retryEvaluation()}>
-                Try the evaluation again
+                {t("study.retryEval")}
               </button>
             )}
             {disputing && (
               <button type="button" className="link" onClick={() => setDisputing(false)}>
-                Cancel
+                {t("common.cancel")}
               </button>
             )}
             {result.needs_self_grade && (
               <button type="button" className="link" disabled={s.working} onClick={() => void s.skip()}>
-                Skip for now
+                {t("study.skipNow")}
               </button>
             )}
           </div>
@@ -568,10 +561,10 @@ function Result({
             disabled={s.working}
             onClick={() => void s.loadNext()}
           >
-            Continue <kbd>Enter</kbd>
+            {t("common.continue")} <kbd>Enter</kbd>
           </button>
           <button type="button" className="link" disabled={s.working} onClick={() => setDisputing(true)}>
-            Disagree with the grade?
+            {t("study.disagree")}
           </button>
         </div>
       )}
@@ -580,24 +573,27 @@ function Result({
 }
 
 function ScheduleNote({ result }: { result: AnswerView }) {
+  const { t } = useI18n();
   const schedule = result.schedule;
   if (schedule) {
     if (schedule.next_state === "NEW") {
-      return <p className="hint">Not memorized yet: you'll see it again in this session.</p>;
+      return <p className="hint">{t("study.notMemorized")}</p>;
     }
     return (
       <p className="hint">
-        Level {schedule.previous_level} → {schedule.next_level}. Next review: {dateTime(schedule.next_due_at)}
+        {t("study.levelNext", { from: schedule.previous_level, to: schedule.next_level, when: dateTime(schedule.next_due_at) })}
       </p>
     );
   }
   if (result.intent === "PRACTICE" && result.final_outcome) {
-    return <p className="hint">Practice doesn't change your review schedule.</p>;
+    return <p className="hint">{t("study.practiceNote")}</p>;
   }
   return null;
 }
 
 function Finished({ s, onClose }: { s: Session; onClose: () => void }) {
+  const { t } = useI18n();
+  const { outcomeLabel } = useLabels();
   const [now] = useState(() => Date.now());
   const dueNow = useQuery({
     queryKey: dashboardKey,
@@ -614,15 +610,15 @@ function Finished({ s, onClose }: { s: Session; onClose: () => void }) {
   const minutes = Math.max(1, Math.round((now - started) / 60_000));
   return (
     <div className="state">
-      <h2>Session complete</h2>
+      <h2>{t("study.complete")}</h2>
       {s.session && s.session.xp_earned > 0 && (
         <p className="xp-chip">
-          <XpIcon /> +{s.session.xp_earned} XP this session
+          <XpIcon /> {t("study.xpSessionPlus", { n: s.session.xp_earned })}
         </p>
       )}
       <p>
-        {answered} {answered === 1 ? "answer" : "answers"} in about {minutes} min.
-        {answered > 0 && ` ${wentWell} went well.`}
+        {t("study.answeredIn", { answers: t(answered === 1 ? "unit.answer.one" : "unit.answer.other", { n: answered }), min: minutes })}
+        {answered > 0 && ` ${t("study.wentWell", { n: wentWell })}`}
       </p>
       <ul className="inline-list">
         {counts.map(([grade, count]) => (
@@ -634,19 +630,19 @@ function Finished({ s, onClose }: { s: Session; onClose: () => void }) {
       {answered > 0 && (
         <p className="hint">
           {wentWell * 10 >= answered * 7
-            ? "Steady work: this is settling in."
-            : "The ones that went badly come back soon, which is how they stick."}
+            ? t("study.steady")
+            : t("study.comeBack")}
         </p>
       )}
       {dueNow.data !== undefined && (
         <p className="hint">
           {dueNow.data > 0
-            ? `Still due now: ${dueNow.data} (about ${studyMinutes(dueNow.data)} min).`
-            : "Nothing else is due right now."}
+            ? t("study.stillDue", { n: dueNow.data, min: studyMinutes(dueNow.data) })
+            : t("study.nothingDue")}
         </p>
       )}
       <button type="button" className="primary" onClick={onClose}>
-        Done
+        {t("study.done")}
       </button>
     </div>
   );
@@ -666,10 +662,11 @@ function Points({ title, points }: { title: string; points: string[] }) {
 }
 
 function Sources({ sources, openSource }: { sources: SourceRef[]; openSource: (source: SourceRef) => void }) {
+  const { t } = useI18n();
   if (sources.length === 0) return null;
   return (
     <section className="sources">
-      <h3>Sources</h3>
+      <h3>{t("study.sources")}</h3>
       <ul>
         {sources.map((source) => (
           <li key={source.chunk_id}>
@@ -682,48 +679,50 @@ function Sources({ sources, openSource }: { sources: SourceRef[]; openSource: (s
 }
 
 function PotentialXp({ card }: { card: Card }) {
+  const { t } = useI18n();
   const potential = card.potential_xp;
   if (!potential) return null;
   if (!potential.eligible) {
-    return <p className="potential">This answer doesn't earn XP (practice, or not due for review).</p>;
+    return <p className="potential">{t("study.noXp")}</p>;
   }
   const revealed = card.hint?.revealed ?? false;
   return (
     <p className="potential">
       <span className="xp-chip">
-        <XpIcon /> Correct answer: +{revealed ? potential.xp_with_hint : potential.xp} XP
+        <XpIcon /> {t("study.correctXp", { n: revealed ? potential.xp_with_hint : potential.xp })}
       </span>
-      {revealed && <span>(hint used: half XP)</span>}
+      {revealed && <span>{t("study.halfXp")}</span>}
     </p>
   );
 }
 
 /** "Show hint": the halving is stated before anything is revealed; the server records it. */
 function HintBox({ card, s, disabled }: { card: Card; s: Session; disabled: boolean }) {
+  const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const hint = card.hint;
   if (!hint) return null;
   if (hint.revealed) {
     return (
-      <div className="hint-box" role="note" aria-label="Hint">
-        <span className="eyebrow">Hint</span>
+      <div className="hint-box" role="note" aria-label={t("study.hintLabel")}>
+        <span className="eyebrow">{t("study.hintLabel")}</span>
         <span className="hint-text">{hint.text}</span>
       </div>
     );
   }
-  if (!hint.available) return <p className="hint">No hint for this question.</p>;
+  if (!hint.available) return <p className="hint">{t("study.noHint")}</p>;
   if (!confirming) {
     return (
       <div>
         <button type="button" className="link" disabled={disabled} onClick={() => setConfirming(true)}>
-          Show hint
+          {t("study.showHint")}
         </button>
       </div>
     );
   }
   return (
     <div className="hint-box">
-      <p>Using a hint halves the XP for this answer.</p>
+      <p>{t("study.hintHalves")}</p>
       <div className="actions" style={{ marginTop: 0 }}>
         <button
           type="button"
@@ -734,10 +733,10 @@ function HintBox({ card, s, disabled }: { card: Card; s: Session; disabled: bool
             setConfirming(false);
           }}
         >
-          Reveal hint
+          {t("study.revealHint")}
         </button>
         <button type="button" className="link" onClick={() => setConfirming(false)}>
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </div>
@@ -745,6 +744,7 @@ function HintBox({ card, s, disabled }: { card: Card; s: Session; disabled: bool
 }
 
 function Award({ result }: { result: AnswerView }) {
+  const { t } = useI18n();
   const xp = result.xp;
   if (!xp) return null;
   if (!xp.correct) {
@@ -752,18 +752,18 @@ function Award({ result }: { result: AnswerView }) {
     return (
       <p className="award award-pop" aria-live="polite">
         <span className="xp-chip">
-          <XpIcon /> +0 XP
+          <XpIcon /> {t("study.plusZero")}
         </span>
         <span className="hint">
           {selfGraded
-            ? "Only correct answers earn XP: your own Hard, Good or Easy counts too."
-            : "Only fully correct answers earn XP. Your progress towards the next award is kept."}
+            ? t("study.onlyCorrectSelf")
+            : t("study.onlyCorrect")}
         </span>
       </p>
     );
   }
-  const parts = ["Correct", `+${xp.xp} XP`];
-  if (xp.hint_used) parts.push("Hint used");
+  const parts = [t("study.awardCorrect"), `+${xp.xp} XP`];
+  if (xp.hint_used) parts.push(t("study.awardHint"));
   return (
     <p className="award award-pop" aria-live="polite">
       <span className="xp-chip">
@@ -771,7 +771,7 @@ function Award({ result }: { result: AnswerView }) {
       </span>
       {xp.ordinal !== null && (
         <span className="hint">
-          correct answer #{xp.ordinal} for this item{xp.hint_used ? `, half of ${xp.base_xp}` : ""}
+          {xp.hint_used ? t("study.ordinalHalf", { n: xp.ordinal, base: xp.base_xp }) : t("study.ordinal", { n: xp.ordinal })}
         </span>
       )}
     </p>
@@ -779,6 +779,7 @@ function Award({ result }: { result: AnswerView }) {
 }
 
 function ConsolidationDone({ s, onClose }: { s: Session; onClose: () => void }) {
+  const { t } = useI18n();
   const results = Object.values(s.results);
   const rounds = results.filter((r) => r.final_outcome).length;
   const correct = results.filter((r) => r.xp?.correct).length;
@@ -792,38 +793,38 @@ function ConsolidationDone({ s, onClose }: { s: Session; onClose: () => void }) 
   const waiting = plan.data?.new_items ?? 0;
   return (
     <div className="card" style={{ display: "grid", gap: "1rem" }}>
-      <h2>Batch consolidated</h2>
+      <h2>{t("study.batchDone")}</h2>
       <dl className="summary-grid">
         <div>
-          <dt>Correct answers</dt>
+          <dt>{t("study.correctAnswers")}</dt>
           <dd>
             {correct} / {rounds}
           </dd>
         </div>
         <div>
-          <dt>XP this session</dt>
+          <dt>{t("study.xpThisSession")}</dt>
           <dd>+{s.session?.xp_earned ?? 0}</dd>
         </div>
         <div>
-          <dt>What happens next</dt>
+          <dt>{t("study.whatNext")}</dt>
           <dd style={{ fontSize: "1rem", fontWeight: 500 }}>
-            Items whose last round was right come back for review in about 4 hours; the others wait for the next batch.
+            {t("study.whatNextBody")}
           </dd>
         </div>
       </dl>
       <p className="hint">
         {waiting > 0
-          ? `This batch is done, not the whole concept: ${waiting} more ${waiting === 1 ? "item is" : "items are"} waiting.`
-          : "Every item in this concept that was waiting has had its three rounds."}
+          ? t("study.batchNotAll", { waiting: t(waiting === 1 ? "study.waiting.one" : "study.waiting.other", { n: waiting }) })
+          : t("study.allRounds")}
       </p>
       <div className="actions">
         {waiting > 0 && conceptId && (
           <Link className="button learn" to={`/courses/${courseId}/concepts/${conceptId}`}>
-            Next batch
+            {t("study.nextBatch")}
           </Link>
         )}
         <button type="button" className={waiting > 0 ? undefined : "primary"} onClick={onClose}>
-          Done
+          {t("study.done")}
         </button>
       </div>
     </div>
@@ -845,12 +846,13 @@ function StudyConceptButton({
   disabled: boolean;
   openConcept: (conceptId: string) => void;
 }) {
+  const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const costsXp = Boolean(card.hint?.available && !card.hint.revealed && card.potential_xp?.eligible);
   if (confirming) {
     return (
       <div className="hint-box" role="note">
-        <p>Looking at the concept now counts as using a hint: this answer earns half XP.</p>
+        <p>{t("study.conceptCosts")}</p>
         <div className="actions" style={{ marginTop: 0 }}>
           <button
             type="button"
@@ -861,10 +863,10 @@ function StudyConceptButton({
               setConfirming(false);
             }}
           >
-            Open the concept
+            {t("study.openConcept")}
           </button>
           <button type="button" className="link" onClick={() => setConfirming(false)}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </div>
@@ -878,18 +880,19 @@ function StudyConceptButton({
         disabled={disabled}
         onClick={() => (costsXp ? setConfirming(true) : openConcept(card.concept_id))}
       >
-        📖 Don't remember? Study this concept
+        {t("study.dontRemember")}
       </button>
     </div>
   );
 }
 
 function ReferenceDrawing({ itemId }: { itemId: string }) {
+  const { t } = useI18n();
   return (
     <AuthImage
       queryKey={["reference-drawing", itemId]}
       load={() => learningItems.referenceDrawing(itemId)}
-      alt="The reference drawing"
+      alt={t("study.refDrawing")}
       className="drawing-image"
     />
   );
