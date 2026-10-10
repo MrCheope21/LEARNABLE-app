@@ -178,6 +178,11 @@
             "title": "Learning Item Id",
             "type": "string"
           },
+          "needs_repeat": {
+            "default": false,
+            "title": "Needs Repeat",
+            "type": "boolean"
+          },
           "needs_self_grade": {
             "title": "Needs Self Grade",
             "type": "boolean"
@@ -367,6 +372,11 @@
             "format": "uuid",
             "title": "Learning Item Id",
             "type": "string"
+          },
+          "needs_repeat": {
+            "default": false,
+            "title": "Needs Repeat",
+            "type": "boolean"
           },
           "needs_self_grade": {
             "title": "Needs Self Grade",
@@ -1549,6 +1559,63 @@
           "title"
         ],
         "title": "CourseCreate",
+        "type": "object"
+      },
+      "CourseLeaderboard": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "me": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeaderboardEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "me_hidden": {
+            "title": "Me Hidden",
+            "type": "boolean"
+          },
+          "participants": {
+            "title": "Participants",
+            "type": "integer"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/Scope"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          }
+        },
+        "required": [
+          "period",
+          "scope",
+          "since",
+          "entries",
+          "me",
+          "me_hidden",
+          "participants"
+        ],
+        "title": "CourseLeaderboard",
         "type": "object"
       },
       "CourseMarketplace": {
@@ -2833,6 +2900,97 @@
         ],
         "title": "ItemGenerationStatus",
         "type": "string"
+      },
+      "Leaderboard": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "me": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeaderboardEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "me_hidden": {
+            "title": "Me Hidden",
+            "type": "boolean"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/Scope"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          }
+        },
+        "required": [
+          "period",
+          "scope",
+          "since",
+          "entries",
+          "me",
+          "me_hidden"
+        ],
+        "title": "Leaderboard",
+        "type": "object"
+      },
+      "LeaderboardEntry": {
+        "properties": {
+          "following": {
+            "title": "Following",
+            "type": "boolean"
+          },
+          "is_me": {
+            "title": "Is Me",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          },
+          "xp": {
+            "title": "Xp",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rank",
+          "user_id",
+          "name",
+          "xp",
+          "is_me",
+          "following"
+        ],
+        "title": "LeaderboardEntry",
+        "type": "object"
       },
       "LearnAction": {
         "description": "What the course's Learn button does. resume: an unfinished consolidation batch;\nstudy: open the next concept with material waiting (\"I have studied this concept\" is\nthere); activate: the next concept needs activating first; setup: the course has no\nconcepts yet (add material or questions); none: everything has been learned.",
@@ -4215,6 +4373,68 @@
         "title": "PasswordResetRequest",
         "type": "object"
       },
+      "Period": {
+        "enum": [
+          "day",
+          "week",
+          "month",
+          "all"
+        ],
+        "title": "Period",
+        "type": "string"
+      },
+      "Person": {
+        "description": "A listed person: someone you follow, a follower, or a search result.",
+        "properties": {
+          "follows_me": {
+            "title": "Follows Me",
+            "type": "boolean"
+          },
+          "i_follow": {
+            "title": "I Follow",
+            "type": "boolean"
+          },
+          "last_active": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "streak": {
+            "title": "Streak",
+            "type": "integer"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          },
+          "xp_today": {
+            "title": "Xp Today",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "xp_today",
+          "streak",
+          "last_active",
+          "i_follow",
+          "follows_me"
+        ],
+        "title": "Person",
+        "type": "object"
+      },
       "Planner": {
         "properties": {
           "as_of": {
@@ -4294,6 +4514,70 @@
           "xp_with_hint"
         ],
         "title": "PotentialXp",
+        "type": "object"
+      },
+      "Profile": {
+        "properties": {
+          "followers": {
+            "title": "Followers",
+            "type": "integer"
+          },
+          "following": {
+            "title": "Following",
+            "type": "integer"
+          },
+          "follows_me": {
+            "title": "Follows Me",
+            "type": "boolean"
+          },
+          "i_follow": {
+            "title": "I Follow",
+            "type": "boolean"
+          },
+          "is_me": {
+            "title": "Is Me",
+            "type": "boolean"
+          },
+          "member_since": {
+            "title": "Member Since",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "streak": {
+            "title": "Streak",
+            "type": "integer"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          },
+          "xp_total": {
+            "title": "Xp Total",
+            "type": "integer"
+          },
+          "xp_week": {
+            "title": "Xp Week",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "member_since",
+          "xp_total",
+          "xp_week",
+          "streak",
+          "followers",
+          "following",
+          "is_me",
+          "i_follow",
+          "follows_me"
+        ],
+        "title": "Profile",
         "type": "object"
       },
       "ProposalChapter": {
@@ -4637,6 +4921,23 @@
         "title": "Reference",
         "type": "object"
       },
+      "RepeatCreate": {
+        "additionalProperties": false,
+        "description": "The answer written again after reviewing the reference.",
+        "properties": {
+          "text": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "RepeatCreate",
+        "type": "object"
+      },
       "ReviewLoad": {
         "description": "Upcoming reviews of items that can be reviewed now (active, trained, not paused), by the\nuser's calendar day. Buckets don't overlap: everything due today is due_now + later_today.",
         "properties": {
@@ -4860,6 +5161,14 @@
         ],
         "title": "ScheduleChange",
         "type": "object"
+      },
+      "Scope": {
+        "enum": [
+          "everyone",
+          "friends"
+        ],
+        "title": "Scope",
+        "type": "string"
       },
       "SelectionMode": {
         "description": "How a session's pool is chosen (docs/PROJECT_SPEC.md \u00a749), independent of intent.",
@@ -5474,6 +5783,17 @@
       "UserPreferencesUpdate": {
         "additionalProperties": false,
         "properties": {
+          "community_visible": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Community Visible"
+          },
           "daily_goal": {
             "anyOf": [
               {
@@ -5540,6 +5860,10 @@
       },
       "UserRead": {
         "properties": {
+          "community_visible": {
+            "title": "Community Visible",
+            "type": "boolean"
+          },
           "daily_goal": {
             "title": "Daily Goal",
             "type": "integer"
@@ -5591,7 +5915,8 @@
           "timezone",
           "daily_goal",
           "language",
-          "display_name"
+          "display_name",
+          "community_visible"
         ],
         "title": "UserRead",
         "type": "object"
@@ -6136,6 +6461,65 @@
           }
         ],
         "summary": "Override",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/v1/answers/{answer_id}/repeat": {
+      "post": {
+        "description": "Review the reference answer and repeat it: an answer that was green on at least 3 of\nthe 4 scores then counts as correct on the first try (409 `repeat_not_offered` otherwise).",
+        "operationId": "repeat_answer_api_v1_answers__answer_id__repeat_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "answer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Answer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepeatCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Repeat Answer",
         "tags": [
           "review"
         ]
@@ -6717,6 +7101,309 @@
         "summary": "Create Topic",
         "tags": [
           "courses"
+        ]
+      }
+    },
+    "/api/v1/community/followers": {
+      "get": {
+        "operationId": "followers_api_v1_community_followers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Person"
+                  },
+                  "title": "Response Followers Api V1 Community Followers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Followers",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/following": {
+      "get": {
+        "operationId": "following_api_v1_community_following_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Person"
+                  },
+                  "title": "Response Following Api V1 Community Following Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Following",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/leaderboard": {
+      "get": {
+        "operationId": "leaderboard_api_v1_community_leaderboard_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Period",
+              "default": "week"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Scope",
+              "default": "everyone"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Leaderboard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Leaderboard",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/people": {
+      "get": {
+        "operationId": "search_people_api_v1_community_people_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Person"
+                  },
+                  "title": "Response Search People Api V1 Community People Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Search People",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/users/{user_id}": {
+      "get": {
+        "operationId": "profile_api_v1_community_users__user_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Profile",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/users/{user_id}/follow": {
+      "delete": {
+        "operationId": "unfollow_api_v1_community_users__user_id__follow_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unfollow",
+        "tags": [
+          "community"
+        ]
+      },
+      "put": {
+        "operationId": "follow_api_v1_community_users__user_id__follow_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Follow",
+        "tags": [
+          "community"
         ]
       }
     },
@@ -8181,6 +8868,72 @@
         "summary": "Upload Document",
         "tags": [
           "documents"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/leaderboard": {
+      "get": {
+        "operationId": "course_leaderboard_api_v1_courses__course_id__leaderboard_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Period",
+              "default": "week"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Scope",
+              "default": "everyone"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseLeaderboard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Course Leaderboard",
+        "tags": [
+          "community"
         ]
       }
     },

@@ -68,6 +68,7 @@ from app.schemas.review import (
     OverrideCreate,
     PotentialXp,
     Reference,
+    RepeatCreate,
     ScheduleChange,
     SessionCard,
     SessionCreate,
@@ -76,7 +77,7 @@ from app.schemas.review import (
 )
 from app.services import drawings
 from app.services.courses.service import get_owned_course
-from app.services.evaluation.resolver import RESOLVER_VERSION, resolve_outcome
+from app.services.evaluation.resolver import RESOLVER_VERSION, repeat_offered, resolve_outcome
 from app.services.review import pool
 from app.services.rewards import service as rewards
 from app.services.rewards.hints import build_hint
@@ -590,6 +591,31 @@ def override(
     return _result(db, answer, session, item, transition)
 
 
+def repeat_answer(
+    db: Session, user_id: uuid.UUID, answer_id: uuid.UUID, payload: RepeatCreate
+) -> AnswerResult:
+    """The student reviewed the reference answer and repeated it. The attempt counts as a
+    correct first answer: GOOD, normal XP, and the schedule moves forward, never back. The AI's
+    own evaluation and resolved outcome stay as they were, for the record."""
+    answer, session, item = _owned_answer(db, user_id, answer_id)
+    if not answer.repeat_offered:
+        raise ConflictError(
+            "This answer can't be repeated.", details={"reason": "repeat_not_offered"}
+        )
+    if answer.final_outcome is not None:
+        raise ConflictError(
+            "This answer already has its grade.", details={"reason": "already_graded"}
+        )
+    answer.repeat_text = payload.text
+    answer.repeated_at = utc_now()
+    answer.final_outcome = ReviewOutcome.GOOD
+    # classification=None credits the attempt as a success for XP (like a grade the student
+    # gave), whatever the AI's own outcome was.
+    transition = _apply_outcome(db, session, item, answer, ReviewOutcome.GOOD, classification=None)
+    _commit_finalization(db)
+    return _result(db, answer, session, item, transition)
+
+
 def _set_override(answer: Answer, payload: OverrideCreate) -> None:
     answer.override_outcome = payload.outcome
     answer.override_note = payload.note
@@ -610,11 +636,21 @@ def _evaluate_and_apply(
     db.add(evaluation)
     if evaluation.status is not EvaluationStatus.COMPLETED:
         return None
-    outcome = resolve_outcome(_evidence(evaluation))
+    evidence = _evidence(evaluation)
+    outcome = resolve_outcome(evidence)
     answer.resolved_outcome = outcome
     answer.resolver_version = RESOLVER_VERSION
     if outcome is None:
         return None  # inconclusive: the user grades it
+    if (
+        session.intent is not SessionIntent.PRACTICE
+        and answer.drawing_type is None
+        and repeat_offered(evidence, outcome)
+    ):
+        # Green on 3 of 4 scores but not a GOOD: not graded yet. The student reviews the
+        # reference and repeats the answer (repeat_answer), and it then counts as correct.
+        answer.repeat_offered = True
+        return None
     answer.final_outcome = outcome
     return _apply_outcome(
         db, session, item, answer, outcome, classification=evaluation.classification
@@ -973,6 +1009,7 @@ def _result(
         override_outcome=answer.override_outcome,
         final_outcome=answer.final_outcome,
         needs_self_grade=answer.final_outcome is None,
+        needs_repeat=answer.repeat_offered and answer.final_outcome is None,
         schedule=schedule,
         reference=Reference(
             expected_knowledge=item.expected_knowledge,

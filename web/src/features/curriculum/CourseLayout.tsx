@@ -5,6 +5,7 @@ import { CollapseToggle, useCollapsed } from "../../components/Collapsible";
 import { ReadOnlyCourseProvider } from "../../components/CourseAccess";
 import { QueryState } from "../../components/QueryState";
 import { studyStateLabel } from "../../components/labels";
+import { useI18n } from "../../i18n";
 
 export const outlineKey = (courseId: string) => ["outline", courseId] as const;
 export const courseProgressKey = (courseId: string) => ["progress", courseId] as const;
@@ -27,6 +28,7 @@ export function CourseLayout() {
   const tree = useCollapsed(`learnable.tree-collapsed.${courseId}`);
   const outline = useQuery({ queryKey: outlineKey(courseId), queryFn: () => courses.outline(courseId) });
   const readOnly = Boolean(course.data?.marketplace_listing_id);
+  const { t } = useI18n();
 
   return (
     <ReadOnlyCourseProvider value={readOnly}>
@@ -119,6 +121,9 @@ export function CourseLayout() {
         )}
         <NavLink to={`/courses/${courseId}/questions`} className="tree-extra">
           Manage questions
+        </NavLink>
+        <NavLink to={`/courses/${courseId}/leaderboard`} className="tree-extra">
+          {t("course.leaderboardLink")}
         </NavLink>
         <NavLink to={`/courses/${courseId}/weak-spots`} className="tree-extra">
           What you keep getting wrong

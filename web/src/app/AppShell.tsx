@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { auth, dashboard } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
@@ -37,6 +37,7 @@ export function TopNav() {
           <NavLink to="/courses">{t("nav.courses")}</NavLink>
           <NavLink to="/review">{t("nav.review")}</NavLink>
           <NavLink to="/progress">{t("nav.progress")}</NavLink>
+          <NavLink to="/community">{t("nav.community")}</NavLink>
           <NavLink to="/marketplace">{t("nav.marketplace")}</NavLink>
           <NavLink to="/guide">{t("nav.guide")}</NavLink>
         </nav>
@@ -112,19 +113,46 @@ function AccountMenu() {
   );
 }
 
-function zones(): string[] {
+function zones(current: string): string[] {
+  let all: string[] = [];
   try {
-    return Intl.supportedValuesOf("timeZone");
+    all = Intl.supportedValuesOf("timeZone");
   } catch {
-    return [];
+    // An older browser: only the current zone (and UTC) can be offered.
   }
+  return Array.from(new Set([...all, "UTC", current].filter(Boolean)));
+}
+
+/** "UTC+02:00" for a zone right now ("" if the browser doesn't know the zone). */
+function offsetLabel(zone: string): string {
+  try {
+    const part = new Intl.DateTimeFormat("en", { timeZone: zone, timeZoneName: "longOffset" })
+      .formatToParts(new Date())
+      .find((p) => p.type === "timeZoneName")?.value;
+    return part === "GMT" ? "UTC+00:00" : (part ?? "").replace("GMT", "UTC");
+  } catch {
+    return "";
+  }
+}
+
+/** Zones grouped by region ("Europe", "America", ...), each as "Rome (UTC+02:00)". */
+function groupedZones(current: string): [string, { zone: string; label: string }[]][] {
+  const groups = new Map<string, { zone: string; label: string }[]>();
+  for (const zone of zones(current)) {
+    const [region, ...rest] = zone.split("/");
+    const city = (rest.join(" / ") || region || zone).replace(/_/g, " ");
+    const offset = offsetLabel(zone);
+    const key = rest.length ? (region ?? "Other") : "Other";
+    groups.set(key, [...(groups.get(key) ?? []), { zone, label: offset ? `${city} (${offset})` : city }]);
+  }
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
 export function TimezoneForm({ current }: { current: string }) {
   const queryClient = useQueryClient();
   const { t } = useI18n();
   const [value, setValue] = useState(current);
-  const listId = useId();
+  const groups = useMemo(() => groupedZones(current), [current]);
   const save = useMutation({
     mutationFn: (timezone: string) => auth.updateMe({ timezone }),
     onSuccess: (user) => {
@@ -134,21 +162,26 @@ export function TimezoneForm({ current }: { current: string }) {
   });
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (value.trim() && value !== current) save.mutate(value.trim());
+    if (value && value !== current) save.mutate(value);
   };
   return (
     <form onSubmit={submit} className="timezone-form">
       <label>
         {t("settings.timezone")}
-        <input list={listId} value={value} onChange={(e) => setValue(e.target.value)} maxLength={64} />
+        <select value={value} onChange={(e) => setValue(e.target.value)}>
+          {groups.map(([region, list]) => (
+            <optgroup key={region} label={region}>
+              {list.map(({ zone, label }) => (
+                <option key={zone} value={zone}>
+                  {label}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
       </label>
-      <datalist id={listId}>
-        {zones().map((z) => (
-          <option key={z} value={z} />
-        ))}
-      </datalist>
       <ErrorBanner error={save.error} />
-      <button type="submit" disabled={save.isPending || !value.trim() || value === current}>
+      <button type="submit" disabled={save.isPending || !value || value === current}>
         {t("common.save")}
       </button>
     </form>

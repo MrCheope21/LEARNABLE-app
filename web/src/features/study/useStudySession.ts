@@ -186,6 +186,9 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     [withResult],
   );
 
+  /** A mostly green answer, repeated after reviewing the reference: it counts as correct. */
+  const repeat = useCallback((text: string) => withResult((r) => study.repeat(r.answer_id, text)), [withResult]);
+
   /** Asks the evaluator again with the student's objection; no grade changes. */
   const dispute = useCallback(
     (argument: string) => withResult((r) => study.dispute(r.answer_id, argument)),
@@ -256,6 +259,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     beginRecall,
     submit,
     override,
+    repeat,
     dispute,
     revealHint,
     retryEvaluation,

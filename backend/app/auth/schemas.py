@@ -66,6 +66,8 @@ class UserRead(BaseModel):
     daily_goal: int
     language: Language
     display_name: str | None
+    # Opted in to the community (leaderboards, profile, following).
+    community_visible: bool
 
 
 class UserPreferencesUpdate(_AuthInput):
@@ -74,6 +76,7 @@ class UserPreferencesUpdate(_AuthInput):
     language: Language | None = None
     # An empty string clears it.
     display_name: Annotated[str, Field(max_length=80)] | None = None
+    community_visible: bool | None = None
 
 
 class PasswordResetRequest(_AuthInput):

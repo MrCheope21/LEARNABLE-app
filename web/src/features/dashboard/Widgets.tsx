@@ -7,6 +7,7 @@ import { studyMinutes } from "../../components/labels";
 import { auth } from "../../api/endpoints";
 import { dashboardKey, FlameIcon, meKey, XpIcon } from "../../app/AppShell";
 import { ErrorBanner } from "../../components/QueryState";
+import { useI18n } from "../../i18n";
 
 type Dashboard = Schemas["Dashboard"];
 
@@ -51,6 +52,7 @@ export function StreakWidget({ streak }: { streak: Dashboard["streak"] }) {
 }
 
 export function ExperienceWidget({ xp }: { xp: Dashboard["xp"] }) {
+  const { t } = useI18n();
   return (
     <section className="card widget" aria-labelledby="xp-title">
       <div className="title-row">
@@ -62,6 +64,9 @@ export function ExperienceWidget({ xp }: { xp: Dashboard["xp"] }) {
       </p>
       <p>
         <strong>+{xp.today.toLocaleString()} XP</strong> today
+      </p>
+      <p>
+        <Link to="/community">🏆 {t("community.seeLeaderboard")}</Link>
       </p>
       <details className="hint">
         <summary>How XP works</summary>

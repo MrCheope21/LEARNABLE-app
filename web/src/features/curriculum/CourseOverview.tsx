@@ -10,7 +10,7 @@ import { CurriculumBlock, MemoryBlock, ReviewLoadBlock } from "../../components/
 import { percent } from "../../components/labels";
 import { CourseCover, LearnButton, Metric, ReviewButton } from "../courses/CourseParts";
 import { studyLink } from "../study/StudyPage";
-import { MarketplacePanel } from "../marketplace/MarketplacePanel";
+import { MARKETPLACE_ANCHOR, MarketplacePanel } from "../marketplace/MarketplacePanel";
 import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
 
 export function CourseOverview() {
@@ -68,6 +68,11 @@ export function CourseOverview() {
                   <Link className="button" to={studyLink(courseId, "PRACTICE", { mode: "MARKED_HARD" })}>
                     Practice hard questions
                   </Link>
+                  {!readOnly && (
+                    <Link className="button" to={{ hash: MARKETPLACE_ANCHOR }} replace>
+                      🛒 Publish to the marketplace
+                    </Link>
+                  )}
                 </div>
               </section>
             )}

@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useId, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { Link, useLocation } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { marketplace } from "../../api/endpoints";
 import { ErrorBanner } from "../../components/QueryState";
 import { CATEGORIES, LEVELS, categoryLabel, count, levelLabel } from "./labels";
+
+export const MARKETPLACE_ANCHOR = "#marketplace-page";
 
 type Info = Schemas["ListingInfo"];
 type MyListing = Schemas["MyListing"];
@@ -46,7 +48,13 @@ export function MarketplacePanel({ courseId, courseTitle }: { courseId: string; 
 
 function SalesPage({ courseId, courseTitle, listing }: { courseId: string; courseTitle: string; listing: MyListing | null }) {
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+  // "Publish to the marketplace" links here (#marketplace-page): open the editor and show it.
+  const { hash } = useLocation();
+  const [open, setOpen] = useState(hash === MARKETPLACE_ANCHOR);
+  const section = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (hash === MARKETPLACE_ANCHOR) section.current?.scrollIntoView({ block: "start" });
+  }, [hash]);
   const [info, setInfo] = useState<Info>(() => (listing ? infoOf(listing) : { ...EMPTY, title: courseTitle }));
   const [outcomes, setOutcomes] = useState(() => (info.outcomes ?? []).join("\n"));
   const [tags, setTags] = useState(() => (info.tags ?? []).join(", "));
@@ -104,7 +112,7 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
 
   const status = listing?.status ?? "NONE";
   return (
-    <section className="card sales-page" aria-labelledby={`${ids}-title`}>
+    <section ref={section} id="marketplace-page" className="card sales-page" aria-labelledby={`${ids}-title`}>
       <header className="card-header">
         <h2 id={`${ids}-title`}>🛒 Marketplace page</h2>
         <span className="pill">

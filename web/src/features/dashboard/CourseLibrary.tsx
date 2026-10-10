@@ -229,6 +229,11 @@ function CardMenu({ card }: { card: CourseCardData }) {
           <li>
             <Link to="/progress">Progress</Link>
           </li>
+          {!fromMarketplace && (
+            <li>
+              <Link to={`/courses/${courseId}#marketplace-page`}>🛒 Publish to the marketplace</Link>
+            </li>
+          )}
           {!archived && (
             <li>
               <button type="button" disabled={busy} onClick={() => pause.mutate()}>

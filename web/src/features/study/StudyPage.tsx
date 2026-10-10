@@ -20,6 +20,7 @@ import { courseProgressKey, weakSpotsKey } from "../curriculum/CourseLayout";
 import { homeKey } from "../home/HomePage";
 import { SourceLink, SourcePanel, type SourceRef } from "../source/SourcePanel";
 import { ConceptPanel } from "./ConceptPanel";
+import { useI18n } from "../../i18n";
 import { DisputeForm } from "./DisputeForm";
 import { recognitionLanguage, useDictation } from "./useDictation";
 import { EvaluationView } from "./EvaluationView";
@@ -383,8 +384,17 @@ function Result({
   openSource: (source: SourceRef) => void;
   openConcept: (conceptId: string) => void;
 }) {
+  const { t } = useI18n();
   const [disputing, setDisputing] = useState(false);
-  const gradeMode = result.needs_self_grade || disputing;
+  // Green on most scores: the student repeats the answer (it then counts as correct) instead of
+  // grading; they can still choose to grade it themselves.
+  const [selfGradingFor, setSelfGradingFor] = useState<string | null>(null);
+  const selfGrading = selfGradingFor === result.answer_id;
+  const repeating = result.needs_repeat && !selfGrading;
+  const gradeMode = (result.needs_self_grade && !repeating) || disputing;
+  // The repeated text belongs to one answer: a new answer starts empty.
+  const [draft, setDraft] = useState<{ answerId: string; text: string }>({ answerId: "", text: "" });
+  const again = draft.answerId === result.answer_id ? draft.text : "";
   const continueButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!result.needs_self_grade) continueButton.current?.focus();
@@ -453,6 +463,8 @@ function Result({
             <span className={`outcome-badge outcome-${outcome.toLowerCase()}`}>{outcomeLabel[outcome]}</span>
             {result.override_outcome && <span className="hint">Graded by you</span>}
           </>
+        ) : repeating ? (
+          <span className="outcome-badge outcome-good">{t("study.repeat.badge")}</span>
         ) : (
           <span className="outcome-badge">Needs your grade</span>
         )}
@@ -474,7 +486,7 @@ function Result({
         </section>
       )}
 
-      <details className="reference" open={!outcome || outcome === "AGAIN"}>
+      <details className="reference" open={!outcome || outcome === "AGAIN" || repeating}>
         <summary>Reference answer and sources</summary>
         <p className="reading">{result.reference.expected_knowledge}</p>
         {result.reference.essential_points.length > 0 && (
@@ -488,6 +500,23 @@ function Result({
         📖 Study this concept
       </button>
 
+      {repeating && !disputing && (
+        <section className="repeat-panel" aria-labelledby="repeat-title">
+          <h3 id="repeat-title">{t("study.repeat.title")}</h3>
+          <p className="hint">{t("study.repeat.body")}</p>
+          <label htmlFor="repeat-text">{t("study.repeat.label")}</label>
+          <textarea id="repeat-text" rows={4} value={again} maxLength={10000} onChange={(e) => setDraft({ answerId: result.answer_id, text: e.target.value })} />
+          <div className="actions">
+            <button type="button" className="primary" disabled={s.working || !again.trim()} onClick={() => void s.repeat(again.trim())}>
+              {t("study.repeat.submit")}
+            </button>
+            <button type="button" className="link" disabled={s.working} onClick={() => setSelfGradingFor(result.answer_id)}>
+              {t("study.repeat.selfGrade")}
+            </button>
+          </div>
+          <ErrorBanner error={s.error} />
+        </section>
+      )}
       {gradeMode ? (
         <section className="grades" aria-label="Your grade">
           {showDispute && (
@@ -530,7 +559,7 @@ function Result({
             )}
           </div>
         </section>
-      ) : (
+      ) : repeating ? null : (
         <div className="actions">
           <button
             ref={continueButton}

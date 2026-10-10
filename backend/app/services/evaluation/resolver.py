@@ -39,6 +39,40 @@ class ResolverThresholds:
 
 THRESHOLDS = ResolverThresholds()
 
+# "Green" is a score the answer screen shows as Strong; the answer is judged on four of them.
+GREEN_SCORE = 0.8
+GREEN_NEEDED = 3
+
+
+def green_count(evaluation: EvaluationOutput) -> int:
+    scores = (
+        evaluation.correctness,
+        evaluation.completeness,
+        evaluation.conceptual_understanding,
+        evaluation.precision,
+    )
+    return sum(score >= GREEN_SCORE for score in scores)
+
+
+def repeat_offered(
+    evaluation: EvaluationOutput,
+    outcome: ReviewOutcome | None,
+    thresholds: ResolverThresholds = THRESHOLDS,
+) -> bool:
+    """Owner decision (2026-10-10): an answer that is green on at least 3 of the 4 scores but
+    would not be graded GOOD (so the schedule would hold or reset) is not graded yet: the student
+    reviews the reference answer and repeats it, and the attempt then counts as a correct first
+    answer. Only for answers the evaluator is sure about and calls CORRECT or PARTIALLY_CORRECT;
+    inconclusive evaluations stay with the student's own grade."""
+    c = EvaluationClassification
+    return (
+        outcome in (ReviewOutcome.AGAIN, ReviewOutcome.HARD)
+        and evaluation.context_sufficient
+        and evaluation.confidence >= thresholds.min_confidence
+        and evaluation.classification in (c.CORRECT, c.PARTIALLY_CORRECT)
+        and green_count(evaluation) >= GREEN_NEEDED
+    )
+
 
 def resolve_outcome(
     evaluation: EvaluationOutput, thresholds: ResolverThresholds = THRESHOLDS
