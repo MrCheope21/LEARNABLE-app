@@ -64,7 +64,9 @@ def test_migrations_keep_existing_data(migration_engine: Engine):
     with migration_engine.connect() as connection:
         command.upgrade(_alembic_config(connection), "a9c3e5f7b1d2")
         connection.commit()
-        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        if connection.dialect.name == "sqlite":
+            # What the app does on every connection: the setting that made the bug.
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
         connection.execute(
             text(
                 "INSERT INTO users (id, email, hashed_password, created_at) "
@@ -90,4 +92,7 @@ def test_migrations_keep_existing_data(migration_engine: Engine):
     with migration_engine.connect() as connection:
         command.upgrade(_alembic_config(connection), "head")
         titles = connection.execute(text("SELECT title FROM chapters")).scalars().all()
+        # PostgreSQL schema changes are transactional: without this the upgrade is rolled back
+        # when the connection closes and the fixture's cleanup then fails.
+        connection.commit()
     assert titles == ["Diritto commerciale"]
