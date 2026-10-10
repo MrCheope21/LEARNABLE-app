@@ -1,6 +1,20 @@
 {
   "components": {
     "schemas": {
+      "Acquired": {
+        "properties": {
+          "course_id": {
+            "format": "uuid",
+            "title": "Course Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "course_id"
+        ],
+        "title": "Acquired",
+        "type": "object"
+      },
       "Activity": {
         "description": "Completed answers per local day, from `start` (a Monday) to `end` (the Sunday of the\ncurrent week). Days after `today` are in the future, not missed.",
         "properties": {
@@ -834,6 +848,25 @@
         "title": "CardQuestion",
         "type": "object"
       },
+      "Category": {
+        "enum": [
+          "law",
+          "economics_business",
+          "accounting_finance",
+          "medicine_health",
+          "sciences",
+          "mathematics",
+          "engineering",
+          "computer_science",
+          "languages",
+          "humanities",
+          "arts",
+          "professional_exams",
+          "other"
+        ],
+        "title": "Category",
+        "type": "string"
+      },
       "ChapterCreate": {
         "additionalProperties": false,
         "properties": {
@@ -983,6 +1016,24 @@
           "paused"
         ],
         "title": "ChapterRead",
+        "type": "object"
+      },
+      "ChapterSize": {
+        "properties": {
+          "questions": {
+            "title": "Questions",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "questions"
+        ],
+        "title": "ChapterSize",
         "type": "object"
       },
       "ChapterUpdate": {
@@ -1365,6 +1416,17 @@
       "CourseCard": {
         "description": "One course in the library. Every figure is a count with its own denominator; none of\nthem is mastery (docs/XP_AND_ACTIVITY.md \u00a77).",
         "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
           "concepts_studied": {
             "title": "Concepts Studied",
             "type": "integer"
@@ -1416,6 +1478,17 @@
           "learn": {
             "$ref": "#/components/schemas/LearnAction"
           },
+          "marketplace_author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketplace Author"
+          },
           "new_ready": {
             "title": "New Ready",
             "type": "integer"
@@ -1435,6 +1508,8 @@
           "description",
           "language",
           "paused",
+          "marketplace_author",
+          "archived_at",
           "created_at",
           "last_studied_at",
           "concepts_total",
@@ -1476,6 +1551,61 @@
         "title": "CourseCreate",
         "type": "object"
       },
+      "CourseMarketplace": {
+        "properties": {
+          "listing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MyListing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CourseOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "listing",
+          "origin"
+        ],
+        "title": "CourseMarketplace",
+        "type": "object"
+      },
+      "CourseOrigin": {
+        "description": "On a course reached through the marketplace.",
+        "properties": {
+          "author": {
+            "title": "Author",
+            "type": "string"
+          },
+          "listing_id": {
+            "format": "uuid",
+            "title": "Listing Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "listing_id",
+          "author",
+          "version"
+        ],
+        "title": "CourseOrigin",
+        "type": "object"
+      },
       "CourseProgress": {
         "properties": {
           "chapters": {
@@ -1512,6 +1642,17 @@
       },
       "CourseRead": {
         "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
           "created_at": {
             "title": "Created At",
             "type": "string"
@@ -1528,6 +1669,29 @@
           "language": {
             "title": "Language",
             "type": "string"
+          },
+          "marketplace_listing_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketplace Listing Id"
+          },
+          "marketplace_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketplace Version"
           },
           "paused": {
             "title": "Paused",
@@ -1548,6 +1712,9 @@
           "description",
           "language",
           "paused",
+          "marketplace_listing_id",
+          "marketplace_version",
+          "archived_at",
           "created_at",
           "updated_at"
         ],
@@ -2862,6 +3029,17 @@
             "title": "Order",
             "type": "integer"
           },
+          "origin_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Priority"
+          },
           "paused": {
             "title": "Paused",
             "type": "boolean"
@@ -2912,6 +3090,7 @@
           "id",
           "answer_format",
           "priority",
+          "origin_priority",
           "concept_id",
           "topic_id",
           "chapter_id",
@@ -3056,6 +3235,442 @@
           }
         },
         "title": "LearningItemUpdate",
+        "type": "object"
+      },
+      "Level": {
+        "enum": [
+          "all",
+          "beginner",
+          "intermediate",
+          "advanced"
+        ],
+        "title": "Level",
+        "type": "string"
+      },
+      "ListingDetail": {
+        "properties": {
+          "acquisition_count": {
+            "title": "Acquisition Count",
+            "type": "integer"
+          },
+          "audience": {
+            "title": "Audience",
+            "type": "string"
+          },
+          "author": {
+            "title": "Author",
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "chapter_count": {
+            "title": "Chapter Count",
+            "type": "integer"
+          },
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/ChapterSize"
+            },
+            "title": "Chapters",
+            "type": "array"
+          },
+          "course_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Id"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "has_access": {
+            "title": "Has Access",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_mine": {
+            "title": "Is Mine",
+            "type": "boolean"
+          },
+          "item_count": {
+            "title": "Item Count",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "outcomes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Outcomes",
+            "type": "array"
+          },
+          "price_cents": {
+            "title": "Price Cents",
+            "type": "integer"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subtitle": {
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "subtitle",
+          "description",
+          "outcomes",
+          "audience",
+          "level",
+          "category",
+          "language",
+          "tags",
+          "author",
+          "price_cents",
+          "currency",
+          "version",
+          "chapter_count",
+          "item_count",
+          "acquisition_count",
+          "published_at",
+          "updated_at",
+          "status",
+          "course_id",
+          "chapters",
+          "is_mine",
+          "has_access"
+        ],
+        "title": "ListingDetail",
+        "type": "object"
+      },
+      "ListingInfo": {
+        "additionalProperties": false,
+        "description": "The course's sales page, written by its author: all a buyer sees before getting access,\nwith the chapter titles and question counts. Editable at any time, published or not.",
+        "properties": {
+          "audience": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Audience",
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "description": {
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level",
+            "default": "all"
+          },
+          "outcomes": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Outcomes",
+            "type": "array"
+          },
+          "subtitle": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "category"
+        ],
+        "title": "ListingInfo",
+        "type": "object"
+      },
+      "ListingPublish": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Audience",
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "description": {
+            "maxLength": 5000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level",
+            "default": "all"
+          },
+          "outcomes": {
+            "items": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Outcomes",
+            "type": "array"
+          },
+          "rights_confirmed": {
+            "const": true,
+            "title": "Rights Confirmed",
+            "type": "boolean"
+          },
+          "subtitle": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "category",
+          "rights_confirmed"
+        ],
+        "title": "ListingPublish",
+        "type": "object"
+      },
+      "ListingSort": {
+        "enum": [
+          "popular",
+          "newest",
+          "largest"
+        ],
+        "title": "ListingSort",
+        "type": "string"
+      },
+      "ListingSummary": {
+        "properties": {
+          "acquisition_count": {
+            "title": "Acquisition Count",
+            "type": "integer"
+          },
+          "audience": {
+            "title": "Audience",
+            "type": "string"
+          },
+          "author": {
+            "title": "Author",
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "chapter_count": {
+            "title": "Chapter Count",
+            "type": "integer"
+          },
+          "course_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Id"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "item_count": {
+            "title": "Item Count",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "outcomes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Outcomes",
+            "type": "array"
+          },
+          "price_cents": {
+            "title": "Price Cents",
+            "type": "integer"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subtitle": {
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "subtitle",
+          "description",
+          "outcomes",
+          "audience",
+          "level",
+          "category",
+          "language",
+          "tags",
+          "author",
+          "price_cents",
+          "currency",
+          "version",
+          "chapter_count",
+          "item_count",
+          "acquisition_count",
+          "published_at",
+          "updated_at",
+          "status",
+          "course_id"
+        ],
+        "title": "ListingSummary",
         "type": "object"
       },
       "MemoryProgress": {
@@ -3209,6 +3824,152 @@
           "detail"
         ],
         "title": "MessageRead",
+        "type": "object"
+      },
+      "MyListing": {
+        "properties": {
+          "acquisition_count": {
+            "title": "Acquisition Count",
+            "type": "integer"
+          },
+          "audience": {
+            "title": "Audience",
+            "type": "string"
+          },
+          "author": {
+            "title": "Author",
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "chapter_count": {
+            "title": "Chapter Count",
+            "type": "integer"
+          },
+          "course_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Id"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "item_count": {
+            "title": "Item Count",
+            "type": "integer"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "outcomes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Outcomes",
+            "type": "array"
+          },
+          "price_cents": {
+            "title": "Price Cents",
+            "type": "integer"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "source_course_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Course Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subtitle": {
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "subtitle",
+          "description",
+          "outcomes",
+          "audience",
+          "level",
+          "category",
+          "language",
+          "tags",
+          "author",
+          "price_cents",
+          "currency",
+          "version",
+          "chapter_count",
+          "item_count",
+          "acquisition_count",
+          "published_at",
+          "updated_at",
+          "status",
+          "course_id",
+          "source_course_id"
+        ],
+        "title": "MyListing",
         "type": "object"
       },
       "NextConcept": {
@@ -6965,6 +7726,54 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/archive": {
+      "post": {
+        "operationId": "archive_course_api_v1_courses__course_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Archive Course",
+        "tags": [
+          "courses"
+        ]
+      }
+    },
     "/api/v1/courses/{course_id}/chapter-order": {
       "put": {
         "operationId": "reorder_chapters_api_v1_courses__course_id__chapter_order_put",
@@ -7487,6 +8296,170 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/marketplace": {
+      "get": {
+        "operationId": "course_marketplace_api_v1_courses__course_id__marketplace_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseMarketplace"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Course Marketplace",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/marketplace/info": {
+      "put": {
+        "operationId": "save_info_api_v1_courses__course_id__marketplace_info_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingInfo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyListing"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save Info",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/marketplace/publish": {
+      "post": {
+        "operationId": "publish_api_v1_courses__course_id__marketplace_publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingPublish"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyListing"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Publish",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
     "/api/v1/courses/{course_id}/outline": {
       "get": {
         "operationId": "get_outline_api_v1_courses__course_id__outline_get",
@@ -7860,6 +8833,54 @@
         "summary": "Course Summary",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/unarchive": {
+      "post": {
+        "operationId": "unarchive_course_api_v1_courses__course_id__unarchive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unarchive Course",
+        "tags": [
+          "courses"
         ]
       }
     },
@@ -9192,9 +10213,333 @@
         ]
       }
     },
+    "/api/v1/marketplace/listings": {
+      "get": {
+        "operationId": "browse_api_v1_marketplace_listings_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Category"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 16,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Language"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "small",
+                    "medium",
+                    "large"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Size"
+            }
+          },
+          {
+            "in": "query",
+            "name": "level",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Level"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Level"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ListingSort",
+              "default": "popular"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ListingSummary"
+                  },
+                  "title": "Response Browse Api V1 Marketplace Listings Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Browse",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/listings/{listing_id}": {
+      "get": {
+        "operationId": "detail_api_v1_marketplace_listings__listing_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Detail",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/listings/{listing_id}/acquire": {
+      "post": {
+        "operationId": "acquire_api_v1_marketplace_listings__listing_id__acquire_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Acquired"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Acquire",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/listings/{listing_id}/unpublish": {
+      "post": {
+        "operationId": "unpublish_api_v1_marketplace_listings__listing_id__unpublish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyListing"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unpublish",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/mine": {
+      "get": {
+        "operationId": "mine_api_v1_marketplace_mine_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MyListing"
+                  },
+                  "title": "Response Mine Api V1 Marketplace Mine Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mine",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
     "/api/v1/questions/{question_id}": {
       "delete": {
-        "description": "Deletes one wording (409 `last_question` for the item's only one: delete the item).",
+        "description": "Deletes one wording (409 `last_question` for the item's only one: delete the item).\nAnswers given to it go too, drawn ones with their files.",
         "operationId": "delete_question_api_v1_questions__question_id__delete",
         "parameters": [
           {

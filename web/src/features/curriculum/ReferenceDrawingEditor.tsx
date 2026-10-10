@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Schemas } from "../../api/client";
 import { learningItems } from "../../api/endpoints";
 import { AuthImage } from "../../components/AuthImage";
+import { useReadOnlyCourse } from "../../components/CourseAccess";
 import { DrawingPad, dataUrlToBlob } from "../../components/DrawingPad";
 import { ErrorBanner } from "../../components/QueryState";
 
@@ -26,6 +27,18 @@ export function ReferenceDrawingEditor({ item, onChanged }: { item: Item; onChan
   const remove = useMutation({ mutationFn: () => learningItems.removeReferenceDrawing(item.id), onSuccess: done });
   const busy = upload.isPending || remove.isPending;
   const drawn = item.answer_format === "DRAWING";
+  const readOnly = useReadOnlyCourse();
+
+  if (readOnly) {
+    // A course from the marketplace: the author's drawing, to look at.
+    return drawn ? (
+      <section className="reference-drawing" aria-label="Answer by drawing">
+        <h4>Answer by drawing</h4>
+        <p className="hint">You answer this question by drawing. The AI compares your drawing with this one.</p>
+        <AuthImage queryKey={["reference-drawing", item.id]} load={() => learningItems.referenceDrawing(item.id)} alt="Reference drawing" className="drawing-image" />
+      </section>
+    ) : null;
+  }
 
   return (
     <section className="reference-drawing" aria-label="Answer by drawing">

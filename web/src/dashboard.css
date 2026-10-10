@@ -51,7 +51,9 @@
 .card-menu > button { min-width: 44px; min-height: 36px; justify-content: center; border: none; background: none; color: var(--muted); font-size: 1.2rem; }
 .card-menu ul { position: absolute; right: 0; top: 100%; list-style: none; margin: 0; padding: 0.4rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / 12%); z-index: 10; min-width: 180px; }
 .card-menu a { display: block; padding: 0.55rem 0.7rem; border-radius: 6px; color: var(--text); text-decoration: none; }
-.card-menu a:hover, .card-menu a:focus-visible { background: var(--surface-2); }
+.card-menu li > button { display: block; width: 100%; text-align: start; padding: 0.55rem 0.7rem; border: none; background: none; border-radius: 6px; color: var(--text); font: inherit; }
+.card-menu li > button.danger { color: var(--bad); }
+.card-menu a:hover, .card-menu a:focus-visible, .card-menu li > button:hover:not(:disabled), .card-menu li > button:focus-visible { background: var(--surface-2); }
 
 /* Sidebar widgets */
 .widget { display: grid; gap: 0.6rem; }
@@ -134,8 +136,9 @@
 /* Phone */
 @media (max-width: 640px) {
   .topnav-inner { height: auto; flex-wrap: wrap; gap: 0.25rem 0.75rem; padding: 0.4rem 16px; }
-  .nav-links { order: 3; width: 100%; justify-content: space-between; }
-  .nav-links a { flex: 1; justify-content: center; }
+  .nav-links { order: 3; width: 100%; justify-content: space-between; gap: 0; }
+  /* Five destinations side by side down to 360px. */
+  .nav-links a { flex: 1 1 auto; justify-content: center; min-width: 0; padding: 0.5rem 0.3rem; font-size: 0.9rem; }
   .page, .dashboard { padding-left: 16px; padding-right: 16px; }
   .next-step { flex-direction: column; align-items: stretch; }
   .toolbar select { flex: 1 1 45%; }
@@ -143,7 +146,8 @@
   .course-card { grid-template-columns: 72px minmax(0, 1fr); gap: 0.75rem; padding: 0.9rem; }
   .course-card .course-cover { width: 72px; height: 72px; font-size: 1.4rem; border-radius: 10px; }
   .course-actions { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; min-width: 0; }
-  .course-actions .card-menu { display: none; }
+  .course-actions .card-menu { grid-column: 1 / -1; justify-self: end; order: 3; }
+  .card-menu ul { right: 0; max-width: calc(100vw - 32px); }
   .course-header { grid-template-columns: 64px minmax(0, 1fr); }
   .course-header .course-cover { width: 64px; height: 64px; font-size: 1.2rem; }
   .course-header .course-actions { grid-column: 1 / -1; }
@@ -172,6 +176,8 @@
 .question-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.6rem; align-items: start; padding: 0.35rem 0.4rem; border-radius: 8px; }
 .question-row.selected { background: color-mix(in srgb, var(--brand) 8%, transparent); }
 .question-row input[type="checkbox"], .toggle input[type="checkbox"] { width: 20px; height: 20px; margin-top: 0.15rem; }
+/* A marketplace course: the user's own priority sits under the question, not beside it. */
+.question-row > .priority-select { grid-column: 2 / -1; }
 .question-text { display: grid; gap: 0.1rem; min-width: 0; overflow-wrap: anywhere; }
 .item-editor { grid-column: 1 / -1; display: grid; gap: 0.6rem; padding: 0.8rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
 .item-editor fieldset { border: none; padding: 0; margin: 0; display: grid; gap: 0.4rem; }

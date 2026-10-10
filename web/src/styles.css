@@ -384,6 +384,10 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .tooltip-anchor { position: relative; display: inline-flex; }
 .tooltip { position: absolute; z-index: 30; top: calc(100% + 0.45rem); inset-inline-start: 0; width: max-content; max-width: min(280px, 80vw); padding: 0.5rem 0.7rem; border-radius: 8px; background: #1f2430; color: #fff; font-size: 0.85rem; font-weight: 400; line-height: 1.4; text-align: start; box-shadow: 0 8px 24px rgb(0 0 0 / 22%); opacity: 0; visibility: hidden; transform: translateY(-3px); transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s; pointer-events: none; }
 .tooltip.visible { opacity: 1; visibility: visible; transform: none; }
+/* Hidden tooltips take no room (they would widen the page on phones); they fade in when shown. */
+.tooltip:not(.visible) { display: none; }
+@starting-style { .tooltip.visible { opacity: 0; transform: translateY(-3px); } }
+.tooltip.flip { inset-inline-start: auto; inset-inline-end: 0; }
 @media (prefers-reduced-motion: reduce) { .tooltip { transition: none; } }
 .study-content > .hint { margin: 0; }
 .study-content .item-entry { display: grid; gap: 0.35rem; padding: 0.35rem 0.2rem; }
@@ -424,3 +428,43 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .study-content-head { justify-content: space-between; flex-wrap: wrap; }
 .item-head { flex-wrap: wrap; }
 .test-me { justify-self: start; font-size: 0.9rem; }
+
+/* Marketplace */
+.marketplace .category-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.25rem 0 1rem; }
+.marketplace .category-chips button { border-radius: 999px; padding: 0.3rem 0.8rem; font-size: 0.9rem; }
+.marketplace .category-chips button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.marketplace-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 0.6rem; margin-bottom: 1.1rem; }
+.marketplace-filters input[type="search"] { flex: 1 1 16rem; width: auto; }
+.marketplace-filters label { display: grid; gap: 0.2rem; font-size: 0.85rem; color: var(--muted); }
+.listing-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); }
+.listing-card { display: grid; gap: 0.35rem; height: 100%; align-content: start; }
+.listing-category { font-size: 0.8rem; color: var(--muted); }
+.listing-title { font-weight: 700; font-size: 1.05rem; color: var(--text); }
+.listing-subtitle { margin: 0; color: var(--muted); }
+.listing-facts { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.listing-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 0.4rem; }
+.listing-page .card { margin-bottom: 1rem; }
+.listing-hero h1 { margin: 0.2rem 0; }
+.listing-stats { display: flex; gap: 1.5rem; margin: 0.8rem 0; }
+.listing-stats dt { font-size: 0.8rem; color: var(--muted); }
+.listing-stats dd { margin: 0; font-size: 1.4rem; font-weight: 700; }
+.listing-description { white-space: pre-line; }
+.outcomes { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 0.35rem; }
+.outcomes li::before { content: "✓ "; color: var(--good); font-weight: 700; }
+.listing-chapters { display: grid; gap: 0.3rem; padding-left: 1.4rem; }
+.listing-chapters li span:first-child { margin-right: 0.5rem; }
+.marketplace-pill { margin-left: 0; color: var(--accent); }
+.sales-page .sales-form { display: grid; gap: 0.7rem; margin-top: 0.6rem; }
+.sales-page .sales-form label { display: grid; gap: 0.25rem; }
+.sales-page .sales-form label.toggle { display: flex; gap: 0.5rem; align-items: start; }
+.sales-row { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+.sales-row label { flex: 1 1 12rem; }
+.publish-box { border: 1px solid var(--border); border-radius: var(--radius); padding: 0.8rem 1rem; display: grid; gap: 0.6rem; }
+.publish-box legend { font-weight: 700; padding: 0 0.3rem; }
+.marketplace-origin, .sales-page { margin-top: 1rem; }
+.priority-select { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
+.priority-select select { width: auto; }
+.published-by-me { margin-bottom: 1rem; }
+.published-by-me summary { cursor: pointer; }
+.published-by-me ul { list-style: none; padding: 0; margin: 0.6rem 0 0; display: grid; gap: 0.5rem; }
+.published-by-me li { display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; align-items: baseline; }

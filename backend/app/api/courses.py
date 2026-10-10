@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.ai.factory import get_ai_provider
 from app.ai.provider import AIProvider
+from app.api.cleanup import DrawingCleanup
 from app.api.curriculum import get_max_context_chars
 from app.auth.dependencies import get_current_user
 from app.core.rate_limit import per_user
@@ -111,15 +112,28 @@ def reorder_chapters(
 
 @router.post("/courses/{course_id}/curriculum/bulk-delete", response_model=CurriculumDeleteResult)
 def bulk_delete_curriculum(
-    course_id: uuid.UUID, payload: CurriculumDelete, db: Session = DB, user: User = CurrentUser
+    course_id: uuid.UUID,
+    payload: CurriculumDelete,
+    db: Session = DB,
+    user: User = CurrentUser,
+    cleanup: DrawingCleanup = Depends(),
 ) -> CurriculumDeleteResult:
     """Deletes selected chapters, topics, concepts and questions together; all or nothing."""
-    return service.delete_curriculum(db, user.id, course_id, payload)
+    result = service.delete_curriculum(db, user.id, course_id, payload)
+    cleanup.after(course_id)
+    return result
 
 
 @router.delete("/chapters/{chapter_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_chapter(chapter_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> None:
+def delete_chapter(
+    chapter_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    cleanup: DrawingCleanup = Depends(),
+) -> None:
+    course_id = service.get_owned_chapter(db, user.id, chapter_id).course_id
     service.delete_chapter(db, user.id, chapter_id)
+    cleanup.after(course_id)
 
 
 # --- Topics ---
@@ -151,8 +165,15 @@ def update_topic(
 
 
 @router.delete("/topics/{topic_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_topic(topic_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> None:
+def delete_topic(
+    topic_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    cleanup: DrawingCleanup = Depends(),
+) -> None:
+    course_id = service.get_owned_topic(db, user.id, topic_id).course_id
     service.delete_topic(db, user.id, topic_id)
+    cleanup.after(course_id)
 
 
 # --- Concepts ---
@@ -197,8 +218,15 @@ def update_concept(
 
 
 @router.delete("/concepts/{concept_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_concept(concept_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> None:
+def delete_concept(
+    concept_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    cleanup: DrawingCleanup = Depends(),
+) -> None:
+    course_id = service.get_owned_concept(db, user.id, concept_id).course_id
     service.delete_concept(db, user.id, concept_id)
+    cleanup.after(course_id)
 
 
 # --- Concept study state (docs/PROJECT_SPEC.md §21, §22, §60) ---
@@ -269,6 +297,16 @@ def complete_concept(concept_id: uuid.UUID, db: Session = DB, user: User = Curre
 @router.post("/courses/{course_id}/pause", response_model=CourseRead)
 def pause_course(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> Course:
     return service.set_course_paused(db, user.id, course_id, paused=True)
+
+
+@router.post("/courses/{course_id}/archive", response_model=CourseRead)
+def archive_course(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> Course:
+    return service.set_course_archived(db, user.id, course_id, archived=True)
+
+
+@router.post("/courses/{course_id}/unarchive", response_model=CourseRead)
+def unarchive_course(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> Course:
+    return service.set_course_archived(db, user.id, course_id, archived=False)
 
 
 @router.post("/courses/{course_id}/resume", response_model=CourseRead)

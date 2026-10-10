@@ -17,7 +17,7 @@ from app.models.user import User
 from app.services.dashboard import service as dashboard_service
 from app.services.rewards.hints import build_hint
 from app.services.rewards.service import local_day
-from app.storage.documents import S3DocumentStorage, StoredFileMissingError
+from app.storage.documents import LocalDocumentStorage, S3DocumentStorage, StoredFileMissingError
 
 
 @pytest.fixture
@@ -435,6 +435,47 @@ def test_s3_storage_round_trip_with_a_private_bucket():
             storage.load(key)
         storage.delete(key)
         stub.assert_no_pending_responses()
+
+
+def test_s3_storage_lists_by_prefix_across_pages():
+    import boto3
+
+    client = boto3.client(
+        "s3", region_name="eu-west-1", aws_access_key_id="x", aws_secret_access_key="y"
+    )
+    storage = S3DocumentStorage(client, "learnable-private", prefix="app/")
+    when = datetime(2026, 10, 1, tzinfo=UTC)
+    params = {"Bucket": "learnable-private", "Prefix": "app/courses/c/drawings/"}
+    with Stubber(client) as stub:
+        stub.add_response(
+            "list_objects_v2",
+            {
+                "Contents": [{"Key": "app/courses/c/drawings/items/1", "LastModified": when}],
+                "IsTruncated": True,
+                "NextContinuationToken": "next",
+            },
+            params,
+        )
+        stub.add_response(
+            "list_objects_v2",
+            {"Contents": [{"Key": "app/courses/c/drawings/answers/2", "LastModified": when}]},
+            {**params, "ContinuationToken": "next"},
+        )
+        files = storage.list("courses/c/drawings/")
+        stub.assert_no_pending_responses()
+    assert [(f.key, f.modified_at) for f in files] == [
+        ("courses/c/drawings/items/1", when),
+        ("courses/c/drawings/answers/2", when),
+    ]
+
+
+def test_local_storage_lists_by_prefix_without_partial_writes(tmp_path):
+    storage = LocalDocumentStorage(tmp_path)
+    storage.save("courses/c/drawings/items/1", b"x")
+    storage.save("courses/d/drawings/items/2", b"x")
+    (tmp_path / "courses/c/drawings/items/3.partial").write_bytes(b"x")
+    assert [f.key for f in storage.list("courses/c/drawings/")] == ["courses/c/drawings/items/1"]
+    assert storage.list("courses/none/") == []
 
 
 def test_s3_requires_a_bucket():

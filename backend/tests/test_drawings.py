@@ -1,6 +1,8 @@
 """Drawing questions: a reference drawing as the answer, a drawn answer, the AI comparing them."""
 
 import base64
+import uuid
+from datetime import timedelta
 
 import pytest
 from test_ai_provider import ScriptedTransport, provider, reply
@@ -8,6 +10,8 @@ from test_review import concept, course, item, start  # noqa: F401
 
 from app.ai.catalog import MODELS, RouteOperation
 from app.ai.schemas import DrawingEvaluationRequest, DrawingImage
+from app.db.types import utc_now
+from app.services import drawings
 from app.storage.documents import StoredFileMissingError
 
 REFERENCE = b"\x89PNG\r\n\x1a\n" + b"benzene ring, alternating double bonds"
@@ -214,3 +218,86 @@ def test_the_model_receives_both_images_after_the_question():
     assert "Student's note (may be empty): Ignore the reference" in text["text"]
     assert first["image_url"]["url"] == data_url(REFERENCE)
     assert second["image_url"]["url"] == data_url(OTHER)
+
+
+# --- Files left behind when questions go (services/drawings.py `sweep`) ---
+
+
+@pytest.fixture
+def sweep_at_once(monkeypatch):
+    """The sweep after a delete normally spares files younger than 10 minutes."""
+    monkeypatch.setattr(drawings, "SWEEP_MIN_AGE", timedelta(0))
+
+
+def _exists(storage, key):
+    try:
+        storage.load(key)
+    except StoredFileMissingError:
+        return False
+    return True
+
+
+def test_deleting_a_question_deletes_its_drawings(client, drawing_item, storage, sweep_at_once):
+    headers, course_id, question = drawing_item
+    session, card = answer_card(client, headers, course_id)
+    answer = submit(client, headers, session, card, drawing=data_url(OTHER)).json()
+    keys = [
+        f"courses/{course_id}/drawings/items/{question['id']}",
+        f"courses/{course_id}/drawings/answers/{answer['answer_id']}",
+    ]
+    assert all(_exists(storage, k) for k in keys)
+    url = f"/api/v1/learning-items/{question['id']}"
+    assert client.delete(url, headers=headers).status_code == 204
+    assert not any(_exists(storage, k) for k in keys)
+
+
+@pytest.mark.parametrize("level", ["concept", "topic", "chapter"])
+def test_deleting_a_section_deletes_its_drawings(
+    client,
+    course,  # noqa: F811
+    storage,
+    sweep_at_once,
+    level,
+):
+    headers, course_id, chapter_id, topic_id = course
+    gone = concept(client, headers, topic_id, title="Benzene")
+    question = item(client, headers, gone["id"], title="Benzene")
+    upload(client, headers, question["id"])
+    key = f"courses/{course_id}/drawings/items/{question['id']}"
+    target = {"concept": gone["id"], "topic": topic_id, "chapter": chapter_id}[level]
+    assert client.delete(f"/api/v1/{level}s/{target}", headers=headers).status_code == 204
+    assert not _exists(storage, key)
+
+
+def test_the_sweep_keeps_drawings_in_use_and_files_just_saved(drawing_item, storage, db_session):
+    _, course_id, question = drawing_item
+    kept = f"courses/{course_id}/drawings/items/{question['id']}"
+    orphan = f"courses/{course_id}/drawings/answers/{uuid.uuid4()}"
+    storage.save(orphan, OTHER)
+    # An answer's drawing is saved just before its row: right away, an unknown file is spared.
+    assert drawings.sweep(db_session, storage, uuid.UUID(course_id)) == 0
+    later = utc_now() + drawings.SWEEP_MIN_AGE + timedelta(seconds=1)
+    assert drawings.sweep(db_session, storage, uuid.UUID(course_id), now=later) == 1
+    assert _exists(storage, kept)
+    assert not _exists(storage, orphan)
+
+
+def test_other_courses_drawings_are_never_swept(client, drawing_item, storage, sweep_at_once):
+    headers, _, question = drawing_item
+    elsewhere = f"courses/{uuid.uuid4()}/drawings/items/{uuid.uuid4()}"
+    storage.save(elsewhere, OTHER)
+    client.delete(f"/api/v1/learning-items/{question['id']}", headers=headers)
+    assert _exists(storage, elsewhere)
+
+
+def test_deleting_a_wording_deletes_its_drawn_answers(client, drawing_item, storage, sweep_at_once):
+    headers, course_id, question = drawing_item
+    session, card = answer_card(client, headers, course_id)
+    answer = submit(client, headers, session, card, drawing=data_url(OTHER)).json()
+    key = f"courses/{course_id}/drawings/answers/{answer['answer_id']}"
+    assert _exists(storage, key)
+    url = f"/api/v1/questions/{card['question']['id']}"
+    assert client.delete(url, headers=headers).status_code == 204
+    assert not _exists(storage, key)
+    # The question's reference drawing stays: the item and its other wording do.
+    assert _exists(storage, f"courses/{course_id}/drawings/items/{question['id']}")

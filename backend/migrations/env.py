@@ -31,16 +31,38 @@ def _render_item(type_: str, obj: Any, _autogen_context: AutogenContext) -> str 
 
 
 def _run(connection: Connection) -> None:
+    sqlite = connection.dialect.name == "sqlite"
+    # The PRAGMA only works outside a transaction; a caller that already opened one (the
+    # migration tests) is left as it is.
+    guard_foreign_keys = sqlite and not connection.in_transaction()
+    if guard_foreign_keys:
+        # SQLite can't ALTER most things in place: batch mode rebuilds the table (copy, drop the
+        # old one, rename). With foreign keys enforced (app/db/session.py turns them on for every
+        # connection), dropping the old table cascades into every row that references it:
+        # rebuilding `courses` deleted all chapters, questions and documents. Off for the
+        # migration (it must be set outside a transaction), checked, and back on afterwards.
+        connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        # The PRAGMA opened a transaction; end it, or Alembic would join it and never commit.
+        connection.commit()
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
         render_item=_render_item,
         compare_type=True,
-        # SQLite can't ALTER most things in place; batch mode recreates the table instead.
-        render_as_batch=connection.dialect.name == "sqlite",
+        render_as_batch=sqlite,
     )
-    with context.begin_transaction():
-        context.run_migrations()
+    try:
+        with context.begin_transaction():
+            context.run_migrations()
+            if guard_foreign_keys:
+                broken = connection.exec_driver_sql("PRAGMA foreign_key_check").fetchall()
+                if broken:
+                    raise RuntimeError(f"migration left rows with broken references: {broken[:5]}")
+    finally:
+        if guard_foreign_keys:
+            connection.commit()
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+            connection.commit()
 
 
 def run_migrations_offline() -> None:

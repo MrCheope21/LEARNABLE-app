@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.ai.factory import get_ai_provider
 from app.ai.provider import AIProvider
+from app.api.cleanup import DrawingCleanup
 from app.api.curriculum import get_max_context_chars
 from app.auth.dependencies import get_current_user
 from app.core.errors import PayloadTooLargeError
@@ -99,8 +100,15 @@ def update_learning_item(
 
 
 @router.delete("/learning-items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_learning_item(item_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> None:
+def delete_learning_item(
+    item_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    cleanup: DrawingCleanup = Depends(),
+) -> None:
+    course_id = service.get_owned_item(db, user.id, item_id).course_id
     service.delete_item(db, user.id, item_id)
+    cleanup.after(course_id)
 
 
 @router.post("/learning-items/{item_id}/train", response_model=LearningItemRead)
@@ -183,11 +191,18 @@ def list_course_items(
 
 @router.post("/courses/{course_id}/learning-items/bulk", response_model=BulkItemResult)
 def bulk_items(
-    course_id: uuid.UUID, payload: BulkItemAction, db: Session = DB, user: User = CurrentUser
+    course_id: uuid.UUID,
+    payload: BulkItemAction,
+    db: Session = DB,
+    user: User = CurrentUser,
+    cleanup: DrawingCleanup = Depends(),
 ) -> BulkItemResult:
     """Delete, pause, resume or move many items at once; all or nothing (404 if any id isn't one
     of this Course's items). Moving keeps each item's memory state and history."""
-    return manage.bulk(db, user.id, course_id, payload)
+    result = manage.bulk(db, user.id, course_id, payload)
+    if payload.action == "delete":
+        cleanup.after(course_id)
+    return result
 
 
 @router.patch("/questions/{question_id}", response_model=QuestionRead)
@@ -199,9 +214,17 @@ def update_question(
 
 
 @router.delete("/questions/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_question(question_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> None:
-    """Deletes one wording (409 `last_question` for the item's only one: delete the item)."""
+def delete_question(
+    question_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    cleanup: DrawingCleanup = Depends(),
+) -> None:
+    """Deletes one wording (409 `last_question` for the item's only one: delete the item).
+    Answers given to it go too, drawn ones with their files."""
+    course_id = manage.get_owned_question(db, user.id, question_id).course_id
     manage.delete_question(db, user.id, question_id)
+    cleanup.after(course_id)
 
 
 @router.put(

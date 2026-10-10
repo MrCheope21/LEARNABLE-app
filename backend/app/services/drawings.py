@@ -7,11 +7,13 @@ after an ownership check.
 
 import base64
 import binascii
+import logging
 import re
 import uuid
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.errors import (
     InvalidRequestError,
@@ -19,8 +21,10 @@ from app.core.errors import (
     PayloadTooLargeError,
     UnsupportedMediaTypeError,
 )
+from app.db.types import utc_now
 from app.models.learning import LearningItem
 from app.models.review import Answer
+from app.services import managed_courses
 from app.services.courses.service import get_owned_course
 from app.services.learning.service import get_owned_item
 from app.storage.documents import DocumentStorage, StoredFileMissingError
@@ -70,6 +74,7 @@ def set_reference(
 ) -> LearningItem:
     """Makes the item a drawing question with this reference drawing (replacing any earlier one)."""
     item = get_owned_item(db, user_id, item_id)
+    managed_courses.ensure_editable(get_owned_course(db, user_id, item.course_id))
     media_type = image_type(data)
     storage.save(reference_key(item), data)
     item.answer_format = "DRAWING"
@@ -84,6 +89,7 @@ def remove_reference(
 ) -> LearningItem:
     """Back to a text question. Drawn answers already given keep their own images."""
     item = get_owned_item(db, user_id, item_id)
+    managed_courses.ensure_editable(get_owned_course(db, user_id, item.course_id))
     if item.reference_drawing_type is not None:
         storage.delete(reference_key(item))
     item.answer_format = "TEXT"
@@ -130,3 +136,40 @@ def course_drawing_keys(db: Session, course_id: uuid.UUID) -> list[str]:
         select(Answer).where(Answer.course_id == course_id, Answer.drawing_type.is_not(None))
     )
     return [*(reference_key(i) for i in items), *(answer_key(a) for a in answers)]
+
+
+# --- Files left behind ---
+
+# A drawing is saved just before its answer row is committed; younger files are left alone.
+SWEEP_MIN_AGE = timedelta(minutes=10)
+logger = logging.getLogger(__name__)
+
+
+def sweep(
+    db: Session, storage: DocumentStorage, course_id: uuid.UUID, now: datetime | None = None
+) -> int:
+    """Deletes the Course's drawing files that no question or answer has any more: deleting a
+    question, concept, topic or chapter removes rows by cascade, not their files. Returns how
+    many went."""
+    kept = set(course_drawing_keys(db, course_id))
+    oldest = (now or utc_now()) - SWEEP_MIN_AGE
+    gone = 0
+    for stored in storage.list(f"courses/{course_id}/drawings/"):
+        if stored.key not in kept and stored.modified_at <= oldest:
+            storage.delete(stored.key)
+            gone += 1
+    return gone
+
+
+def sweep_job(
+    session_factory: sessionmaker[Session], storage: DocumentStorage, course_id: uuid.UUID
+) -> None:
+    """`sweep` as a background task, after a request that deleted questions."""
+    try:
+        with session_factory() as db:
+            gone = sweep(db, storage, course_id)
+        if gone:
+            logger.info("drawings course=%s swept=%d", course_id, gone)
+    except Exception:
+        # Housekeeping: a failure here must never surface to the user; the next sweep retries.
+        logger.exception("drawings sweep failed course=%s", course_id)

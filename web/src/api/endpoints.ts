@@ -54,6 +54,11 @@ export const courses = {
   create: (body: Schemas["CourseCreate"]) => call(api.POST("/api/v1/courses", { body })),
   update: (courseId: Id, body: Schemas["CourseUpdate"]) =>
     call(api.PATCH("/api/v1/courses/{course_id}", { params: { path: { course_id: courseId } }, body })),
+  setPaused: (courseId: Id, paused: boolean) =>
+    call(api.POST(paused ? "/api/v1/courses/{course_id}/pause" : "/api/v1/courses/{course_id}/resume", { params: { path: { course_id: courseId } } })),
+  setArchived: (courseId: Id, archived: boolean) =>
+    call(api.POST(archived ? "/api/v1/courses/{course_id}/archive" : "/api/v1/courses/{course_id}/unarchive", { params: { path: { course_id: courseId } } })),
+  remove: (courseId: Id) => call(api.DELETE("/api/v1/courses/{course_id}", { params: { path: { course_id: courseId } } })),
   updateChapter: (chapterId: Id, body: Schemas["ChapterUpdate"]) =>
     call(api.PATCH("/api/v1/chapters/{chapter_id}", { params: { path: { chapter_id: chapterId } }, body })),
   updateTopic: (topicId: Id, body: Schemas["TopicUpdate"]) =>
@@ -337,5 +342,34 @@ export const progress = {
       api.GET("/api/v1/courses/{course_id}/progress", {
         params: { path: { course_id: courseId }, query: { utc_offset_minutes: utcOffsetMinutes() } },
       }),
+    ),
+};
+
+export type ListingFilters = {
+  q?: string;
+  category?: Schemas["Category"];
+  language?: string;
+  size?: "small" | "medium" | "large";
+  level?: Schemas["Level"];
+  sort?: Schemas["ListingSort"];
+};
+
+export const marketplace = {
+  browse: (filters: ListingFilters) =>
+    call(api.GET("/api/v1/marketplace/listings", { params: { query: { ...filters, q: filters.q || undefined } } })),
+  get: (listingId: Id) =>
+    call(api.GET("/api/v1/marketplace/listings/{listing_id}", { params: { path: { listing_id: listingId } } })),
+  acquire: (listingId: Id) =>
+    call(api.POST("/api/v1/marketplace/listings/{listing_id}/acquire", { params: { path: { listing_id: listingId } } })),
+  mine: () => call(api.GET("/api/v1/marketplace/mine")),
+  unpublish: (listingId: Id) =>
+    call(api.POST("/api/v1/marketplace/listings/{listing_id}/unpublish", { params: { path: { listing_id: listingId } } })),
+  forCourse: (courseId: Id) =>
+    call(api.GET("/api/v1/courses/{course_id}/marketplace", { params: { path: { course_id: courseId } } })),
+  saveInfo: (courseId: Id, body: Schemas["ListingInfo"]) =>
+    call(api.PUT("/api/v1/courses/{course_id}/marketplace/info", { params: { path: { course_id: courseId } }, body })),
+  publish: (courseId: Id, body: Schemas["ListingPublish"]) =>
+    call(
+      api.POST("/api/v1/courses/{course_id}/marketplace/publish", { params: { path: { course_id: courseId } }, body }),
     ),
 };

@@ -593,6 +593,23 @@ export interface paths {
         patch: operations["update_course_api_v1_courses__course_id__patch"];
         trace?: never;
     };
+    "/api/v1/courses/{course_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Course */
+        post: operations["archive_course_api_v1_courses__course_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/{course_id}/chapter-order": {
         parameters: {
             query?: never;
@@ -739,6 +756,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courses/{course_id}/marketplace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Course Marketplace */
+        get: operations["course_marketplace_api_v1_courses__course_id__marketplace_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/marketplace/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Info */
+        put: operations["save_info_api_v1_courses__course_id__marketplace_info_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/marketplace/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish */
+        post: operations["publish_api_v1_courses__course_id__marketplace_publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/{course_id}/outline": {
         parameters: {
             query?: never;
@@ -858,6 +926,23 @@ export interface paths {
         get: operations["course_summary_api_v1_courses__course_id__summary_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Course */
+        post: operations["unarchive_course_api_v1_courses__course_id__unarchive_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1231,6 +1316,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/marketplace/listings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Browse */
+        get: operations["browse_api_v1_marketplace_listings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplace/listings/{listing_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_v1_marketplace_listings__listing_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplace/listings/{listing_id}/acquire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acquire */
+        post: operations["acquire_api_v1_marketplace_listings__listing_id__acquire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplace/listings/{listing_id}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unpublish */
+        post: operations["unpublish_api_v1_marketplace_listings__listing_id__unpublish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplace/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mine */
+        get: operations["mine_api_v1_marketplace_mine_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/questions/{question_id}": {
         parameters: {
             query?: never;
@@ -1244,6 +1414,7 @@ export interface paths {
         /**
          * Delete Question
          * @description Deletes one wording (409 `last_question` for the item's only one: delete the item).
+         *     Answers given to it go too, drawn ones with their files.
          */
         delete: operations["delete_question_api_v1_questions__question_id__delete"];
         options?: never;
@@ -1477,6 +1648,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Acquired */
+        Acquired: {
+            /**
+             * Course Id
+             * Format: uuid
+             */
+            course_id: string;
+        };
         /**
          * Activity
          * @description Completed answers per local day, from `start` (a Monday) to `end` (the Sunday of the
@@ -1763,6 +1942,11 @@ export interface components {
             /** Text */
             text: string;
         };
+        /**
+         * Category
+         * @enum {string}
+         */
+        Category: "law" | "economics_business" | "accounting_finance" | "medicine_health" | "sciences" | "mathematics" | "engineering" | "computer_science" | "languages" | "humanities" | "arts" | "professional_exams" | "other";
         /** ChapterCreate */
         ChapterCreate: {
             /**
@@ -1833,6 +2017,13 @@ export interface components {
             order: number;
             /** Paused */
             paused: boolean;
+            /** Title */
+            title: string;
+        };
+        /** ChapterSize */
+        ChapterSize: {
+            /** Questions */
+            questions: number;
             /** Title */
             title: string;
         };
@@ -1985,6 +2176,8 @@ export interface components {
          *     them is mastery (docs/XP_AND_ACTIVITY.md §7).
          */
         CourseCard: {
+            /** Archived At */
+            archived_at: string | null;
             /** Concepts Studied */
             concepts_studied: number;
             /** Concepts Total */
@@ -2009,6 +2202,8 @@ export interface components {
             /** Last Studied At */
             last_studied_at: string | null;
             learn: components["schemas"]["LearnAction"];
+            /** Marketplace Author */
+            marketplace_author: string | null;
             /** New Ready */
             new_ready: number;
             /** Paused */
@@ -2031,6 +2226,26 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** CourseMarketplace */
+        CourseMarketplace: {
+            listing: components["schemas"]["MyListing"] | null;
+            origin: components["schemas"]["CourseOrigin"] | null;
+        };
+        /**
+         * CourseOrigin
+         * @description On a course reached through the marketplace.
+         */
+        CourseOrigin: {
+            /** Author */
+            author: string;
+            /**
+             * Listing Id
+             * Format: uuid
+             */
+            listing_id: string;
+            /** Version */
+            version: number;
+        };
         /** CourseProgress */
         CourseProgress: {
             /** Chapters */
@@ -2046,6 +2261,8 @@ export interface components {
         };
         /** CourseRead */
         CourseRead: {
+            /** Archived At */
+            archived_at: string | null;
             /** Created At */
             created_at: string;
             /** Description */
@@ -2057,6 +2274,10 @@ export interface components {
             id: string;
             /** Language */
             language: string;
+            /** Marketplace Listing Id */
+            marketplace_listing_id: string | null;
+            /** Marketplace Version */
+            marketplace_version: number | null;
             /** Paused */
             paused: boolean;
             /** Title */
@@ -2516,6 +2737,8 @@ export interface components {
             objective: string;
             /** Order */
             order: number;
+            /** Origin Priority */
+            origin_priority: number | null;
             /** Paused */
             paused: boolean;
             /** Priority */
@@ -2560,6 +2783,171 @@ export interface components {
             role?: components["schemas"]["LearningItemRole"] | null;
             /** Title */
             title?: string | null;
+        };
+        /**
+         * Level
+         * @enum {string}
+         */
+        Level: "all" | "beginner" | "intermediate" | "advanced";
+        /** ListingDetail */
+        ListingDetail: {
+            /** Acquisition Count */
+            acquisition_count: number;
+            /** Audience */
+            audience: string;
+            /** Author */
+            author: string;
+            category: components["schemas"]["Category"];
+            /** Chapter Count */
+            chapter_count: number;
+            /** Chapters */
+            chapters: components["schemas"]["ChapterSize"][];
+            /** Course Id */
+            course_id: string | null;
+            /** Currency */
+            currency: string;
+            /** Description */
+            description: string;
+            /** Has Access */
+            has_access: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Mine */
+            is_mine: boolean;
+            /** Item Count */
+            item_count: number;
+            /** Language */
+            language: string;
+            level: components["schemas"]["Level"];
+            /** Outcomes */
+            outcomes: string[];
+            /** Price Cents */
+            price_cents: number;
+            /** Published At */
+            published_at: string | null;
+            /** Status */
+            status: string;
+            /** Subtitle */
+            subtitle: string;
+            /** Tags */
+            tags: string[];
+            /** Title */
+            title: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * ListingInfo
+         * @description The course's sales page, written by its author: all a buyer sees before getting access,
+         *     with the chapter titles and question counts. Editable at any time, published or not.
+         */
+        ListingInfo: {
+            /**
+             * Audience
+             * @default
+             */
+            audience: string;
+            category: components["schemas"]["Category"];
+            /** Description */
+            description: string;
+            /** @default all */
+            level: components["schemas"]["Level"];
+            /** Outcomes */
+            outcomes?: string[];
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+            /** Tags */
+            tags?: string[];
+            /** Title */
+            title: string;
+        };
+        /** ListingPublish */
+        ListingPublish: {
+            /**
+             * Audience
+             * @default
+             */
+            audience: string;
+            category: components["schemas"]["Category"];
+            /** Description */
+            description: string;
+            /** @default all */
+            level: components["schemas"]["Level"];
+            /** Outcomes */
+            outcomes?: string[];
+            /**
+             * Rights Confirmed
+             * @constant
+             */
+            rights_confirmed: true;
+            /**
+             * Subtitle
+             * @default
+             */
+            subtitle: string;
+            /** Tags */
+            tags?: string[];
+            /** Title */
+            title: string;
+        };
+        /**
+         * ListingSort
+         * @enum {string}
+         */
+        ListingSort: "popular" | "newest" | "largest";
+        /** ListingSummary */
+        ListingSummary: {
+            /** Acquisition Count */
+            acquisition_count: number;
+            /** Audience */
+            audience: string;
+            /** Author */
+            author: string;
+            category: components["schemas"]["Category"];
+            /** Chapter Count */
+            chapter_count: number;
+            /** Course Id */
+            course_id: string | null;
+            /** Currency */
+            currency: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Count */
+            item_count: number;
+            /** Language */
+            language: string;
+            level: components["schemas"]["Level"];
+            /** Outcomes */
+            outcomes: string[];
+            /** Price Cents */
+            price_cents: number;
+            /** Published At */
+            published_at: string | null;
+            /** Status */
+            status: string;
+            /** Subtitle */
+            subtitle: string;
+            /** Tags */
+            tags: string[];
+            /** Title */
+            title: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
         };
         /**
          * MemoryProgress
@@ -2621,6 +3009,54 @@ export interface components {
         MessageRead: {
             /** Detail */
             detail: string;
+        };
+        /** MyListing */
+        MyListing: {
+            /** Acquisition Count */
+            acquisition_count: number;
+            /** Audience */
+            audience: string;
+            /** Author */
+            author: string;
+            category: components["schemas"]["Category"];
+            /** Chapter Count */
+            chapter_count: number;
+            /** Course Id */
+            course_id: string | null;
+            /** Currency */
+            currency: string;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Count */
+            item_count: number;
+            /** Language */
+            language: string;
+            level: components["schemas"]["Level"];
+            /** Outcomes */
+            outcomes: string[];
+            /** Price Cents */
+            price_cents: number;
+            /** Published At */
+            published_at: string | null;
+            /** Source Course Id */
+            source_course_id: string | null;
+            /** Status */
+            status: string;
+            /** Subtitle */
+            subtitle: string;
+            /** Tags */
+            tags: string[];
+            /** Title */
+            title: string;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
         };
         /** NextConcept */
         NextConcept: {
@@ -4556,6 +4992,37 @@ export interface operations {
             };
         };
     };
+    archive_course_api_v1_courses__course_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reorder_chapters_api_v1_courses__course_id__chapter_order_put: {
         parameters: {
             query?: never;
@@ -4859,6 +5326,107 @@ export interface operations {
             };
         };
     };
+    course_marketplace_api_v1_courses__course_id__marketplace_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseMarketplace"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_info_api_v1_courses__course_id__marketplace_info_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingInfo"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyListing"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_api_v1_courses__course_id__marketplace_publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListingPublish"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyListing"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_outline_api_v1_courses__course_id__outline_get: {
         parameters: {
             query?: never;
@@ -5071,6 +5639,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CourseCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_course_api_v1_courses__course_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseRead"];
                 };
             };
             /** @description Validation Error */
@@ -5906,6 +6505,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    browse_api_v1_marketplace_listings_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                category?: components["schemas"]["Category"] | null;
+                language?: string | null;
+                size?: ("small" | "medium" | "large") | null;
+                level?: components["schemas"]["Level"] | null;
+                sort?: components["schemas"]["ListingSort"];
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detail_api_v1_marketplace_listings__listing_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListingDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acquire_api_v1_marketplace_listings__listing_id__acquire_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Acquired"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unpublish_api_v1_marketplace_listings__listing_id__unpublish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyListing"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mine_api_v1_marketplace_mine_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyListing"][];
                 };
             };
         };

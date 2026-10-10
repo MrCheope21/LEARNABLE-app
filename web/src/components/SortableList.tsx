@@ -19,6 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { AUTHOR_ORDER, useReadOnlyCourse } from "./CourseAccess";
 import { ErrorBanner } from "./QueryState";
 
 type Props<T extends { id: string }> = {
@@ -43,9 +44,11 @@ export function SortableList<T extends { id: string }>({
   itemLabel,
   onReorder,
   renderItem,
-  disabledReason,
+  disabledReason: reason,
   className = "",
 }: Props<T>) {
+  const readOnly = useReadOnlyCourse();
+  const disabledReason = readOnly ? AUTHOR_ORDER : reason;
   // The optimistic order, tied to the `items` it was made from: once the refetch delivers a new
   // list (or the save fails), the server's order shows again. No effect needed to reset it.
   const [pending, setPending] = useState<{ base: T[]; order: T[] } | null>(null);

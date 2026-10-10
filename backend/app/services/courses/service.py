@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import InvalidRequestError, InvalidStateTransitionError, NotFoundError
+from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, CourseSettings, Topic
 from app.models.document import Document
 from app.models.enums import StudyState
@@ -340,6 +341,19 @@ def set_course_paused(
 ) -> Course:
     course = get_owned_course(db, user_id, course_id)
     course.paused = paused
+    db.commit()
+    db.refresh(course)
+    return course
+
+
+def set_course_archived(
+    db: Session, user_id: uuid.UUID, course_id: uuid.UUID, archived: bool
+) -> Course:
+    """Puts a course away (paused, hidden from the main list) or brings it back. Restoring also
+    resumes it: archiving is a way of saying "not now", and the user can pause again."""
+    course = get_owned_course(db, user_id, course_id)
+    course.archived_at = utc_now() if archived else None
+    course.paused = archived
     db.commit()
     db.refresh(course)
     return course

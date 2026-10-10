@@ -10,6 +10,7 @@ from app.models.learning import (
     QuestionFormulation,
     ReviewState,
 )
+from app.models.marketplace import MarketplaceAcquisition, MarketplaceListing
 from app.models.review import Answer, Evaluation, Review, ReviewSession
 from app.models.rewards import DailyActivity, HintReveal, ItemSuccessCounter, XpAward
 from app.models.user import User
@@ -30,6 +31,8 @@ __all__ = [
     "ItemSuccessCounter",
     "LearningItem",
     "LearningItemSource",
+    "MarketplaceAcquisition",
+    "MarketplaceListing",
     "PasswordResetToken",
     "QuestionFormulation",
     "Review",

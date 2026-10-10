@@ -37,6 +37,7 @@ export function TopNav() {
           <NavLink to="/courses">{t("nav.courses")}</NavLink>
           <NavLink to="/review">{t("nav.review")}</NavLink>
           <NavLink to="/progress">{t("nav.progress")}</NavLink>
+          <NavLink to="/marketplace">{t("nav.marketplace")}</NavLink>
           <NavLink to="/guide">{t("nav.guide")}</NavLink>
         </nav>
         <div className="nav-stats">

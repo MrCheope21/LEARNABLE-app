@@ -9,7 +9,8 @@ import { HelpTip } from "../../components/HelpTip";
 import { SortableList } from "../../components/SortableList";
 import { memoryStateLabel, priorityLabel } from "../../components/labels";
 import { Breadcrumbs } from "./Consolidate";
-import { PriorityBadge } from "../../components/PriorityBadge";
+import { useReadOnlyCourse } from "../../components/CourseAccess";
+import { PriorityBadge, PrioritySelect } from "../../components/PriorityBadge";
 import { Tooltip } from "../../components/Tooltip";
 import { studyLink } from "../study/StudyPage";
 import { ReferenceDrawingEditor } from "./ReferenceDrawingEditor";
@@ -38,6 +39,7 @@ export function QuestionsPage() {
   const [moving, setMoving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const searchId = useId();
+  const readOnly = useReadOnlyCourse();
   const sections = useCollapsed(`learnable.questions-collapsed.${courseId}`);
   // Search results are never hidden inside a collapsed section.
   const open = (id: string) => Boolean(filter.trim()) || !sections.isCollapsed(id);
@@ -131,7 +133,11 @@ export function QuestionsPage() {
           <h1>Questions</h1>
           <HelpTip text="help.questions" topic="Questions" guide="organise" />
         </div>
-        <p className="hint">Select questions to delete, pause, resume or move them; drag ⠿ to reorder them; edit one to fix its title, wording or expected answer.</p>
+        <p className="hint">
+          {readOnly
+            ? "This course comes from the marketplace: its author keeps the questions up to date. Select questions to pause or resume them, or give them your own priority (only you see it)."
+            : "Select questions to delete, pause, resume or move them; drag ⠿ to reorder them; edit one to fix its title, wording or expected answer."}
+        </p>
       </header>
 
       <div className="toolbar">
@@ -169,9 +175,11 @@ export function QuestionsPage() {
       {selected.size > 0 && (
         <div className="bulk-bar" role="toolbar" aria-label="Selected questions">
           <strong>{selected.size} selected</strong>
-          <button type="button" className="primary" aria-expanded={moving} onClick={() => setMoving((v) => !v)}>
-            Move to…
-          </button>
+          {!readOnly && (
+            <button type="button" className="primary" aria-expanded={moving} onClick={() => setMoving((v) => !v)}>
+              Move to…
+            </button>
+          )}
           <button type="button" disabled={bulk.isPending} onClick={() => bulk.mutate({ item_ids: ids, action: "pause", delete_emptied_concepts: false })}>
             Pause
           </button>
@@ -199,9 +207,11 @@ export function QuestionsPage() {
               🔁 Review on your own
             </Link>
           </Tooltip>
-          <button type="button" className="danger" disabled={bulk.isPending || remove.isPending} onClick={confirmDelete}>
-            Delete
-          </button>
+          {!readOnly && (
+            <button type="button" className="danger" disabled={bulk.isPending || remove.isPending} onClick={confirmDelete}>
+              Delete
+            </button>
+          )}
           <button type="button" className="link" onClick={() => setSelected(new Set())}>
             Clear selection
           </button>
@@ -336,6 +346,7 @@ function QuestionRow({
 }) {
   const first = item.questions[0]?.text ?? item.title;
   const others = item.questions.length - 1;
+  const readOnly = useReadOnlyCourse();
   return (
     <div className={selected ? "question-row selected" : "question-row"}>
       <input type="checkbox" checked={selected} onChange={(e) => onSelect(e.target.checked)} aria-label={`Select: ${first}`} />
@@ -350,10 +361,14 @@ function QuestionRow({
           {!item.in_training && " · Not in training"}
         </span>
       </div>
-      <button type="button" className="link" aria-expanded={editing} onClick={onEdit}>
-        {editing ? "Close" : "Edit"}
-      </button>
-      {editing && (
+      {readOnly ? (
+        <PrioritySelect item={item} onSaved={onSaved} />
+      ) : (
+        <button type="button" className="link" aria-expanded={editing} onClick={onEdit}>
+          {editing ? "Close" : "Edit"}
+        </button>
+      )}
+      {editing && !readOnly && (
         <>
           <ItemEditor item={item} onSaved={onSaved} />
           <ReferenceDrawingEditor item={item} onChanged={onSaved} />

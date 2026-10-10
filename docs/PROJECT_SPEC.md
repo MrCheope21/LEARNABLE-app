@@ -745,8 +745,10 @@ history, mastery, or private notes unless explicitly requested.
 
 ## 92. Course Marketplace-Ready Architecture
 
-Future: `Creator → Course Template → Published Course → User Course Instance → Personal Learning
-State`. Not implemented in MVP, but architecture must not prevent it.
+`Creator → Course Template → Published Course → User Course Instance → Personal Learning
+State`. Implemented with free listings (docs/API.md "Marketplace"): the published course is a
+versioned listing snapshot, the instance a read-only course kept in sync with it, the learning
+state the acquirer's own. Paid listings (payments) are future.
 
 ## 93. Performance
 
