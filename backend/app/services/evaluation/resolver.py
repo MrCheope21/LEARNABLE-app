@@ -59,14 +59,15 @@ def repeat_offered(
     outcome: ReviewOutcome | None,
     thresholds: ResolverThresholds = THRESHOLDS,
 ) -> bool:
-    """Owner decision (2026-10-10): an answer that is green on at least 3 of the 4 scores but
-    would not be graded GOOD (so the schedule would hold or reset) is not graded yet: the student
-    reviews the reference answer and repeats it, and the attempt then counts as a correct first
-    answer. Only for answers the evaluator is sure about and calls CORRECT or PARTIALLY_CORRECT;
-    inconclusive evaluations stay with the student's own grade."""
+    """Owner decision (2026-10-10, refined the same day): an answer that is green on at least 3
+    of the 4 scores and would be graded HARD (passed, but with difficulty) is not graded yet: the
+    student reviews the reference answer and repeats it, and the attempt then counts as a correct
+    first answer. A poor answer, one that would be graded AGAIN, is never offered this: it fails
+    and the schedule restarts, as before. Only for answers the evaluator is sure about and calls
+    CORRECT or PARTIALLY_CORRECT; inconclusive evaluations stay with the student's own grade."""
     c = EvaluationClassification
     return (
-        outcome in (ReviewOutcome.AGAIN, ReviewOutcome.HARD)
+        outcome is ReviewOutcome.HARD
         and evaluation.context_sufficient
         and evaluation.confidence >= thresholds.min_confidence
         and evaluation.classification in (c.CORRECT, c.PARTIALLY_CORRECT)

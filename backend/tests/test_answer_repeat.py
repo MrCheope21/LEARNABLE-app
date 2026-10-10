@@ -58,9 +58,8 @@ def review(client, headers, course_id, evaluation, text="Una risposta quasi comp
 
 def test_three_green_scores_offer_a_repeat_instead_of_a_grade(client, due_item, db_session):
     headers, course_id, created = due_item
-    # Correct, understanding and precise; the answer just leaves things out (completeness 0.4
-    # would have been AGAIN: a reset to the first step).
-    _, result = review(client, headers, course_id, scores(0.9, 0.4, 0.9, 0.9))
+    # Correct, understanding and precise; the answer just leaves a little out (graded HARD).
+    _, result = review(client, headers, course_id, scores(0.9, 0.6, 0.9, 0.9))
     assert result["needs_repeat"] is True
     assert result["final_outcome"] is None
     assert result["schedule"] is None
@@ -69,7 +68,7 @@ def test_three_green_scores_offer_a_repeat_instead_of_a_grade(client, due_item, 
 
 def test_repeating_it_counts_as_correct_and_moves_forward(client, due_item, db_session):
     headers, course_id, created = due_item
-    session, result = review(client, headers, course_id, scores(0.9, 0.4, 0.9, 0.9))
+    session, result = review(client, headers, course_id, scores(0.9, 0.6, 0.9, 0.9))
     repeated = client.post(
         f"{API}/answers/{result['answer_id']}/repeat",
         json={"text": "Consegna di denaro con obbligo di restituzione."},
@@ -86,12 +85,24 @@ def test_repeating_it_counts_as_correct_and_moves_forward(client, due_item, db_s
     assert (body["schedule"]["previous_level"], body["schedule"]["next_level"]) == (1, 2)
     assert memory(db_session, created["id"]).level == 2
     # The AI's own verdict is kept as written.
-    assert body["resolved_outcome"] == "AGAIN"
+    assert body["resolved_outcome"] == "HARD"
     assert body["evaluation"]["classification"] == "PARTIALLY_CORRECT"
     # It earns XP as a correct answer, and the session moves on.
     assert body["xp"]["correct"] is True
     assert body["xp"]["xp"] > 0
     assert card(client, headers, session["id"])["done"] is True
+
+
+def test_a_poor_answer_is_still_failed_and_never_offered_a_repeat(client, due_item, db_session):
+    headers, course_id, created = due_item
+    # Three green scores, but so incomplete (0.4) that it would be graded AGAIN: it fails.
+    _, result = review(client, headers, course_id, scores(0.9, 0.4, 0.9, 0.9))
+    assert result["needs_repeat"] is False
+    assert (result["final_outcome"], result["resolved_outcome"]) == ("AGAIN", "AGAIN")
+    assert result["schedule"] is not None
+    # The failure is applied: never forward (a level-1 item can't fall further than level 1).
+    assert result["schedule"]["next_level"] <= result["schedule"]["previous_level"]
+    assert memory(db_session, created["id"]).level == result["schedule"]["next_level"]
 
 
 def test_a_hard_answer_with_three_green_scores_is_repeated_too(client, due_item):
@@ -124,7 +135,7 @@ def test_other_answers_are_graded_as_before(client, due_item, db_session, evalua
 
 def test_an_unsure_evaluation_is_left_to_the_student(client, due_item):
     headers, course_id, _ = due_item
-    unsure = scores(0.9, 0.4, 0.9, 0.9)
+    unsure = scores(0.9, 0.6, 0.9, 0.9)
     unsure = unsure.model_copy(update={"confidence": 0.3})
     _, result = review(client, headers, course_id, unsure)
     assert (result["needs_repeat"], result["needs_self_grade"]) == (False, True)
@@ -132,7 +143,7 @@ def test_an_unsure_evaluation_is_left_to_the_student(client, due_item):
 
 def test_practice_sessions_never_offer_a_repeat(client, due_item):
     headers, course_id, created = due_item
-    use_provider(MockAIProvider(evaluation=scores(0.9, 0.4, 0.9, 0.9)))
+    use_provider(MockAIProvider(evaluation=scores(0.9, 0.6, 0.9, 0.9)))
     session = start(
         client,
         headers,
@@ -158,7 +169,7 @@ def test_a_repeat_is_refused_when_not_offered_or_already_used(client, due_item):
 
 def test_a_repeat_can_only_be_made_once(client, due_item):
     headers, course_id, _ = due_item
-    _, result = review(client, headers, course_id, scores(0.9, 0.4, 0.9, 0.9))
+    _, result = review(client, headers, course_id, scores(0.9, 0.6, 0.9, 0.9))
     url = f"{API}/answers/{result['answer_id']}/repeat"
     assert client.post(url, json={"text": "Ancora"}, headers=headers).status_code == 200
     again = client.post(url, json={"text": "Ancora"}, headers=headers)
@@ -167,7 +178,7 @@ def test_a_repeat_can_only_be_made_once(client, due_item):
 
 def test_a_repeat_needs_text_and_only_its_owner_can_make_it(client, due_item, auth_headers):
     headers, course_id, _ = due_item
-    _, result = review(client, headers, course_id, scores(0.9, 0.4, 0.9, 0.9))
+    _, result = review(client, headers, course_id, scores(0.9, 0.6, 0.9, 0.9))
     url = f"{API}/answers/{result['answer_id']}/repeat"
     assert client.post(url, json={"text": ""}, headers=headers).status_code == 422
     other = auth_headers("nosy2@example.com")
@@ -176,7 +187,7 @@ def test_a_repeat_needs_text_and_only_its_owner_can_make_it(client, due_item, au
 
 def test_the_student_can_still_grade_a_repeatable_answer_themselves(client, due_item):
     headers, course_id, _ = due_item
-    _, result = review(client, headers, course_id, scores(0.9, 0.4, 0.9, 0.9))
+    _, result = review(client, headers, course_id, scores(0.9, 0.6, 0.9, 0.9))
     graded = client.post(
         f"{API}/answers/{result['answer_id']}/override", json={"outcome": "HARD"}, headers=headers
     )
@@ -187,7 +198,7 @@ def test_the_student_can_still_grade_a_repeatable_answer_themselves(client, due_
 def test_a_first_answer_to_a_new_item_repeated_starts_its_schedule(client, course, db_session):  # noqa: F811
     headers, course_id, _, topic_id = course
     created = item(client, headers, concept(client, headers, topic_id)["id"])
-    use_provider(MockAIProvider(evaluation=scores(0.9, 0.4, 0.9, 0.9)))
+    use_provider(MockAIProvider(evaluation=scores(0.9, 0.6, 0.9, 0.9)))
     session = start(client, headers, course_id).json()
     result = answer(client, headers, session["id"], FULL).json()
     assert result["needs_repeat"] is True
