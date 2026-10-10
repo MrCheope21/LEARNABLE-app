@@ -20,7 +20,9 @@ const SCRIPT: Record<string, RegExp> = {
   hi: /[ऀ-ॿ]/,
 };
 // Short texts that are legitimately the same in every language (names, symbols, units).
-const NEUTRAL = /^[\s\d+\-–—·:/()~%#.,…✓×🛒🏆📖XP：，、。；（）「」،]*$/;
+const NEUTRAL = /^[\s\d+\-–—·:/()~%#.,…✓×🛒🏆📖XP：，、。；（）「」،]*$/u;
+// Texts that are written the same way in several languages (e.g. "Q&A" in Japanese).
+const SAME_OK = new Set(["mat.qa"]);
 const bare = (text: string) => text.replace(/\{\w+\}/g, "");
 
 describe("interface catalogs", () => {
@@ -43,10 +45,10 @@ describe("interface catalogs", () => {
     const script = SCRIPT[lang];
     if (script) {
       it(`${lang} texts are written in its own script`, () => {
-        const wrong = keys.filter((k) => !NEUTRAL.test(bare(catalog[k] ?? "")) && !script.test(catalog[k] ?? ""));
+        const wrong = keys.filter((k) => !SAME_OK.has(k) && !NEUTRAL.test(bare(catalog[k] ?? "")) && !script.test(catalog[k] ?? ""));
         expect(wrong).toEqual([]);
         // The text must not be the English one left in place (apart from neutral ones).
-        const untranslated = keys.filter((k) => catalog[k] === en[k as keyof typeof en] && !NEUTRAL.test(bare(catalog[k] ?? "")));
+        const untranslated = keys.filter((k) => !SAME_OK.has(k) && catalog[k] === en[k as keyof typeof en] && !NEUTRAL.test(bare(catalog[k] ?? "")));
         expect(untranslated).toEqual([]);
       });
     }

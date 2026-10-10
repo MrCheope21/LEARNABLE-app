@@ -12,36 +12,26 @@ import { ReferenceDrawingEditor } from "./ReferenceDrawingEditor";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { MemoryBlock } from "../../components/ProgressBlocks";
 import { SortableList } from "../../components/SortableList";
-import { dateTime, memoryStateLabel, pageLabel, roleLabel, studyStateLabel } from "../../components/labels";
+import { dateTime } from "../../components/labels";
+import { useLabels } from "../../components/useLabels";
+import { useI18n } from "../../i18n";
+import type { MessageKey } from "../../i18n/messages/en";
 import { Breadcrumbs, ConsolidatePanel } from "./Consolidate";
 import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
 
 /** Polling interval while the backend generates Learning Items. Exported for tests. */
 export const GENERATION_POLL_MS = { value: 1500 };
 
-type Action = { action: ConceptAction; label: string; explains: string; primary?: boolean };
+type Action = { action: ConceptAction; label: MessageKey; explains: MessageKey; primary?: boolean };
 
-const ACTIVATE: Action = {
-  action: "activate",
-  label: "Activate",
-  explains: "Prepares this concept's questions from your material so you can study it.",
-  primary: true,
-};
+const ACTIVATE: Action = { action: "activate", label: "concept.activate", explains: "concept.activateHelp", primary: true };
+const DEACTIVATE: Action = { action: "deactivate", label: "concept.deactivate", explains: "concept.deactivateHelp" };
 const actionsFor: Record<Schemas["StudyState"], Action[]> = {
-  NOT_STUDIED: [
-    ACTIVATE,
-    { action: "mark-studied", label: "Mark as studied", explains: "You studied it elsewhere: it is noted, without preparing questions yet." },
-  ],
+  NOT_STUDIED: [ACTIVATE, { action: "mark-studied", label: "concept.markStudied", explains: "concept.markStudiedHelp" }],
   STUDIED: [ACTIVATE],
-  COMPLETED: [{ ...ACTIVATE, explains: "Studies it again: its questions come back into your sessions." }],
-  ACTIVE: [
-    { action: "pause", label: "Pause", explains: "Stops its questions for a while. Nothing is lost." },
-    { action: "deactivate", label: "Deactivate", explains: "Takes it out of study and reviews. Your answers and history are kept." },
-  ],
-  PAUSED: [
-    { action: "resume", label: "Resume", explains: "Brings its questions back into study and reviews.", primary: true },
-    { action: "deactivate", label: "Deactivate", explains: "Takes it out of study and reviews. Your answers and history are kept." },
-  ],
+  COMPLETED: [{ ...ACTIVATE, explains: "concept.activateAgainHelp" }],
+  ACTIVE: [{ action: "pause", label: "concept.pause", explains: "concept.pauseHelp" }, DEACTIVATE],
+  PAUSED: [{ action: "resume", label: "concept.resume", explains: "concept.resumeHelp", primary: true }, DEACTIVATE],
 };
 
 /**
@@ -50,6 +40,8 @@ const actionsFor: Record<Schemas["StudyState"], Action[]> = {
  * automatically: the user decides.
  */
 export function ConceptPage() {
+  const { t } = useI18n();
+  const { studyStateLabel } = useLabels();
   const { courseId = "", conceptId = "" } = useParams();
   const queryClient = useQueryClient();
   const concept = useQuery({
@@ -107,7 +99,7 @@ export function ConceptPage() {
                 <EditableTitle
                   title={data.title}
                   description={data.description}
-                  label="concept"
+                  label={t("label.concept")}
                   onSave={async (values) => {
                     const updated = await concepts.update(conceptId, values);
                     queryClient.setQueryData(["concept", conceptId], updated);
@@ -121,25 +113,25 @@ export function ConceptPage() {
               </header>
               {data.needs_source_review && (
                 <p className="banner warning">
-                  The material this concept came from was deleted. Keep, edit or delete it.
+                  {t("concept.sourceDeleted")}
                 </p>
               )}
               {/* What to study comes first, then "I have studied it", then managing the concept. */}
-              <QueryState query={items} label="Loading learning items…">
+              <QueryState query={items} label={t("concept.loadingItems")}>
                 {(list) => (list.length > 0 ? <ItemList items={list} conceptId={conceptId} courseId={courseId} /> : null)}
               </QueryState>
               <ConsolidatePanel courseId={courseId} conceptId={conceptId} active={data.study_state === "ACTIVE"} />
-              <section className="card" aria-label="Manage this concept">
+              <section className="card" aria-label={t("concept.manage")}>
                 <div className="actions">
                   {actionsFor[data.study_state].map(({ action, label, explains, primary }) => (
-                    <Tooltip key={action} text={explains}>
+                    <Tooltip key={action} text={t(explains)}>
                       <button
                         type="button"
                         className={primary ? "primary" : undefined}
                         disabled={act.isPending}
                         onClick={() => act.mutate(action)}
                       >
-                        {label}
+                        {t(label)}
                       </button>
                     </Tooltip>
                   ))}
@@ -157,7 +149,7 @@ export function ConceptPage() {
                   <MemoryBlock memory={conceptProgress.memory} />
                   {conceptProgress.misconceptions.length > 0 && (
                     <section className="stat-block">
-                      <h3>Recurring misconceptions</h3>
+                      <h3>{t("concept.misconceptions")}</h3>
                       <ul>
                         {conceptProgress.misconceptions.map((m, i) => (
                           <li key={i}>{m}</li>
@@ -186,23 +178,24 @@ function GenerationStatus({
   onRetry: () => void;
   error: unknown;
 }) {
+  const { t } = useI18n();
   const status = concept.item_generation_status;
   if (status === "GENERATING") {
     return (
       <p className="banner info" role="status">
-        Preparing learning items…
+        {t("concept.preparing")}
       </p>
     );
   }
   if (status === "FAILED" || status === "INSUFFICIENT_CONTEXT") {
     return (
       <div className="banner warning" role="status">
-        <span>{concept.item_generation_error ?? "Learning items couldn't be prepared."}</span>
+        <span>{concept.item_generation_error ?? t("concept.itemsFailed")}</span>
         <button type="button" disabled={retrying} onClick={onRetry}>
-          Try again
+          {t("common.tryAgain")}
         </button>
         {error instanceof ApiError && error.status === 409 && (
-          <span> This concept has no source material to build learning items from.</span>
+          <span> {t("concept.noSource")}</span>
         )}
       </div>
     );
@@ -212,19 +205,21 @@ function GenerationStatus({
 
 /** What the concept teaches, readable at once; each item's memory, questions and sources on demand. */
 function ItemList({ items, conceptId, courseId }: { items: Schemas["LearningItemRead"][]; conceptId: string; courseId: string }) {
+  const { t } = useI18n();
+  const { memoryStateLabel, roleLabel } = useLabels();
   const [open, setOpen] = useState<string | null>(null);
   const queryClient = useQueryClient();
   return (
     <section className="card study-content" aria-labelledby="study-content-title">
       <div className="title-row study-content-head">
-        <h2 id="study-content-title">What to study</h2>
-        <Tooltip text="Be tested on this concept whenever you like. It doesn't change your review plan and earns no XP.">
+        <h2 id="study-content-title">{t("concept.whatToStudy")}</h2>
+        <Tooltip text={t("concept.reviewOwnHelp")}>
           <Link className="button" to={studyLink(courseId, "PRACTICE", { conceptIds: [conceptId] })}>
-            🔁 Review on your own
+            {t("concept.reviewOwn")}
           </Link>
         </Tooltip>
       </div>
-      <p className="hint">Read these, then press "I have studied this concept" below to practise them.</p>
+      <p className="hint">{t("concept.readThen")}</p>
       <SortableList
         className="question-list"
         items={items}
@@ -250,7 +245,7 @@ function ItemList({ items, conceptId, courseId }: { items: Schemas["LearningItem
               </ul>
             )}
             <Link className="test-me" to={studyLink(courseId, "PRACTICE", { itemIds: [item.id] })}>
-              🔁 Test me on this
+              {t("concept.testMe")}
             </Link>
             <button
               type="button"
@@ -258,13 +253,13 @@ function ItemList({ items, conceptId, courseId }: { items: Schemas["LearningItem
               aria-expanded={open === item.id}
               onClick={() => setOpen(open === item.id ? null : item.id)}
             >
-              {open === item.id ? "Hide details" : "Details"}
+              {open === item.id ? t("concept.hideDetails") : t("concept.details")}
               <span className="hint">
                 {" "}
                 · {roleLabel[item.role]} · {memoryStateLabel[item.review_state.state]}
-                {item.review_state.level > 0 && ` · Level ${item.review_state.level}`}
-                {item.review_state.marked_hard && " · Marked hard"}
-                {!item.in_training && " · Not in training"}
+                {item.review_state.level > 0 && ` · ${t("concept.level", { n: item.review_state.level })}`}
+                {item.review_state.marked_hard && ` · ${t("concept.markedHard")}`}
+                {!item.in_training && ` · ${t("concept.notTraining")}`}
               </span>
             </button>
             {open === item.id && <ItemDetail item={item} conceptId={conceptId} />}
@@ -276,6 +271,8 @@ function ItemList({ items, conceptId, courseId }: { items: Schemas["LearningItem
 }
 
 function ItemDetail({ item, conceptId }: { item: Schemas["LearningItemRead"]; conceptId: string }) {
+  const { t } = useI18n();
+  const { memoryStateLabel, pageLabel } = useLabels();
   const queryClient = useQueryClient();
   const sources = useQuery({ queryKey: ["item-sources", item.id], queryFn: () => learningItems.sources(item.id) });
   const training = useMutation({
@@ -287,23 +284,23 @@ function ItemDetail({ item, conceptId }: { item: Schemas["LearningItemRead"]; co
     <div className="item-detail">
       <dl className="stats compact">
         <div className="stat">
-          <dt>State</dt>
+          <dt>{t("concept.state")}</dt>
           <dd>{memoryStateLabel[memory.state]}</dd>
         </div>
         <div className="stat">
-          <dt>Level</dt>
+          <dt>{t("concept.levelLabel")}</dt>
           <dd>{memory.level}</dd>
         </div>
         <div className="stat">
-          <dt>Next review</dt>
+          <dt>{t("concept.nextReview")}</dt>
           <dd>{dateTime(memory.due_at)}</dd>
         </div>
         <div className="stat">
-          <dt>Reviews</dt>
+          <dt>{t("concept.reviews")}</dt>
           <dd>{memory.review_count}</dd>
         </div>
         <div className="stat">
-          <dt>Lapses</dt>
+          <dt>{t("concept.lapses")}</dt>
           <dd>{memory.lapse_count}</dd>
         </div>
       </dl>
@@ -314,24 +311,24 @@ function ItemDetail({ item, conceptId }: { item: Schemas["LearningItemRead"]; co
           disabled={training.isPending}
           onChange={(e) => training.mutate(e.target.checked)}
         />
-        In training
+        {t("concept.inTraining")}
       </label>
       <PrioritySelect item={item} onSaved={() => void queryClient.invalidateQueries({ queryKey: ["items", conceptId] })} />
       <ReferenceDrawingEditor
         item={item}
         onChanged={() => void queryClient.invalidateQueries({ queryKey: ["items", conceptId] })}
       />
-      <h4>Questions</h4>
+      <h4>{t("concept.questions")}</h4>
       <ul>
         {item.questions.map((q) => (
           <li key={q.id}>{q.text}</li>
         ))}
       </ul>
-      <h4>Sources</h4>
-      <QueryState query={sources} label="Loading sources…">
+      <h4>{t("concept.sourcesTitle")}</h4>
+      <QueryState query={sources} label={t("concept.loadingSources")}>
         {(passages) =>
           passages.length === 0 ? (
-            <p className="hint">No source passages.</p>
+            <p className="hint">{t("concept.noSources")}</p>
           ) : (
             <>
               {passages.map((p) => (

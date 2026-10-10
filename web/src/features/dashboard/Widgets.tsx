@@ -21,7 +21,10 @@ function useDateFormats() {
   const { language } = useI18n();
   return useMemo(
     () => ({
-      dayFormat: new Intl.DateTimeFormat(language, { weekday: "short", timeZone: "UTC" }),
+      // Two letters tell the days apart in most languages; in Arabic and Hindi every short name
+      // starts the same way, so the narrow form (one distinct letter) is used instead.
+      dayFormat: new Intl.DateTimeFormat(language, { weekday: language === "ar" || language === "hi" ? "narrow" : "short", timeZone: "UTC" }),
+      dayInitials: language === "ar" || language === "hi" ? 1 : 2,
       longDay: new Intl.DateTimeFormat(language, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }),
       monthFormat: new Intl.DateTimeFormat(language, { month: "short", timeZone: "UTC" }),
     }),
@@ -31,7 +34,7 @@ function useDateFormats() {
 
 export function StreakWidget({ streak }: { streak: Dashboard["streak"] }) {
   const { t } = useI18n();
-  const { dayFormat, longDay } = useDateFormats();
+  const { dayFormat, dayInitials, longDay } = useDateFormats();
   const days = streak.current;
   return (
     <section className="card widget" aria-labelledby="streak-title">
@@ -52,7 +55,7 @@ export function StreakWidget({ streak }: { streak: Dashboard["streak"] }) {
       <ol className="week-strip" aria-label={t("streak.last7")}>
         {streak.last_7_days.map((day, index) => (
           <li key={day.date} className={index === streak.last_7_days.length - 1 ? "today" : undefined}>
-            {dayFormat.format(parseDay(day.date)).slice(0, 2)}
+            {dayFormat.format(parseDay(day.date)).slice(0, dayInitials)}
             <span className={day.active ? "dot on" : "dot"} />
             <span className="sr-only">
               {longDay.format(parseDay(day.date))}: {day.active ? t("streak.studied") : t("streak.noStudy")}

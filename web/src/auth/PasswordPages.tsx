@@ -9,6 +9,7 @@ const MIN_LENGTH = 12;
 
 /** "Forgot your password?": the same answer whether or not the email has an account. */
 export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -19,10 +20,11 @@ export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      const answer = await auth.requestPasswordReset(email.trim());
-      setSent(answer.detail);
+      await auth.requestPasswordReset(email.trim());
+      // The same wording whether or not the email has an account (the server's is English).
+      setSent(t("reset.sentMessage"));
     } catch (e) {
-      setError(userMessage(e));
+      setError(userMessage(e, t));
     } finally {
       setBusy(false);
     }
@@ -30,14 +32,14 @@ export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
 
   return (
     <form className="card signin-card" onSubmit={submit} aria-labelledby="forgot-title">
-      <h1 id="forgot-title">Reset your password</h1>
+      <h1 id="forgot-title">{t("reset.title")}</h1>
       {sent ? (
         <p role="status">{sent}</p>
       ) : (
         <>
-          <p className="hint">Enter your account's email. We'll send a link to choose a new password; it works once, for 30 minutes.</p>
+          <p className="hint">{t("reset.intro")}</p>
           <label>
-            Email
+            {t("signin.email")}
             <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </label>
           {error && (
@@ -46,12 +48,12 @@ export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
             </p>
           )}
           <button type="submit" className="primary" disabled={busy || !email.trim()}>
-            {busy ? "Please wait…" : "Send reset link"}
+            {busy ? t("common.pleaseWait") : t("reset.send")}
           </button>
         </>
       )}
       <button type="button" className="link" onClick={onBack}>
-        Back to sign in
+        {t("reset.back")}
       </button>
     </form>
   );
@@ -59,6 +61,7 @@ export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
 
 /** The page a reset link opens (/reset-password?token=…), signed in or not. */
 export function ResetPasswordPage() {
+  const { t } = useI18n();
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
   const [password, setPassword] = useState("");
@@ -81,7 +84,7 @@ export function ResetPasswordPage() {
       tokenStore.clear();
       setDone(true);
     } catch (e) {
-      setError(userMessage(e));
+      setError(userMessage(e, t));
     } finally {
       setBusy(false);
     }
@@ -90,25 +93,25 @@ export function ResetPasswordPage() {
   return (
     <main className="signin">
       <form className="card signin-card" onSubmit={submit} aria-labelledby="reset-title">
-        <a href="/" className="signin-logo" aria-label="LEARNABLE home">
+        <a href="/" className="signin-logo" aria-label={t("nav.home")}>
           <BrandLogo height={36} />
         </a>
-        <h1 id="reset-title">Choose a new password</h1>
+        <h1 id="reset-title">{t("reset.chooseTitle")}</h1>
         {!token ? (
           <p role="alert" className="error">
-            This link is incomplete. Open the link from the email again, or ask for a new one.
+            {t("reset.incomplete")}
           </p>
         ) : done ? (
           <>
-            <p role="status">Your password has been changed. Every device was signed out: sign in with the new password.</p>
+            <p role="status">{t("reset.done")}</p>
             <a className="button primary" href="/">
-              Sign in
+              {t("signin.submit")}
             </a>
           </>
         ) : (
           <>
             <label>
-              New password
+              {t("reset.newPassword")}
               <input
                 type="password"
                 autoComplete="new-password"
@@ -119,7 +122,7 @@ export function ResetPasswordPage() {
               />
             </label>
             <label>
-              Repeat the new password
+              {t("reset.repeat")}
               <input
                 type="password"
                 autoComplete="new-password"
@@ -129,20 +132,20 @@ export function ResetPasswordPage() {
                 onChange={(e) => setConfirm(e.target.value)}
               />
             </label>
-            <p className="hint">At least {MIN_LENGTH} characters.</p>
-            {tooShort && <p className="error">Use at least {MIN_LENGTH} characters.</p>}
-            {mismatch && <p className="error">The two passwords don't match.</p>}
+            <p className="hint">{t("signin.passwordRule")}</p>
+            {tooShort && <p className="error">{t("reset.tooShort", { n: MIN_LENGTH })}</p>}
+            {mismatch && <p className="error">{t("reset.mismatch")}</p>}
             {error && (
               <p role="alert" className="error">
                 {error}
               </p>
             )}
             <button type="submit" className="primary" disabled={busy || password.length < MIN_LENGTH || password !== confirm}>
-              {busy ? "Please wait…" : "Set new password"}
+              {busy ? t("common.pleaseWait") : t("reset.set")}
             </button>
           </>
         )}
-        {!done && <Link to="/">Back to sign in</Link>}
+        {!done && <Link to="/">{t("reset.back")}</Link>}
       </form>
     </main>
   );
@@ -170,7 +173,7 @@ export function ChangePasswordForm({ onDone }: { onDone: () => void }) {
       setCurrent("");
       setNext("");
     } catch (e) {
-      setError(userMessage(e));
+      setError(userMessage(e, t));
     } finally {
       setBusy(false);
     }

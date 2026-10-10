@@ -38,7 +38,7 @@ export function CourseLayout() {
         <NavLink end to={`/courses/${courseId}`} className="tree-course">
           {course.data?.title ?? t("course.fallback")}
         </NavLink>
-        <QueryState query={outline} label="Loading curriculum…">
+        <QueryState query={outline} label={t("course.loadingCurriculum")}>
           {(chapters) => {
             // The branch holding the page you're on stays open, even if you collapsed it.
             const openChapter = chapters.find(
