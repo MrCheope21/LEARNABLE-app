@@ -4,7 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { curriculum } from "../../api/endpoints";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
-import { sourceSummary } from "../../components/labels";
+import { useLabels } from "../../components/useLabels";
+import { useI18n } from "../../i18n";
 import { courseProgressKey, outlineKey } from "./CourseLayout";
 import {
   applyBody,
@@ -26,6 +27,7 @@ export const PROPOSAL_POLL_MS = { value: 1500 };
  * (docs/PROJECT_SPEC.md §20). Nothing is activated by accepting it.
  */
 export function ProposalPage() {
+  const { t } = useI18n();
   const { proposalId = "" } = useParams();
   const proposal = useQuery({
     queryKey: ["proposal", proposalId],
@@ -36,20 +38,20 @@ export function ProposalPage() {
   return (
     <div className="page">
       <header className="page-header">
-        <h1>Proposed curriculum</h1>
+        <h1>{t("prop.title")}</h1>
       </header>
       <QueryState query={proposal}>
         {(data) => {
           if (data.status === "GENERATING") {
             return (
               <p className="state" role="status">
-                The AI is reading your material…
+                {t("prop.reading")}
               </p>
             );
           }
-          if (data.status === "APPLIED") return <p className="state">This proposal has already been applied.</p>;
+          if (data.status === "APPLIED") return <p className="state">{t("prop.applied")}</p>;
           if (data.status !== "READY") {
-            return <p className="state error-state">{data.error_message ?? "The AI couldn't propose a curriculum."}</p>;
+            return <p className="state error-state">{data.error_message ?? t("prop.failed")}</p>;
           }
           return <ProposalEditor proposal={data} />;
         }}
@@ -59,6 +61,7 @@ export function ProposalPage() {
 }
 
 function ProposalEditor({ proposal }: { proposal: Schemas["CurriculumProposalRead"] }) {
+  const { t } = useI18n();
   const { courseId = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -84,7 +87,7 @@ function ProposalEditor({ proposal }: { proposal: Schemas["CurriculumProposalRea
 
   const accept = () => {
     if (hasBlankTitles(chapters, topics)) {
-      setProblem("Every chapter, topic and concept needs a title.");
+      setProblem(t("prop.blank"));
       return;
     }
     setProblem(null);
@@ -96,31 +99,28 @@ function ProposalEditor({ proposal }: { proposal: Schemas["CurriculumProposalRea
       <section className="card">
         {proposal.passages_used < proposal.passages_total && (
           <p className="banner info">
-            The material was long: this covers its first {proposal.passages_used} of {proposal.passages_total} passages.
+            {t("prop.longMaterial", { used: proposal.passages_used, total: proposal.passages_total })}
           </p>
         )}
         {proposal.dropped_concepts > 0 && (
           <p className="banner info">
-            {proposal.dropped_concepts} proposed concepts were left out because they couldn't be tied to your material.
+            {t("prop.dropped", { n: proposal.dropped_concepts })}
           </p>
         )}
-        <p className="hint">
-          Edit anything below: rename, reorder, move concepts between topics, merge, delete or add. Nothing is activated:
-          you choose what to study afterwards.
-        </p>
+        <p className="hint">{t("prop.hint")}</p>
       </section>
       {chapters ? (
         chapters.map((chapter, ci) => (
           <section key={chapter.key} className="card">
             <div className="editor-row">
               <input
-                aria-label="Chapter title"
+                aria-label={t("prop.chapterTitle")}
                 className="title-input"
                 value={chapter.title}
                 onChange={(e) => setChapters(chapters.map((c, i) => (i === ci ? { ...c, title: e.target.value } : c)))}
               />
               <button type="button" className="link danger" onClick={() => setChapters(chapters.filter((_, i) => i !== ci))}>
-                Delete chapter
+                {t("prop.deleteChapter")}
               </button>
             </div>
             <TopicsEditor
@@ -141,10 +141,10 @@ function ProposalEditor({ proposal }: { proposal: Schemas["CurriculumProposalRea
         <ErrorBanner error={apply.error ?? reject.error} />
         <div className="actions">
           <button type="button" className="primary" disabled={empty || apply.isPending} onClick={accept}>
-            Accept curriculum
+            {t("prop.accept")}
           </button>
           <button type="button" className="danger" disabled={reject.isPending} onClick={() => reject.mutate()}>
-            Reject proposal
+            {t("prop.reject")}
           </button>
         </div>
       </section>
@@ -153,37 +153,39 @@ function ProposalEditor({ proposal }: { proposal: Schemas["CurriculumProposalRea
 }
 
 function TopicsEditor({ topics, onChange }: { topics: DraftTopic[]; onChange: (topics: DraftTopic[]) => void }) {
+  const { t } = useI18n();
+  const { sourceSummary } = useLabels();
   const update = (index: number, topic: DraftTopic) => onChange(topics.map((t, i) => (i === index ? topic : t)));
   return (
     <>
       {topics.map((topic, ti) => (
-        <section key={topic.key} className="card topic-editor" aria-label={`Topic ${topic.title || ti + 1}`}>
+        <section key={topic.key} className="card topic-editor" aria-label={t("prop.topicAria", { title: topic.title || String(ti + 1) })}>
           <div className="editor-row">
             {topic.existingTopicId ? (
               <h3>
-                {topic.title} <span className="pill">existing topic</span>
+                {topic.title} <span className="pill">{t("prop.existingTopic")}</span>
               </h3>
             ) : (
               <input
-                aria-label="Topic title"
+                aria-label={t("prop.topicTitle")}
                 className="title-input"
                 value={topic.title}
                 onChange={(e) => update(ti, { ...topic, title: e.target.value })}
               />
             )}
-            <button type="button" aria-label="Move topic up" disabled={ti === 0} onClick={() => onChange(move(topics, ti, ti - 1))}>
+            <button type="button" aria-label={t("prop.moveTopicUp")} disabled={ti === 0} onClick={() => onChange(move(topics, ti, ti - 1))}>
               ↑
             </button>
             <button
               type="button"
-              aria-label="Move topic down"
+              aria-label={t("prop.moveTopicDown")}
               disabled={ti === topics.length - 1}
               onClick={() => onChange(move(topics, ti, ti + 1))}
             >
               ↓
             </button>
             <button type="button" className="link danger" onClick={() => onChange(topics.filter((_, i) => i !== ti))}>
-              Delete topic
+              {t("prop.deleteTopic")}
             </button>
           </div>
           <ol className="concept-editor">
@@ -191,7 +193,7 @@ function TopicsEditor({ topics, onChange }: { topics: DraftTopic[]; onChange: (t
               <li key={concept.key}>
                 <div className="editor-row">
                   <input
-                    aria-label="Concept title"
+                    aria-label={t("prop.conceptTitle")}
                     value={concept.title}
                     onChange={(e) =>
                       update(ti, {
@@ -200,10 +202,10 @@ function TopicsEditor({ topics, onChange }: { topics: DraftTopic[]; onChange: (t
                       })
                     }
                   />
-                  {concept.existingConceptId && <span className="pill">already exists</span>}
+                  {concept.existingConceptId && <span className="pill">{t("prop.exists")}</span>}
                   <button
                     type="button"
-                    aria-label="Move concept up"
+                    aria-label={t("prop.moveConceptUp")}
                     disabled={ci === 0}
                     onClick={() => update(ti, { ...topic, concepts: move(topic.concepts, ci, ci - 1) })}
                   >
@@ -211,7 +213,7 @@ function TopicsEditor({ topics, onChange }: { topics: DraftTopic[]; onChange: (t
                   </button>
                   <button
                     type="button"
-                    aria-label="Move concept down"
+                    aria-label={t("prop.moveConceptDown")}
                     disabled={ci === topic.concepts.length - 1}
                     onClick={() => update(ti, { ...topic, concepts: move(topic.concepts, ci, ci + 1) })}
                   >
@@ -219,16 +221,16 @@ function TopicsEditor({ topics, onChange }: { topics: DraftTopic[]; onChange: (t
                   </button>
                   {topics.length > 1 && (
                     <select
-                      aria-label="Move to topic"
+                      aria-label={t("prop.moveToTopic")}
                       value=""
                       onChange={(e) => e.target.value && onChange(moveConcept(topics, concept.key, e.target.value))}
                     >
-                      <option value="">Move to…</option>
+                      <option value="">{t("q.moveTo")}</option>
                       {topics
-                        .filter((t) => t.key !== topic.key)
-                        .map((t) => (
-                          <option key={t.key} value={t.key}>
-                            {t.title || "Untitled topic"}
+                        .filter((other) => other.key !== topic.key)
+                        .map((other) => (
+                          <option key={other.key} value={other.key}>
+                            {other.title || t("prop.untitled")}
                           </option>
                         ))}
                     </select>
@@ -239,7 +241,7 @@ function TopicsEditor({ topics, onChange }: { topics: DraftTopic[]; onChange: (t
                       className="link"
                       onClick={() => update(ti, { ...topic, concepts: mergeWithNext(topic.concepts, ci) })}
                     >
-                      Merge with next
+                      {t("prop.merge")}
                     </button>
                   )}
                   <button
@@ -247,7 +249,7 @@ function TopicsEditor({ topics, onChange }: { topics: DraftTopic[]; onChange: (t
                     className="link danger"
                     onClick={() => update(ti, { ...topic, concepts: topic.concepts.filter((_, i) => i !== ci) })}
                   >
-                    Delete
+                    {t("common.delete")}
                   </button>
                 </div>
                 {concept.sources.length > 0 && (
@@ -257,7 +259,7 @@ function TopicsEditor({ topics, onChange }: { topics: DraftTopic[]; onChange: (t
             ))}
           </ol>
           <button type="button" className="link" onClick={() => update(ti, { ...topic, concepts: [...topic.concepts, blankConcept()] })}>
-            + Add concept
+            {t("prop.addConcept")}
           </button>
         </section>
       ))}

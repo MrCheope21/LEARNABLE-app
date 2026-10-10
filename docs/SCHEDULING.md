@@ -108,6 +108,27 @@ dataclass.
   as a new history row that supersedes the old one, and only while it is the item's latest
   review. Later history is never rewritten.
 
+### 3c. Repeating a mostly green answer (owner decision, 2026-10-10)
+
+The answer screen scores four things: correct, complete, understanding, precise. A score of 0.8
+or more is green ("Strong"). When an answer is **green on at least 3 of the 4**, the evaluator is
+sure of its judgement (`confidence >= 0.5`, enough context) and calls it CORRECT or
+PARTIALLY_CORRECT, and the resolver would grade it **HARD** (passed, but with difficulty), the
+answer is **not graded yet**: `needs_repeat` is true. The student reviews the reference answer and
+repeats it (`POST /answers/{id}/repeat`). The attempt then counts as a correct first answer:
+final outcome **GOOD**, normal XP, and the schedule moves **forward** (never back). The AI's
+evaluation and `resolved_outcome` stay as written, for the record.
+
+- **A poor answer still fails.** If the resolver would grade it AGAIN (for instance three green
+  scores but so incomplete it doesn't pass), no repeat is offered: it is graded AGAIN and the
+  schedule restarts as for any failed review. The repeat is a chance to correct a near miss, not
+  a way around failing.
+- The repeat is not evaluated again; it only has to be written (non-empty).
+- The student may instead grade the answer themselves (override), as for any ungraded answer.
+- Not offered in PRACTICE sessions, for drawn answers, or when the evaluation is inconclusive
+  (those keep going to the student's own grade).
+- Thresholds live in `services/evaluation/resolver.py` (`GREEN_SCORE`, `GREEN_NEEDED`).
+
 ## 4. Session intents (what may move the schedule)
 
 | Intent | Items | Schedule |

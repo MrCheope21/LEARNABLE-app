@@ -460,6 +460,11 @@ def _next_step(cards: list[CourseCard], unfinished: list[ReviewSession]) -> Next
 # --- Streak, planner ---
 
 
+def current_streak(db: Session, user_id: uuid.UUID, today: date) -> int:
+    """Consecutive days with a completed answer (see `Streak.current`)."""
+    return _streak(db, user_id, today).current
+
+
 def _streak(db: Session, user_id: uuid.UUID, today: date) -> Streak:
     days = set(
         db.scalars(

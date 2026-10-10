@@ -121,6 +121,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/answers/{answer_id}/repeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Repeat Answer
+         * @description Review the reference answer and repeat it: an answer that was green on at least 3 of
+         *     the 4 scores then counts as correct on the first try (409 `repeat_not_offered` otherwise).
+         */
+        post: operations["repeat_answer_api_v1_answers__answer_id__repeat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/change-password": {
         parameters: {
             query?: never;
@@ -323,6 +344,109 @@ export interface paths {
         /** Create Topic */
         post: operations["create_topic_api_v1_chapters__chapter_id__topics_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/community/followers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Followers */
+        get: operations["followers_api_v1_community_followers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/community/following": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Following */
+        get: operations["following_api_v1_community_following_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/community/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Leaderboard */
+        get: operations["leaderboard_api_v1_community_leaderboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/community/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search People */
+        get: operations["search_people_api_v1_community_people_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/community/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Profile */
+        get: operations["profile_api_v1_community_users__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/community/users/{user_id}/follow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Follow */
+        put: operations["follow_api_v1_community_users__user_id__follow_put"];
+        post?: never;
+        /** Unfollow */
+        delete: operations["unfollow_api_v1_community_users__user_id__follow_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -709,6 +833,23 @@ export interface paths {
          *     Learning Item, under `chapter_id` or a new Chapter named after the file.
          */
         post: operations["upload_document_api_v1_courses__course_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Course Leaderboard */
+        get: operations["course_leaderboard_api_v1_courses__course_id__leaderboard_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1740,6 +1881,11 @@ export interface components {
              * Format: uuid
              */
             learning_item_id: string;
+            /**
+             * Needs Repeat
+             * @default false
+             */
+            needs_repeat: boolean;
             /** Needs Self Grade */
             needs_self_grade: boolean;
             /** Overridden At */
@@ -1795,6 +1941,11 @@ export interface components {
              * Format: uuid
              */
             learning_item_id: string;
+            /**
+             * Needs Repeat
+             * @default false
+             */
+            needs_repeat: boolean;
             /** Needs Self Grade */
             needs_self_grade: boolean;
             override_outcome: components["schemas"]["ReviewOutcome"] | null;
@@ -2226,6 +2377,20 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** CourseLeaderboard */
+        CourseLeaderboard: {
+            /** Entries */
+            entries: components["schemas"]["LeaderboardEntry"][];
+            me: components["schemas"]["LeaderboardEntry"] | null;
+            /** Me Hidden */
+            me_hidden: boolean;
+            /** Participants */
+            participants: number;
+            period: components["schemas"]["Period"];
+            scope: components["schemas"]["Scope"];
+            /** Since */
+            since: string | null;
+        };
         /** CourseMarketplace */
         CourseMarketplace: {
             listing: components["schemas"]["MyListing"] | null;
@@ -2647,6 +2812,36 @@ export interface components {
          * @enum {string}
          */
         ItemGenerationStatus: "NONE" | "GENERATING" | "READY" | "INSUFFICIENT_CONTEXT" | "FAILED";
+        /** Leaderboard */
+        Leaderboard: {
+            /** Entries */
+            entries: components["schemas"]["LeaderboardEntry"][];
+            me: components["schemas"]["LeaderboardEntry"] | null;
+            /** Me Hidden */
+            me_hidden: boolean;
+            period: components["schemas"]["Period"];
+            scope: components["schemas"]["Scope"];
+            /** Since */
+            since: string | null;
+        };
+        /** LeaderboardEntry */
+        LeaderboardEntry: {
+            /** Following */
+            following: boolean;
+            /** Is Me */
+            is_me: boolean;
+            /** Name */
+            name: string;
+            /** Rank */
+            rank: number;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Xp */
+            xp: number;
+        };
         /**
          * LearnAction
          * @description What the course's Learn button does. resume: an unfinished consolidation batch;
@@ -3129,6 +3324,34 @@ export interface components {
              */
             email: string;
         };
+        /**
+         * Period
+         * @enum {string}
+         */
+        Period: "day" | "week" | "month" | "all";
+        /**
+         * Person
+         * @description A listed person: someone you follow, a follower, or a search result.
+         */
+        Person: {
+            /** Follows Me */
+            follows_me: boolean;
+            /** I Follow */
+            i_follow: boolean;
+            /** Last Active */
+            last_active: string | null;
+            /** Name */
+            name: string;
+            /** Streak */
+            streak: number;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Xp Today */
+            xp_today: number;
+        };
         /** Planner */
         Planner: {
             /** As Of */
@@ -3163,6 +3386,34 @@ export interface components {
             xp: number;
             /** Xp With Hint */
             xp_with_hint: number;
+        };
+        /** Profile */
+        Profile: {
+            /** Followers */
+            followers: number;
+            /** Following */
+            following: number;
+            /** Follows Me */
+            follows_me: boolean;
+            /** I Follow */
+            i_follow: boolean;
+            /** Is Me */
+            is_me: boolean;
+            /** Member Since */
+            member_since: string;
+            /** Name */
+            name: string;
+            /** Streak */
+            streak: number;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Xp Total */
+            xp_total: number;
+            /** Xp Week */
+            xp_week: number;
         };
         /** ProposalChapter */
         ProposalChapter: {
@@ -3284,6 +3535,14 @@ export interface components {
             sources: components["schemas"]["ProposalSource"][];
         };
         /**
+         * RepeatCreate
+         * @description The answer written again after reviewing the reference.
+         */
+        RepeatCreate: {
+            /** Text */
+            text: string;
+        };
+        /**
          * ReviewLoad
          * @description Upcoming reviews of items that can be reviewed now (active, trained, not paused), by the
          *     user's calendar day. Buckets don't overlap: everything due today is due_now + later_today.
@@ -3368,6 +3627,11 @@ export interface components {
             previous_level: number;
             previous_state: components["schemas"]["MemoryState"];
         };
+        /**
+         * Scope
+         * @enum {string}
+         */
+        Scope: "everyone" | "friends";
         /**
          * SelectionMode
          * @description How a session's pool is chosen (docs/PROJECT_SPEC.md §49), independent of intent.
@@ -3603,6 +3867,8 @@ export interface components {
         };
         /** UserPreferencesUpdate */
         UserPreferencesUpdate: {
+            /** Community Visible */
+            community_visible?: boolean | null;
             /** Daily Goal */
             daily_goal?: number | null;
             /** Display Name */
@@ -3614,6 +3880,8 @@ export interface components {
         };
         /** UserRead */
         UserRead: {
+            /** Community Visible */
+            community_visible: boolean;
             /** Daily Goal */
             daily_goal: number;
             /** Display Name */
@@ -3907,6 +4175,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["OverrideCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    repeat_answer_api_v1_answers__answer_id__repeat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                answer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RepeatCreate"];
             };
         };
         responses: {
@@ -4328,6 +4631,200 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TopicRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    followers_api_v1_community_followers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"][];
+                };
+            };
+        };
+    };
+    following_api_v1_community_following_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"][];
+                };
+            };
+        };
+    };
+    leaderboard_api_v1_community_leaderboard_get: {
+        parameters: {
+            query?: {
+                period?: components["schemas"]["Period"];
+                scope?: components["schemas"]["Scope"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Leaderboard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_people_api_v1_community_people_get: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Person"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    profile_api_v1_community_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    follow_api_v1_community_users__user_id__follow_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unfollow_api_v1_community_users__user_id__follow_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -5247,6 +5744,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    course_leaderboard_api_v1_courses__course_id__leaderboard_get: {
+        parameters: {
+            query?: {
+                period?: components["schemas"]["Period"];
+                scope?: components["schemas"]["Scope"];
+            };
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseLeaderboard"];
                 };
             };
             /** @description Validation Error */

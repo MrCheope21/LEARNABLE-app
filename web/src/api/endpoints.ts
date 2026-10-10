@@ -325,6 +325,9 @@ export const study = {
         body: { argument },
       }),
     ),
+  /** After reviewing the reference: repeat a mostly green answer, which then counts as correct. */
+  repeat: (answerId: Id, text: string) =>
+    call(api.POST("/api/v1/answers/{answer_id}/repeat", { params: { path: { answer_id: answerId } }, body: { text } })),
   override: (answerId: Id, outcome: Schemas["ReviewOutcome"]) =>
     call(
       api.POST("/api/v1/answers/{answer_id}/override", {
@@ -372,4 +375,20 @@ export const marketplace = {
     call(
       api.POST("/api/v1/courses/{course_id}/marketplace/publish", { params: { path: { course_id: courseId } }, body }),
     ),
+};
+
+export type Period = Schemas["Period"];
+export type Scope = Schemas["Scope"];
+
+export const community = {
+  leaderboard: (period: Period, scope: Scope) =>
+    call(api.GET("/api/v1/community/leaderboard", { params: { query: { period, scope } } })),
+  courseLeaderboard: (courseId: Id, period: Period, scope: Scope) =>
+    call(api.GET("/api/v1/courses/{course_id}/leaderboard", { params: { path: { course_id: courseId }, query: { period, scope } } })),
+  people: (q: string) => call(api.GET("/api/v1/community/people", { params: { query: { q } } })),
+  following: () => call(api.GET("/api/v1/community/following")),
+  followers: () => call(api.GET("/api/v1/community/followers")),
+  profile: (userId: Id) => call(api.GET("/api/v1/community/users/{user_id}", { params: { path: { user_id: userId } } })),
+  follow: (userId: Id) => call(api.PUT("/api/v1/community/users/{user_id}/follow", { params: { path: { user_id: userId } } })),
+  unfollow: (userId: Id) => call(api.DELETE("/api/v1/community/users/{user_id}/follow", { params: { path: { user_id: userId } } })),
 };

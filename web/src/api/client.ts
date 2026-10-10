@@ -1,4 +1,5 @@
 import createClient, { type Middleware } from "openapi-fetch";
+import { en, type MessageKey } from "../i18n/messages/en";
 import type { components, paths } from "./schema";
 
 /** Every API model, generated from the backend's OpenAPI schema (npm run gen:api). */
@@ -127,37 +128,44 @@ function handle<T>(response: Response, data: T | undefined, error: unknown): T {
   throw new ApiError(response.status, errorType, message, details);
 }
 
-/** Text safe to show a user: our own wording for known errors, never a raw payload. */
-export function userMessage(error: unknown): string {
-  if (!(error instanceof ApiError)) return "Something went wrong. Please try again.";
+export type Translator = (key: MessageKey, vars?: Record<string, string | number>) => string;
+
+const english: Translator = (key) => en[key];
+
+/** Text safe to show a user: our own wording for known errors, never a raw payload. `t` is the
+ * interface language's translator (components pass theirs); without it, English. */
+export function userMessage(error: unknown, t: Translator = english): string {
+  if (!(error instanceof ApiError)) return t("error.generic");
   switch (error.errorType) {
     case "transport":
-      return "Can't reach the server. Check your connection and try again.";
+      return t("error.transport");
     case "authentication_failed":
-      return error.message || "Your session has expired. Please sign in again.";
+      return error.message || t("error.session");
     case "validation_error":
       // Rejections with a reason (e.g. wrong_password) carry a message written for the user.
-      return typeof error.details.reason === "string" && error.message
-        ? error.message
-        : "Some of the information entered isn't valid.";
+      return typeof error.details.reason === "string" && error.message ? error.message : t("error.validation");
     case "not_found":
-      return "This item no longer exists.";
+      return t("error.notFound");
     // The server's own message names its actual limit / the formats accepted for this upload.
     case "payload_too_large":
-      return error.message || "This file is too large.";
+      return error.message || t("error.tooLarge");
     case "unsupported_media_type":
-      return error.message || "This file type isn't supported. Use PDF, Word, PowerPoint, text or Markdown files.";
+      return error.message || t("error.unsupported");
     case "ai_not_configured":
-      return "The AI isn't set up on the server yet.";
+      return t("error.aiNotConfigured");
     case "ai_unavailable":
-      return "The AI is temporarily unavailable. Please try again later.";
+      return t("error.aiUnavailable");
     case "ai_invalid_output":
-      return "The AI gave an unusable response. Please try again.";
+      return t("error.aiInvalid");
     case "invalid_state_transition":
-      return "That action isn't possible in the current state.";
+      return t("error.state");
+    case "rate_limited":
+      return t("error.rateLimited");
+    case "conflict":
+      return error.details.reason === "managed_course" ? t("error.managedCourse") : error.message || t("error.generic");
     case "internal_error":
-      return "Something went wrong on the server. Please try again.";
+      return t("error.server");
     default:
-      return error.message || "Something went wrong. Please try again.";
+      return error.message || t("error.generic");
   }
 }

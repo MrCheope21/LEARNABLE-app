@@ -4,6 +4,7 @@ import { dashboard } from "../../api/endpoints";
 import { QueryState } from "../../components/QueryState";
 import { HelpTip } from "../../components/HelpTip";
 import { dateTime } from "../../components/labels";
+import { useI18n } from "../../i18n";
 import { weakSpotsKey } from "./CourseLayout";
 import { CheckRow } from "../study/EvaluationView";
 import { studyLink } from "../study/StudyPage";
@@ -15,24 +16,22 @@ const DRILL_CONCEPTS = 5;
  * answers to each item, grouped by concept, with a practice session on exactly those concepts.
  */
 export function WeakSpotsPage() {
+  const { t } = useI18n();
   const { courseId = "" } = useParams();
   const spots = useQuery({ queryKey: weakSpotsKey(courseId), queryFn: () => dashboard.weakSpots(courseId) });
   return (
     <div className="page">
       <header className="page-header">
         <div className="title-row">
-          <h1>What you keep getting wrong</h1>
-          <HelpTip text="help.weakSpots" topic="What you keep getting wrong" guide="progress" />
+          <h1>{t("course.weakSpots")}</h1>
+          <HelpTip text="help.weakSpots" topic={t("course.weakSpots")} guide="progress" />
         </div>
-        <p className="hint">
-          Mistakes found in your recent answers, by concept. They disappear once your latest answers to the item no
-          longer show them. Practice doesn't change your review schedule.
-        </p>
+        <p className="hint">{t("weak.intro")}</p>
       </header>
-      <QueryState query={spots} label="Looking at your recent answers…">
+      <QueryState query={spots} label={t("weak.loading")}>
         {({ concepts }) =>
           concepts.length === 0 ? (
-            <p className="state">No recurring mistakes right now. Keep answering and they will show up here.</p>
+            <p className="state">{t("weak.empty")}</p>
           ) : (
             <>
               <Link
@@ -41,8 +40,7 @@ export function WeakSpotsPage() {
                   conceptIds: concepts.slice(0, DRILL_CONCEPTS).map((c) => c.concept_id),
                 })}
               >
-                Practice the top {Math.min(concepts.length, DRILL_CONCEPTS)}{" "}
-                {concepts.length === 1 ? "concept" : "concepts"}
+                {t(concepts.length === 1 ? "weak.practiceTop.one" : "weak.practiceTop.other", { n: Math.min(concepts.length, DRILL_CONCEPTS) })}
               </Link>
               <ul className="weak-list">
                 {concepts.map((concept) => (
@@ -57,16 +55,16 @@ export function WeakSpotsPage() {
                         </span>
                       </div>
                       <Link className="button" to={studyLink(courseId, "PRACTICE", { conceptIds: [concept.concept_id] })}>
-                        Practice this
+                        {t("weak.practiceThis")}
                       </Link>
                     </header>
                     <ul className="checklist">
                       {concept.misconceptions.map((m) => (
-                        <CheckRow key={m.text} tone="bad" mark="!" word="Misconception">
+                        <CheckRow key={m.text} tone="bad" mark="!" word={t("eval.misconception")}>
                           {m.text}
                           <span className="hint">
                             {" "}
-                            · seen {m.count} {m.count === 1 ? "time" : "times"}, last {dateTime(m.last_seen)}
+                            · {t(m.count === 1 ? "weak.seen.one" : "weak.seen.other", { n: m.count, date: dateTime(m.last_seen) })}
                           </span>
                         </CheckRow>
                       ))}

@@ -123,6 +123,12 @@ class AnswerCreate(InputModel):
     drawing: Annotated[str, Field(max_length=5_000_000)] | None = None
 
 
+class RepeatCreate(InputModel):
+    """The answer written again after reviewing the reference."""
+
+    text: Annotated[str, Field(min_length=1, max_length=10_000)]
+
+
 class OverrideCreate(InputModel):
     outcome: ReviewOutcome
     note: Annotated[str, Field(max_length=500)] | None = None
@@ -205,6 +211,9 @@ class AnswerResult(BaseModel):
     final_outcome: ReviewOutcome | None
     # No outcome yet: the user must grade it (POST /answers/{id}/override) or retry evaluation.
     needs_self_grade: bool
+    # Green on at least 3 of 4 scores: review the reference answer and repeat it
+    # (POST /answers/{id}/repeat); the attempt then counts as a correct first answer.
+    needs_repeat: bool = False
     # Null when the answer didn't move the schedule (practice, or no outcome yet).
     schedule: ScheduleChange | None
     reference: Reference

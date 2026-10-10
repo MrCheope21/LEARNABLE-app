@@ -468,3 +468,32 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .published-by-me summary { cursor: pointer; }
 .published-by-me ul { list-style: none; padding: 0; margin: 0.6rem 0 0; display: grid; gap: 0.5rem; }
 .published-by-me li { display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; align-items: baseline; }
+
+/* Community */
+.tabs { display: flex; gap: 0.25rem; margin: 0.5rem 0 1rem; border-bottom: 1px solid var(--border); }
+.tabs a { padding: 0.55rem 1rem; text-decoration: none; color: var(--muted); border-bottom: 3px solid transparent; font-weight: 500; }
+.tabs a.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.board-controls { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; margin: 0 0 1rem; }
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.segmented button { border: none; border-radius: 0; background: none; padding: 0.4rem 0.9rem; color: var(--muted); }
+.segmented button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+.leader-card { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; background: color-mix(in srgb, var(--xp) 8%, var(--surface)); }
+.leader-card h2 { margin: 0.1rem 0; }
+.leader-card p { margin: 0; font-variant-numeric: tabular-nums; }
+.leader-crown { font-size: 2.2rem; }
+.board { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: 0.4rem; }
+.board-row { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr) auto auto; gap: 0.6rem; align-items: center; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.board-row.me { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.board-rank { font-weight: 700; text-align: center; color: var(--muted); font-variant-numeric: tabular-nums; }
+.board-name { overflow-wrap: anywhere; font-weight: 600; }
+.board-xp { font-variant-numeric: tabular-nums; color: var(--muted); }
+.board-me, .join-card, .friends-search { margin-bottom: 1rem; }
+.people { list-style: none; padding: 0; margin: 0.6rem 0 0; display: grid; gap: 0.6rem; }
+.person { display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+.person p { margin: 0; }
+.profile-card { display: grid; gap: 0.9rem; justify-items: start; }
+.profile-card h1 { margin: 0; }
+.profile-avatar.large { width: 64px; height: 64px; font-size: 1.6rem; }
+@media (max-width: 640px) { .board-row { grid-template-columns: 2rem minmax(0, 1fr) auto; } .board-row button { grid-column: 2 / -1; justify-self: start; } }
+.repeat-panel { display: grid; gap: 0.5rem; margin-top: 0.8rem; padding: 1rem; border: 1px solid var(--good); border-radius: var(--radius); background: color-mix(in srgb, var(--good) 6%, var(--surface)); }
+.repeat-panel h3 { margin: 0; }

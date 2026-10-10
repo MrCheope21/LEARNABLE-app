@@ -29,6 +29,7 @@ from app.core.rate_limit import limiter, per_ip, per_user
 from app.db.session import get_db
 from app.email.sender import EmailSender, get_email_sender
 from app.models.user import User
+from app.services import community
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -107,6 +108,13 @@ def update_preferences(
         current_user.language = payload.language
     if payload.display_name is not None:
         current_user.display_name = " ".join(payload.display_name.split()) or None
+    if payload.community_visible is not None:
+        current_user.community_visible = payload.community_visible
+    # Visible people need a name (it is all others see); clearing the name takes you out.
+    if current_user.community_visible and not current_user.display_name:
+        if payload.community_visible:
+            community.check_can_be_visible(current_user)
+        current_user.community_visible = False
     db.commit()
     db.refresh(current_user)
     return current_user

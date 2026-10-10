@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Integer, String, Uuid
+from sqlalchemy import Boolean, Integer, String, Uuid, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -26,6 +26,9 @@ class User(Base):
     language: Mapped[str] = mapped_column(String(8), default="en", server_default="en")
     # How the user wants to be shown; optional, the email is used otherwise.
     display_name: Mapped[str | None] = mapped_column(String(80), default=None)
+    # Opt-in to the community: appears on leaderboards, can be found and followed. Off by
+    # default; needs a display_name (the email is never shown to other users).
+    community_visible: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     # Carried by every access token; a password change increments it, so every existing session
     # (on every device) ends at once.
     token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

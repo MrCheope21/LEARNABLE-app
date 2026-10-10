@@ -24,6 +24,7 @@ export function SettingsPage() {
         {(user) => (
           <>
             <ProfileSection user={user} />
+            <CommunitySection user={user} />
             <LanguageSection user={user} />
             <section className="card settings-section" aria-labelledby="settings-study">
               <h2 id="settings-study">{t("settings.study")}</h2>
@@ -48,6 +49,31 @@ function useSaveProfile() {
       void queryClient.invalidateQueries({ queryKey: dashboardKey });
     },
   });
+}
+
+/** Opt in or out of the leaderboards, search and following. Off until the user turns it on. */
+function CommunitySection({ user }: { user: User }) {
+  const { t } = useI18n();
+  const save = useSaveProfile();
+  const id = useId();
+  return (
+    <section className="card settings-section" aria-labelledby="settings-community">
+      <h2 id="settings-community">{t("settings.community")}</h2>
+      <label className="toggle" htmlFor={id}>
+        <input
+          id={id}
+          type="checkbox"
+          checked={user.community_visible}
+          disabled={save.isPending || (!user.community_visible && !user.display_name)}
+          onChange={(e) => save.mutate({ community_visible: e.target.checked })}
+        />
+        {t("settings.communityToggle")}
+      </label>
+      <p className="hint">{t("settings.communityHint")}</p>
+      {!user.display_name && <p className="hint">{t("community.needName")}</p>}
+      <ErrorBanner error={save.error} />
+    </section>
+  );
 }
 
 function ProfileSection({ user }: { user: User }) {
