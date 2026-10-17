@@ -16,14 +16,15 @@ if ! command -v docker >/dev/null; then
   curl -fsSL https://get.docker.com | sudo sh
   sudo usermod -aG docker "$USER"
 fi
-sudo apt-get install -y git >/dev/null
+sudo apt-get install -y git cron >/dev/null
 
 REPO="$HOME/LEARNABLE-app"
 [ -d "$REPO" ] || git clone https://github.com/MrCheope21/LEARNABLE-app.git "$REPO"
 
 mkdir -p "$HOME/backups"
 CRON="17 3 * * * sh $REPO/deploy/google/backup-on-server.sh >> $HOME/backups/backup.log 2>&1"
-( crontab -l 2>/dev/null | grep -v backup-on-server.sh; echo "$CRON" ) | crontab -
+{ crontab -l 2>/dev/null | grep -v backup-on-server.sh || true; echo "$CRON"; } | crontab -
+crontab -l | grep -q backup-on-server.sh || { echo "Could not install the daily backup job" >&2; exit 1; }
 
 echo
 echo "Done. Log out and back in (so Docker works without sudo), then follow docs/DEPLOYMENT_GOOGLE.md step 5."

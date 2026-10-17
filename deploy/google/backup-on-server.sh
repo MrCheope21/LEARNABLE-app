@@ -5,7 +5,7 @@ set -eu
 DEST="$HOME/backups"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$DEST"
-docker run --rm -v learnable_app_var:/v:ro -v "$DEST":/out python:3.12-slim python - "$STAMP" <<'PY'
+docker run --rm -i -v learnable_app_var:/v:ro -v "$DEST":/out python:3.12-slim python - "$STAMP" <<'PY'
 import sqlite3, sys, tarfile, os, tempfile
 stamp = sys.argv[1]
 src = sqlite3.connect("file:/v/learnable.db?mode=ro", uri=True)
@@ -20,4 +20,5 @@ with tarfile.open(f"/out/learnable-{stamp}.tar.gz", "w:gz") as tar:
         tar.add("/v/documents", arcname="documents")
 PY
 ls -1t "$DEST"/learnable-*.tar.gz | tail -n +15 | xargs -r rm -f
+[ -s "$DEST/learnable-$STAMP.tar.gz" ] || { echo "$(date -Is) backup FAILED" >&2; exit 1; }
 echo "$(date -Is) backup learnable-$STAMP.tar.gz ok"
