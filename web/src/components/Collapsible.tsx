@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useI18n } from "../i18n";
 
 function read(key: string): Set<string> {
   try {
@@ -59,13 +60,14 @@ export function CollapseToggle({
   label: string;
   controls: string;
 }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
       className={expanded ? "collapse-toggle expanded" : "collapse-toggle"}
       aria-expanded={expanded}
       aria-controls={controls}
-      aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
+      aria-label={t(expanded ? "common.collapse" : "common.expand", { label })}
       onClick={onToggle}
     >
       <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">

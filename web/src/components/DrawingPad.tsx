@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useI18n } from "../i18n";
 
 type Point = { x: number; y: number };
 type Stroke = { points: Point[]; eraser: boolean; width: number };
@@ -14,6 +15,7 @@ const MAX_PHOTO_SIDE = 1600;
  * photo of a drawing made on paper. Reports a PNG/JPEG data URL, or null while empty.
  */
 export function DrawingPad({ onChange, disabled = false }: { onChange: (dataUrl: string | null) => void; disabled?: boolean }) {
+  const { t } = useI18n();
   const canvas = useRef<HTMLCanvasElement>(null);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [eraser, setEraser] = useState(false);
@@ -90,14 +92,14 @@ export function DrawingPad({ onChange, disabled = false }: { onChange: (dataUrl:
       setPhoto(url);
       onChange(url);
     } catch {
-      setPhotoError("That file isn't an image this browser can read. Try a JPEG or PNG photo.");
+      setPhotoError(t("drawing.photoError"));
     }
   };
 
   if (photo) {
     return (
       <div className="drawing-pad">
-        <img src={photo} alt="Your photo of the drawing" className="drawing-photo" />
+        <img src={photo} alt={t("drawing.photoAlt")} className="drawing-photo" />
         <div className="drawing-tools">
           <button
             type="button"
@@ -107,7 +109,7 @@ export function DrawingPad({ onChange, disabled = false }: { onChange: (dataUrl:
               report(strokes);
             }}
           >
-            Draw instead
+            {t("drawing.drawInstead")}
           </button>
         </div>
       </div>
@@ -116,21 +118,21 @@ export function DrawingPad({ onChange, disabled = false }: { onChange: (dataUrl:
 
   return (
     <div className="drawing-pad">
-      <div className="drawing-tools" role="toolbar" aria-label="Drawing tools">
+      <div className="drawing-tools" role="toolbar" aria-label={t("drawing.tools")}>
         <button type="button" aria-pressed={!eraser} disabled={disabled} onClick={() => setEraser(false)}>
-          ✏️ Pen
+          {t("drawing.pen")}
         </button>
         <button type="button" aria-pressed={eraser} disabled={disabled} onClick={() => setEraser(true)}>
-          🧽 Eraser
+          {t("drawing.eraser")}
         </button>
         <button type="button" aria-pressed={thick} disabled={disabled || eraser} onClick={() => setThick((v) => !v)}>
-          {thick ? "Thick line" : "Thin line"}
+          {thick ? t("drawing.thick") : t("drawing.thin")}
         </button>
         <button type="button" disabled={disabled || strokes.length === 0} onClick={undo}>
-          ↶ Undo
+          {t("drawing.undo")}
         </button>
         <button type="button" className="link danger" disabled={disabled || strokes.length === 0} onClick={clear}>
-          Clear
+          {t("drawing.clear")}
         </button>
       </div>
       <canvas
@@ -139,7 +141,7 @@ export function DrawingPad({ onChange, disabled = false }: { onChange: (dataUrl:
         height={HEIGHT}
         className="drawing-canvas"
         role="img"
-        aria-label="Drawing area: draw your answer here"
+        aria-label={t("drawing.area")}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
@@ -147,7 +149,7 @@ export function DrawingPad({ onChange, disabled = false }: { onChange: (dataUrl:
         onPointerLeave={up}
       />
       <label className="drawing-upload">
-        Drew it on paper? Upload a photo instead
+        {t("drawing.photoUpload")}
         <input
           type="file"
           accept="image/*"

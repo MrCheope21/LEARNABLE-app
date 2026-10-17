@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../../api/client";
 import { courses, curriculum, progress, reorder } from "../../api/endpoints";
 import { useReadOnlyCourse } from "../../components/CourseAccess";
+import { useI18n } from "../../i18n";
 import { EditableTitle } from "../../components/EditableTitle";
 import { QueryState } from "../../components/QueryState";
 import { SortableList } from "../../components/SortableList";
@@ -12,6 +13,7 @@ import { courseProgressKey, outlineKey, refreshTitles } from "./CourseLayout";
 import { Breadcrumbs } from "./Consolidate";
 
 export function ChapterPage() {
+  const { t } = useI18n();
   const { courseId = "", chapterId = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -29,7 +31,7 @@ export function ChapterPage() {
       <QueryState query={outline}>
         {(chapters) => {
           const chapter = chapters.find((c) => c.id === chapterId);
-          if (!chapter) return <p className="state">This chapter no longer exists.</p>;
+          if (!chapter) return <p className="state">{t("chapter.gone")}</p>;
           return (
             <>
               <Breadcrumbs courseId={courseId} chapterId={chapter.id} current={chapter.title} />
@@ -37,7 +39,7 @@ export function ChapterPage() {
                 <EditableTitle
                   title={chapter.title}
                   description={chapter.description}
-                  label="chapter"
+                  label={t("label.chapter")}
                   onSave={async (values) => {
                     await courses.updateChapter(chapter.id, values);
                     refreshTitles(queryClient, courseId);
@@ -52,30 +54,29 @@ export function ChapterPage() {
               )}
               <section className="card">
                 <header className="card-header">
-                  <h2>Topics</h2>
+                  <h2>{t("chapter.topics")}</h2>
                   {!readOnly && (
                     <button type="button" className="primary" disabled={analyze.isPending} onClick={() => analyze.mutate()}>
-                      {analyze.isPending ? "Starting analysis…" : "Analyze new material"}
+                      {analyze.isPending ? t("chapter.starting") : t("chapter.analyze")}
                     </button>
                   )}
                 </header>
                 {!readOnly && (
                   <p className="hint">
-                    The AI proposes topics and concepts from material not analyzed yet. You review the proposal before anything
-                    changes.
+                    {t("chapter.analyzeHint")}
                   </p>
                 )}
                 {analyze.error && (
                   <p className="banner error" role="alert">
                     {analyze.error instanceof ApiError && analyze.error.status === 409
-                      ? "There's no new study material to analyze in this chapter. Upload material first."
+                      ? t("chapter.noMaterial")
                       : analyze.error instanceof ApiError
                         ? analyze.error.message
-                        : "Something went wrong."}
+                        : t("error.generic")}
                   </p>
                 )}
                 {chapter.topics.length === 0 ? (
-                  <p className="hint">No topics yet. Upload material below, then analyze it.</p>
+                  <p className="hint">{t("chapter.empty")}</p>
                 ) : (
                   <SortableList
                     items={chapter.topics}
@@ -88,7 +89,7 @@ export function ChapterPage() {
                       <>
                         <Link to={`/courses/${courseId}/topics/${topic.id}`}>{topic.title}</Link>
                         <span className="row-meta">
-                          {topic.concepts.filter((c) => c.study_state === "ACTIVE").length} of {topic.concepts.length} concepts active
+                          {t("chapter.topicMeta", { active: topic.concepts.filter((c) => c.study_state === "ACTIVE").length, total: topic.concepts.length })}
                         </span>
                       </>
                     )}

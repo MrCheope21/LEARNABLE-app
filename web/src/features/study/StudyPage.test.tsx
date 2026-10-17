@@ -115,4 +115,57 @@ describe("study session", () => {
     await user.keyboard("2");
     await waitFor(() => expect(requests.find((r) => r.path.endsWith("/override"))?.body).toEqual({ outcome: "HARD" }));
   });
+
+  it("offers a repeat for a mostly green answer, and it then counts as correct", async () => {
+    const user = userEvent.setup();
+    const waiting = { ...fixtures.answer_result, final_outcome: null, resolved_outcome: "AGAIN", needs_self_grade: true, needs_repeat: true, schedule: null, xp: null };
+    const repeated = { ...fixtures.answer_result, final_outcome: "GOOD", needs_self_grade: false, needs_repeat: false };
+    const { requests } = mockApi([
+      ["POST", /\/review-sessions$/, ok(fixtures.session)],
+      ["GET", /\/review-sessions\/[^/]+\/next$/, sequence(fixtures.card_learn, fixtures.card_done)],
+      ["POST", /\/review-sessions\/[^/]+\/answers$/, ok(waiting)],
+      ["POST", /\/answers\/[^/]+\/repeat$/, ok(repeated)],
+      ["POST", /\/answers\/[^/]+\/override$/, ok(fixtures.override)],
+      ["POST", /\/review-sessions\/[^/]+\/end$/, ok(fixtures.session)],
+      ["GET", /\/documents\/[^/]+\/chunks\/[^/]+$/, ok(fixtures.chunk)],
+    ]);
+    renderApp(`/study/${course}?intent=LEARN&concepts=${fixtures.card_learn.card!.concept_id}`);
+    await screen.findByText("New material");
+    await user.click(screen.getByRole("button", { name: /I'm ready/ }));
+    await user.type(screen.getByLabelText("Your answer"), "La banca acquista la proprieta del denaro");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+
+    // Not graded yet: review the reference and repeat, with no grade buttons or Continue.
+    expect(await screen.findByText("Review the reference answer, then repeat it")).toBeInTheDocument();
+    expect(screen.queryByText("How well did you know it?")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Continue/ })).not.toBeInTheDocument();
+    const repeat = screen.getByRole("button", { name: "Repeat it" });
+    expect(repeat).toBeDisabled();
+    await user.type(screen.getByLabelText("Your answer, again"), "La banca acquista la proprieta del denaro ricevuto.");
+    await user.click(repeat);
+    await waitFor(() => expect(requests.find((r) => r.path.endsWith("/repeat"))?.body).toEqual({ text: "La banca acquista la proprieta del denaro ricevuto." }));
+    expect(await screen.findByText("Good")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Continue/ })).toBeInTheDocument();
+  });
+
+  it("lets the student grade a repeatable answer themselves instead", async () => {
+    const user = userEvent.setup();
+    const waiting = { ...fixtures.answer_result, final_outcome: null, resolved_outcome: "HARD", needs_self_grade: true, needs_repeat: true, schedule: null, xp: null };
+    const { requests } = mockApi([
+      ["POST", /\/review-sessions$/, ok(fixtures.session)],
+      ["GET", /\/review-sessions\/[^/]+\/next$/, sequence(fixtures.card_learn, fixtures.card_done)],
+      ["POST", /\/review-sessions\/[^/]+\/answers$/, ok(waiting)],
+      ["POST", /\/answers\/[^/]+\/override$/, ok(fixtures.override)],
+      ["GET", /\/documents\/[^/]+\/chunks\/[^/]+$/, ok(fixtures.chunk)],
+    ]);
+    renderApp(`/study/${course}?intent=LEARN&concepts=${fixtures.card_learn.card!.concept_id}`);
+    await screen.findByText("New material");
+    await user.click(screen.getByRole("button", { name: /I'm ready/ }));
+    await user.type(screen.getByLabelText("Your answer"), "risposta");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    await user.click(await screen.findByRole("button", { name: "Grade it yourself instead" }));
+    expect(await screen.findByText("How well did you know it?")).toBeInTheDocument();
+    await user.keyboard("3");
+    await waitFor(() => expect(requests.find((r) => r.path.endsWith("/override"))?.body).toEqual({ outcome: "GOOD" }));
+  });
 });

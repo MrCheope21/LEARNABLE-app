@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { Tooltip } from "../../components/Tooltip";
+import { useI18n } from "../../i18n";
+import type { Translator } from "../../api/client";
 import { studyLink } from "../study/StudyPage";
 
 export type CourseCardData = Schemas["CourseCard"];
@@ -55,35 +57,36 @@ export function Metric({ done, total, label }: { done: number; total: number; la
   );
 }
 
-export function learnTarget(courseId: string, learn: CourseCardData["learn"]): { to: string | null; label: string; hint: string } {
+export function learnTarget(courseId: string, learn: CourseCardData["learn"], t: Translator): { to: string | null; label: string; hint: string } {
   switch (learn.kind) {
     case "resume":
       return {
         to: learn.session_id ? `/study/${courseId}?session=${learn.session_id}` : null,
-        label: "Resume practice",
-        hint: "Continue the round you left unfinished",
+        label: t("learn.resume.label"),
+        hint: t("learn.resume.hint"),
       };
     case "study":
       return {
         to: learn.concept ? `/courses/${courseId}/concepts/${learn.concept.id}` : null,
-        label: "Learn next",
-        hint: learn.concept ? `Study ${learn.concept.title}` : "Learn new material",
+        label: t("learn.study.label"),
+        hint: learn.concept ? t("learn.study.hint", { title: learn.concept.title }) : t("learn.study.hintNone"),
       };
     case "activate":
       return {
         to: learn.concept ? `/courses/${courseId}/concepts/${learn.concept.id}` : null,
-        label: "Start learning",
-        hint: learn.concept ? `Prepare the questions of ${learn.concept.title} and start studying it` : "Start studying the next concept",
+        label: t("learn.activate.label"),
+        hint: learn.concept ? t("learn.activate.hint", { title: learn.concept.title }) : t("learn.activate.hintNone"),
       };
     case "setup":
-      return { to: `/courses/${courseId}`, label: "Add material", hint: "Add study material or your own questions to start" };
+      return { to: `/courses/${courseId}`, label: t("learn.setup.label"), hint: t("learn.setup.hint") };
     case "none":
-      return { to: null, label: "All learned ✓", hint: "Everything in this course has been learned" };
+      return { to: null, label: t("learn.none.label"), hint: t("learn.none.hint") };
   }
 }
 
 export function LearnButton({ courseId, learn }: { courseId: string; learn: CourseCardData["learn"] }) {
-  const target = learnTarget(courseId, learn);
+  const { t } = useI18n();
+  const target = learnTarget(courseId, learn, t);
   if (!target.to) {
     return (
       <span className="button learn" aria-disabled="true" title={target.hint}>
@@ -101,10 +104,11 @@ export function LearnButton({ courseId, learn }: { courseId: string; learn: Cour
 }
 
 export function ReviewButton({ courseId, due }: { courseId: string; due: number }) {
+  const { t } = useI18n();
   if (due <= 0) {
     return (
-      <span className="no-due" title="Nothing in this course needs reviewing right now">
-        ✓ Nothing to review now
+      <span className="no-due" title={t("review.noneTitle")}>
+        {t("review.none")}
       </span>
     );
   }
@@ -112,9 +116,9 @@ export function ReviewButton({ courseId, due }: { courseId: string; due: number 
     <Link
       className="button review"
       to={studyLink(courseId, "SCHEDULED_REVIEW")}
-      aria-label={`Review ${due} ${due === 1 ? "item" : "items"}`}
+      aria-label={t(due === 1 ? "review.aria.one" : "review.aria.other", { n: due })}
     >
-      Review <span className="count-badge">{due.toLocaleString()}</span>
+      {t("review.button")} <span className="count-badge">{due.toLocaleString()}</span>
     </Link>
   );
 }

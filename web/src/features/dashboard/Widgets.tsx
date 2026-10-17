@@ -7,41 +7,58 @@ import { studyMinutes } from "../../components/labels";
 import { auth } from "../../api/endpoints";
 import { dashboardKey, FlameIcon, meKey, XpIcon } from "../../app/AppShell";
 import { ErrorBanner } from "../../components/QueryState";
+import { useI18n } from "../../i18n";
+import type { MessageKey } from "../../i18n/messages/en";
 
 type Dashboard = Schemas["Dashboard"];
 
 // Dates from the server are local calendar days ("2026-09-24"): parsed as UTC midnight and
 // formatted in UTC so the day never shifts with the browser's own zone.
-const dayFormat = new Intl.DateTimeFormat(undefined, { weekday: "short", timeZone: "UTC" });
-const longDay = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-const monthFormat = new Intl.DateTimeFormat(undefined, { month: "short", timeZone: "UTC" });
 const parseDay = (iso: string) => new Date(`${iso}T00:00:00Z`);
 
+/** Day and month names in the interface language. */
+function useDateFormats() {
+  const { language } = useI18n();
+  return useMemo(
+    () => ({
+      // Two letters tell the days apart in most languages; in Arabic and Hindi every short name
+      // starts the same way, so the narrow form (one distinct letter) is used instead.
+      dayFormat: new Intl.DateTimeFormat(language, { weekday: language === "ar" || language === "hi" ? "narrow" : "short", timeZone: "UTC" }),
+      dayInitials: language === "ar" || language === "hi" ? 1 : 2,
+      longDay: new Intl.DateTimeFormat(language, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }),
+      monthFormat: new Intl.DateTimeFormat(language, { month: "short", timeZone: "UTC" }),
+    }),
+    [language],
+  );
+}
+
 export function StreakWidget({ streak }: { streak: Dashboard["streak"] }) {
+  const { t } = useI18n();
+  const { dayFormat, dayInitials, longDay } = useDateFormats();
   const days = streak.current;
   return (
     <section className="card widget" aria-labelledby="streak-title">
       <div className="title-row">
-        <h2 id="streak-title">Daily streak</h2>
-        <HelpTip text="help.streak" topic="Daily streak" guide="progress" />
+        <h2 id="streak-title">{t("streak.title")}</h2>
+        <HelpTip text="help.streak" topic={t("streak.title")} guide="progress" />
       </div>
       <p className="big-number">
-        <FlameIcon size={30} /> {days} <span className="hint">{days === 1 ? "day" : "days"}</span>
+        <FlameIcon size={30} /> {days} <span className="hint">{t(days === 1 ? "streak.unit.one" : "streak.unit.other")}</span>
       </p>
       <p className="hint">
         {streak.today_complete
-          ? "Today complete. Come back tomorrow to keep it going."
+          ? t("streak.done")
           : days > 0
-            ? "Answer one question today to keep your streak."
-            : "Answer a question today to start a streak."}
+            ? t("streak.keep")
+            : t("streak.start")}
       </p>
-      <ol className="week-strip" aria-label="The last 7 days">
+      <ol className="week-strip" aria-label={t("streak.last7")}>
         {streak.last_7_days.map((day, index) => (
           <li key={day.date} className={index === streak.last_7_days.length - 1 ? "today" : undefined}>
-            {dayFormat.format(parseDay(day.date)).slice(0, 2)}
+            {dayFormat.format(parseDay(day.date)).slice(0, dayInitials)}
             <span className={day.active ? "dot on" : "dot"} />
             <span className="sr-only">
-              {longDay.format(parseDay(day.date))}: {day.active ? "studied" : "no study"}
+              {longDay.format(parseDay(day.date))}: {day.active ? t("streak.studied") : t("streak.noStudy")}
             </span>
           </li>
         ))}
@@ -51,31 +68,32 @@ export function StreakWidget({ streak }: { streak: Dashboard["streak"] }) {
 }
 
 export function ExperienceWidget({ xp }: { xp: Dashboard["xp"] }) {
+  const { t } = useI18n();
   return (
     <section className="card widget" aria-labelledby="xp-title">
       <div className="title-row">
-        <h2 id="xp-title">Experience</h2>
-        <HelpTip text="help.xp" topic="Experience" guide="progress" />
+        <h2 id="xp-title">{t("xp.title")}</h2>
+        <HelpTip text="help.xp" topic={t("xp.title")} guide="progress" />
       </div>
       <p className="big-number">
         <XpIcon size={28} /> {xp.total.toLocaleString()} <span className="hint">XP</span>
       </p>
       <p>
-        <strong>+{xp.today.toLocaleString()} XP</strong> today
+        <strong>{t("dash.xpTodayPlus", { n: xp.today.toLocaleString() })}</strong>
+      </p>
+      <p>
+        <Link to="/community">🏆 {t("community.seeLeaderboard")}</Link>
       </p>
       <details className="hint">
-        <summary>How XP works</summary>
-        <p>
-          Each correct answer to the same learning item earns more: 10 XP the first time, then 20, 30… up to 150. A
-          hint halves the XP for that answer. Wrong answers earn nothing but don't reset your progress. XP rewards
-          practice; it never changes your review schedule.
-        </p>
+        <summary>{t("xp.how")}</summary>
+        <p>{t("xp.howBody")}</p>
       </details>
     </section>
   );
 }
 
 export function GoalWidget({ goal }: { goal: Dashboard["goal"] }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [target, setTarget] = useState(String(goal.target));
@@ -103,8 +121,8 @@ export function GoalWidget({ goal }: { goal: Dashboard["goal"] }) {
   return (
     <section className="card widget" aria-labelledby="goal-title">
       <div className="title-row">
-        <h2 id="goal-title">Daily goal</h2>
-        <HelpTip text="help.goal" topic="Daily goal" guide="progress" />
+        <h2 id="goal-title">{t("goal.title")}</h2>
+        <HelpTip text="help.goal" topic={t("goal.title")} guide="progress" />
       </div>
       <div className="gauge">
         <svg viewBox="0 0 180 100" aria-hidden="true" focusable="false">
@@ -120,16 +138,14 @@ export function GoalWidget({ goal }: { goal: Dashboard["goal"] }) {
         </svg>
         <span className="gauge-value">{percent}%</span>
       </div>
-      <p className="sr-only">
-        Daily goal: {goal.done} of {goal.target} completed answers today, {percent} percent.
-      </p>
+      <p className="sr-only">{t("goal.sr", { done: goal.done, target: goal.target, percent })}</p>
       <p aria-hidden="true" style={{ textAlign: "center" }}>
-        <strong>{goal.done.toLocaleString()}</strong> / {goal.target.toLocaleString()} answers today
+        {t("goal.answersToday", { done: goal.done.toLocaleString(), target: goal.target.toLocaleString() })}
       </p>
       {editing ? (
         <form className="goal-form" onSubmit={submit}>
           <label htmlFor={inputId}>
-            Answers per day
+            {t("goal.perDay")}
             <input
               id={inputId}
               type="number"
@@ -142,63 +158,54 @@ export function GoalWidget({ goal }: { goal: Dashboard["goal"] }) {
             />
           </label>
           <button type="submit" className="primary" disabled={!valid || save.isPending}>
-            Save
+            {t("common.save")}
           </button>
           <button type="button" className="link" onClick={() => setEditing(false)}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </form>
       ) : (
         <button type="button" className="link" onClick={() => setEditing(true)}>
-          Edit goal
+          {t("goal.edit")}
         </button>
       )}
-      {!valid && editing && <p className="error">Choose a whole number from 1 to 500.</p>}
+      {!valid && editing && <p className="error">{t("goal.invalid")}</p>}
       <ErrorBanner error={save.error} />
     </section>
   );
 }
 
-const HORIZON_LABEL: Record<Schemas["PlannerHorizon"]["key"], string> = {
-  now: "Now",
-  "1h": "In 1 hour",
-  "4h": "In 4 hours",
-  "1d": "In 1 day",
-  "3d": "In 3 days",
-  "7d": "In 7 days",
-};
-
 export function PlannerWidget({ planner }: { planner: Dashboard["planner"] }) {
+  const { t } = useI18n();
   return (
     <section className="card widget" aria-labelledby="planner-title">
       <div className="title-row">
-        <h2 id="planner-title">Time planner</h2>
-        <HelpTip text="help.planner" topic="Time planner" guide="review" />
+        <h2 id="planner-title">{t("planner.title")}</h2>
+        <HelpTip text="help.planner" topic={t("planner.title")} guide="review" />
       </div>
       {planner.horizons[0]?.key === "now" && planner.horizons[0].items > 0 && (
         <p className="planner-now">
-          <strong>{planner.horizons[0].items.toLocaleString()}</strong> due now: about{" "}
-          {studyMinutes(planner.horizons[0].items)} min
+          {t("planner.dueNow", { n: planner.horizons[0].items.toLocaleString(), min: studyMinutes(planner.horizons[0].items) })}
         </p>
       )}
       <table className="table planner">
-        <caption className="sr-only">Reviews due by each time, including overdue ones</caption>
+        <caption className="sr-only">{t("planner.caption")}</caption>
         <thead>
           <tr>
-            <th scope="col">Due by</th>
-            <th scope="col">Items</th>
+            <th scope="col">{t("planner.dueBy")}</th>
+            <th scope="col">{t("planner.items")}</th>
           </tr>
         </thead>
         <tbody>
           {planner.horizons.map((h) => (
             <tr key={h.key}>
-              <th scope="row">{HORIZON_LABEL[h.key]}</th>
+              <th scope="row">{t(`planner.${h.key}` as MessageKey)}</th>
               <td>{h.items.toLocaleString()}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="hint">Based on your current review schedule; changes as you study. Each row includes everything due before it.</p>
+      <p className="hint">{t("planner.hint")}</p>
     </section>
   );
 }
@@ -213,6 +220,8 @@ function level(attempts: number): number {
 
 /** Weeks as columns, weekdays as rows (Monday first), from the server's local calendar days. */
 export function ActivityCalendar({ activity, large = false }: { activity: Schemas["Activity"]; large?: boolean }) {
+  const { t } = useI18n();
+  const { longDay, monthFormat } = useDateFormats();
   const [focused, setFocused] = useState<string | null>(null);
   const byDate = useMemo(() => new Map(activity.days.map((d) => [d.date, d])), [activity.days]);
   const cells = useMemo(() => {
@@ -233,10 +242,11 @@ export function ActivityCalendar({ activity, large = false }: { activity: Schema
     const date = parseDay(first.date);
     return date.getUTCDate() <= 7 ? monthFormat.format(date) : "";
   });
+  const answersText = (n: number) => t(n === 1 ? "unit.answer.one" : "unit.answer.other", { n });
   const describe = (c: (typeof cells)[number]) =>
     c.future
-      ? `${longDay.format(parseDay(c.date))}: in the future`
-      : `${longDay.format(parseDay(c.date))}: ${c.attempts} ${c.attempts === 1 ? "answer" : "answers"}${c.xp ? `, ${c.xp} XP` : ""}`;
+      ? t("activity.future", { day: longDay.format(parseDay(c.date)) })
+      : t(c.xp ? "activity.dayXp" : "activity.day", { day: longDay.format(parseDay(c.date)), answers: answersText(c.attempts), xp: c.xp });
   const shown = cells.find((c) => c.date === focused);
   const total = cells.reduce((sum, c) => sum + c.attempts, 0);
   const activeDays = cells.filter((c) => c.attempts > 0).length;
@@ -248,7 +258,7 @@ export function ActivityCalendar({ activity, large = false }: { activity: Schema
           <span key={i}>{m}</span>
         ))}
       </div>
-      <div className="heat-grid" role="group" aria-label={`Activity calendar: ${activeDays} active days, ${total} answers`}>
+      <div className="heat-grid" role="group" aria-label={t("activity.aria", { days: t(activeDays === 1 ? "unit.activeDay.one" : "unit.activeDay.other", { n: activeDays }), answers: answersText(total) })}>
         {cells.map((c) => (
           <button
             key={c.date}
@@ -263,29 +273,30 @@ export function ActivityCalendar({ activity, large = false }: { activity: Schema
         ))}
       </div>
       <p className="heat-tip" aria-live="polite">
-        {shown ? describe(shown) : `${activeDays} active ${activeDays === 1 ? "day" : "days"} · ${total} answers`}
+        {shown ? describe(shown) : t("activity.summary", { days: t(activeDays === 1 ? "unit.activeDay.one" : "unit.activeDay.other", { n: activeDays }), answers: answersText(total) })}
       </p>
       <div className="heat-legend" aria-hidden="true">
-        Less
+        {t("activity.less")}
         {[0, 1, 2, 3, 4].map((l) => (
           <span key={l} className={`heat-cell level-${l}`} />
         ))}
-        More
-        <span className="heat-cell future" style={{ marginLeft: "0.6rem" }} /> Future
+        {t("activity.more")}
+        <span className="heat-cell future" style={{ marginLeft: "0.6rem" }} /> {t("activity.legendFuture")}
       </div>
     </div>
   );
 }
 
 export function ActivityWidget({ activity }: { activity: Dashboard["activity"] }) {
+  const { t } = useI18n();
   return (
     <section className="card widget" aria-labelledby="activity-title">
       <div className="title-row">
-        <h2 id="activity-title">Activity</h2>
-        <HelpTip text="help.activity" topic="Activity" guide="progress" />
+        <h2 id="activity-title">{t("activity.title")}</h2>
+        <HelpTip text="help.activity" topic={t("activity.title")} guide="progress" />
       </div>
       <ActivityCalendar activity={activity} />
-      <Link to="/activity">See more</Link>
+      <Link to="/activity">{t("activity.seeMore")}</Link>
     </section>
   );
 }

@@ -81,6 +81,9 @@ class Settings(BaseSettings):
     # The built web client (web/dist). When set, this server also serves it, on the same origin
     # as /api (app/web.py; the production image sets it). Unset in development: Vite serves it.
     web_dist_dir: Path | None = None
+    # false: nobody new can sign up (existing accounts still sign in). For a private server
+    # whose AI quota and storage belong to one person.
+    registration_open: bool = True
     password_reset_ttl_minutes: int = Field(default=30, gt=0, le=24 * 60)
     # Outgoing email (app/email/sender.py). console: written to the server log (development).
     email_backend: Literal["console", "smtp"] = "console"

@@ -4,6 +4,7 @@ import { progress } from "../../api/endpoints";
 import { QueryState } from "../../components/QueryState";
 import { CurriculumBlock, MemoryBlock, ReviewLoadBlock } from "../../components/ProgressBlocks";
 import { percent } from "../../components/labels";
+import { useI18n } from "../../i18n";
 import { homeKey } from "../home/HomePage";
 
 /**
@@ -11,6 +12,7 @@ import { homeKey } from "../home/HomePage";
  * never merged into one score (docs/PROJECT_SPEC.md §54, §67).
  */
 export function ProgressPage() {
+  const { t } = useI18n();
   const home = useQuery({ queryKey: homeKey, queryFn: progress.home });
   const [selected, setSelected] = useState<string | null>(null);
   const courseId = selected ?? home.data?.courses[0]?.course_id ?? null;
@@ -24,17 +26,17 @@ export function ProgressPage() {
   return (
     <div className="page">
       <header className="page-header">
-        <h1>Progress</h1>
+        <h1>{t("nav.progress")}</h1>
       </header>
       <QueryState query={home}>
         {(data) =>
           data.courses.length === 0 ? (
-            <p className="state">Create a course and start learning to see your progress.</p>
+            <p className="state">{t("prog.empty")}</p>
           ) : (
             <>
               {data.courses.length > 1 && (
                 <label className="inline-form">
-                  Course
+                  {t("course.fallback")}
                   <select value={courseId ?? ""} onChange={(e) => setSelected(e.target.value)}>
                     {data.courses.map((c) => (
                       <option key={c.course_id} value={c.course_id}>
@@ -54,25 +56,25 @@ export function ProgressPage() {
                     </div>
                     {summary && summary.weak_concepts.length > 0 && (
                       <section className="card">
-                        <h2>Weak concepts</h2>
+                        <h2>{t("prog.weakConcepts")}</h2>
                         <ul>
                           {summary.weak_concepts.map((w) => (
                             <li key={w.id}>
-                              {w.title} <span className="hint">· lapses: {w.lapses} · marked hard: {w.marked_hard}</span>
+                              {w.title} <span className="hint">· {t("prog.weakMeta", { lapses: w.lapses, hard: w.marked_hard })}</span>
                             </li>
                           ))}
                         </ul>
                       </section>
                     )}
                     <section className="card">
-                      <h2>By chapter and topic</h2>
+                      <h2>{t("prog.byChapter")}</h2>
                       <table className="table">
                         <thead>
                           <tr>
-                            <th scope="col">Chapter / topic</th>
-                            <th scope="col">Concepts active</th>
-                            <th scope="col">Items in training</th>
-                            <th scope="col">Mastery (estimate)</th>
+                            <th scope="col">{t("prog.colChapter")}</th>
+                            <th scope="col">{t("pb.conceptsActive")}</th>
+                            <th scope="col">{t("pb.itemsTrained")}</th>
+                            <th scope="col">{t("pb.mastery")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -80,7 +82,7 @@ export function ProgressPage() {
                             <tr key={chapter.id} className="group-row">
                               <th scope="row">{chapter.title}</th>
                               <td>
-                                {chapter.curriculum.active} of {chapter.curriculum.concepts}
+                                {t("pb.activeOf", { active: chapter.curriculum.active, total: chapter.curriculum.concepts })}
                               </td>
                               <td>{chapter.memory.items_trained}</td>
                               <td>{percent(chapter.memory.mastery)}</td>
@@ -89,7 +91,7 @@ export function ProgressPage() {
                               <tr key={topic.id}>
                                 <td className="indent">{topic.title}</td>
                                 <td>
-                                  {topic.curriculum.active} of {topic.curriculum.concepts}
+                                  {t("pb.activeOf", { active: topic.curriculum.active, total: topic.curriculum.concepts })}
                                 </td>
                                 <td>{topic.memory.items_trained}</td>
                                 <td>{percent(topic.memory.mastery)}</td>

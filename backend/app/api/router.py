@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.community import router as community_router
 from app.api.courses import router as courses_router
 from app.api.curriculum import router as curriculum_router
 from app.api.dashboard import router as dashboard_router
@@ -20,3 +21,4 @@ api_router.include_router(review_router)
 api_router.include_router(progress_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(marketplace_router)
+api_router.include_router(community_router)

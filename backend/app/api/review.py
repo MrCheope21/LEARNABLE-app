@@ -20,6 +20,7 @@ from app.schemas.review import (
     DisputeCreate,
     HintState,
     OverrideCreate,
+    RepeatCreate,
     ReviewRead,
     SessionCard,
     SessionCreate,
@@ -136,6 +137,25 @@ def retry_evaluation(
 ) -> AnswerResult:
     """Evaluates again after a failed (or unconfigured) attempt."""
     return service.retry_evaluation(db, provider, storage, user.id, answer_id)
+
+
+@router.post(
+    "/answers/{answer_id}/repeat",
+    response_model=AnswerResult,
+    dependencies=[Depends(per_user("evaluate", 60, 3600))],
+)
+def repeat_answer(
+    answer_id: uuid.UUID,
+    payload: RepeatCreate,
+    db: Session = DB,
+    user: User = CurrentUser,
+    provider: AIProvider | None = Provider,
+    storage: DocumentStorage = Storage,
+) -> AnswerResult:
+    """Review the reference answer and repeat it (409 `repeat_not_offered` otherwise). The
+    repeat is evaluated: repeated well, the first answer counts as correct; not well, it is
+    failed and the item goes back to level 0."""
+    return service.repeat_answer(db, provider, storage, user.id, answer_id, payload)
 
 
 @router.post(

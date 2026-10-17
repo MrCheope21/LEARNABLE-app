@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -24,18 +26,29 @@ from app.auth.security import (
     verify_password,
 )
 from app.core.config import get_settings
-from app.core.errors import AuthenticationError, ConflictError, InvalidRequestError
+from app.core.errors import (
+    AuthenticationError,
+    ConflictError,
+    InvalidRequestError,
+    RegistrationClosedError,
+)
 from app.core.rate_limit import limiter, per_ip, per_user
 from app.db.session import get_db
 from app.email.sender import EmailSender, get_email_sender
 from app.models.user import User
+from app.services import community
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _FAILED_LOGINS = 10
 _FAILED_LOGIN_WINDOW = 900
 
-_INVALID_CREDENTIALS = "Incorrect email or password"
+_INVALID_CREDENTIALS = "Incorrect email, username or password"
+
+
+def _username_taken(db: Session, username: str, except_id: object = None) -> bool:
+    found = db.scalar(select(User.id).where(User.username == username))
+    return found is not None and found != except_id
 
 
 @router.post(
@@ -45,10 +58,15 @@ _INVALID_CREDENTIALS = "Incorrect email or password"
     dependencies=[Depends(per_ip("register", 10, 3600))],
 )
 def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
+    if not get_settings().registration_open:
+        raise RegistrationClosedError("New accounts are not being accepted on this server.")
     if db.scalar(select(User).where(User.email == payload.email)) is not None:
         raise ConflictError("Email already registered")
+    if payload.username and _username_taken(db, payload.username):
+        raise ConflictError("Username already taken")
     user = User(
         email=payload.email,
+        username=payload.username,
         hashed_password=hash_password(payload.password),
         timezone=payload.timezone or "UTC",
         language=payload.language,
@@ -60,7 +78,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
         # Two concurrent registrations for the same email both pass the check above; the unique
         # index catches the loser.
         db.rollback()
-        raise ConflictError("Email already registered") from exc
+        raise ConflictError("Email or username already registered") from exc
     db.refresh(user)
     return user
 
@@ -71,7 +89,9 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
     # Unknown addresses count the same, so the limit doesn't reveal who is registered.
     failures = f"login-failures:{payload.email}"
     limiter.hit_check(failures, _FAILED_LOGINS, _FAILED_LOGIN_WINDOW)
-    user = db.scalar(select(User).where(User.email == payload.email))
+    # An "@" means an email; anything else is a username.
+    column = User.email if "@" in payload.email else User.username
+    user = db.scalar(select(User).where(column == payload.email))
     if user is None:
         spend_equivalent_verification_time(payload.password)
         limiter.record(failures, _FAILED_LOGIN_WINDOW)
@@ -107,6 +127,22 @@ def update_preferences(
         current_user.language = payload.language
     if payload.display_name is not None:
         current_user.display_name = " ".join(payload.display_name.split()) or None
+    if payload.username is not None:
+        name = payload.username.lower()
+        if name and not re.fullmatch(r"[a-z0-9._-]{3,30}", name):
+            raise InvalidRequestError(
+                "Username: 3-30 letters, digits, dots, underscores or hyphens."
+            )
+        if name and _username_taken(db, name, current_user.id):
+            raise ConflictError("Username already taken")
+        current_user.username = name or None
+    if payload.community_visible is not None:
+        current_user.community_visible = payload.community_visible
+    # Visible people need a name (it is all others see); clearing the name takes you out.
+    if current_user.community_visible and not current_user.display_name:
+        if payload.community_visible:
+            community.check_can_be_visible(current_user)
+        current_user.community_visible = False
     db.commit()
     db.refresh(current_user)
     return current_user

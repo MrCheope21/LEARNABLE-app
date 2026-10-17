@@ -1,6 +1,7 @@
 """Importing this package registers every model on Base.metadata (needed by Alembic and tests)."""
 
 from app.models.auth import PasswordResetToken
+from app.models.community import Follow
 from app.models.course import Chapter, Concept, Course, CourseSettings, Topic
 from app.models.curriculum import ConceptSource, CurriculumProposal
 from app.models.document import Document, DocumentChunk
@@ -27,6 +28,7 @@ __all__ = [
     "Document",
     "DocumentChunk",
     "Evaluation",
+    "Follow",
     "HintReveal",
     "ItemSuccessCounter",
     "LearningItem",

@@ -178,7 +178,7 @@ describe("dashboard", () => {
       ["GET", /\/auth\/me$/, ok(me)],
     ]);
     renderApp("/");
-    const next = await screen.findByRole("region", { name: "Continue consolidation · Round 2 of 3" });
+    const next = await screen.findByRole("region", { name: "Continue consolidation · Good answer 2 of 3" });
     expect(within(next).getByRole("link", { name: "Resume" })).toHaveAttribute("href", `/study/${COURSE_ID}?session=s-1`);
   });
 

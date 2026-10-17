@@ -148,10 +148,10 @@ def test_three_correct_rounds_earn_60_xp_and_encode_once(client, course, db_sess
     assert dashboard(client, headers)["xp"] == {"total": 60, "today": 60}
 
 
-def test_three_rounds_not_three_correct_answers(client, course):
+def test_an_item_needs_three_good_answers_not_three_in_a_row(client, course, db_session):
     headers, _, topic_id = course
     c = concept(client, headers, topic_id)
-    item(client, headers, c["id"])
+    it = item(client, headers, c["id"])
     session = studied(client, headers, c["id"]).json()
 
     results = [answer(client, headers, session["id"], text).json() for text in (FULL, WRONG, FULL)]
@@ -159,10 +159,48 @@ def test_three_rounds_not_three_correct_answers(client, course):
     # Incorrect earns nothing and neither advances nor resets the success counter.
     assert [xp_of(r) for r in results] == [10, 0, 20]
     assert [r["xp"]["ordinal"] for r in results] == [1, None, 2]
+    # Two good answers so far: the wrong one added a try, the item isn't learned yet.
+    assert card(client, headers, session["id"])["done"] is False
+    assert memory(db_session, it["id"]).state.value == "NEW"
+
+    last = answer(client, headers, session["id"], FULL).json()
+    assert (xp_of(last), last["xp"]["ordinal"]) == (30, 3)
     assert card(client, headers, session["id"])["done"] is True
+    state = memory(db_session, it["id"])
+    assert (state.state.value, state.level) == ("LEARNING", 1)
 
 
-def test_a_failed_last_round_leaves_the_item_new(client, course, db_session):
+def test_the_good_answer_counter_shows_which_good_answer_is_sought(client, course):
+    headers, _, topic_id = course
+    c = concept(client, headers, topic_id)
+    item(client, headers, c["id"])
+    session = studied(client, headers, c["id"]).json()
+    shown = []
+    for text in (FULL, WRONG, WRONG, FULL, FULL):
+        current = card(client, headers, session["id"])["card"]
+        shown.append((current["round"], current["rounds_total"]))
+        answer(client, headers, session["id"], text)
+    # A wrong answer doesn't move the counter on.
+    assert shown == [(1, 3), (2, 3), (2, 3), (2, 3), (3, 3)]
+
+
+def test_a_hard_answer_is_not_a_good_one(client, course, db_session):
+    headers, _, topic_id = course
+    c = concept(client, headers, topic_id)
+    it = item(client, headers, c["id"])
+    session = studied(client, headers, c["id"]).json()
+    for text in (PARTIAL, PARTIAL, PARTIAL):
+        assert answer(client, headers, session["id"], text).json()["final_outcome"] == "HARD"
+    # Three passes with difficulty are not three good answers: still being consolidated.
+    assert card(client, headers, session["id"])["done"] is False
+    assert memory(db_session, it["id"]).state.value == "NEW"
+    for _ in range(3):
+        answer(client, headers, session["id"], FULL)
+    assert card(client, headers, session["id"])["done"] is True
+    assert memory(db_session, it["id"]).state.value == "LEARNING"
+
+
+def test_a_failed_last_answer_keeps_the_item_new_and_asks_it_again(client, course, db_session):
     headers, _, topic_id = course
     c = concept(client, headers, topic_id)
     it = item(client, headers, c["id"])
@@ -170,13 +208,16 @@ def test_a_failed_last_round_leaves_the_item_new(client, course, db_session):
     for text in (FULL, FULL, WRONG):
         answer(client, headers, session["id"], text)
 
+    # Two good answers: not enough. Spaced repetition hasn't started.
     assert memory(db_session, it["id"]).state.value == "NEW"
-    # The next batch repeats the item, but its three XP-eligible rounds are spent.
-    again = studied(client, headers, c["id"]).json()
-    assert again["id"] != session["id"]
-    shown = card(client, headers, again["id"])["card"]
-    assert shown["potential_xp"]["eligible"] is False
-    assert xp_of(answer(client, headers, again["id"], FULL).json()) is None
+    assert card(client, headers, session["id"])["done"] is False
+    result = answer(client, headers, session["id"], FULL).json()
+    assert result["schedule"]["next_level"] == 1
+    assert card(client, headers, session["id"])["done"] is True
+    # Three correct answers were rewarded: 10 + 20 + 30, the wrong one earned nothing.
+    assert dashboard(client, headers)["xp"]["total"] == 60
+    # Nothing is left to consolidate.
+    assert studied(client, headers, c["id"]).status_code == 409
 
 
 def test_partial_answers_earn_nothing(client, course):

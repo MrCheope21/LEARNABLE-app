@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { dashboard } from "../../api/endpoints";
 import { dashboardKey } from "../../app/AppShell";
 import { QueryState } from "../../components/QueryState";
+import { useI18n } from "../../i18n";
 import { CourseCover, ReviewButton } from "../courses/CourseParts";
 import { studyLink } from "../study/StudyPage";
 
@@ -15,18 +16,19 @@ export const homeKey = ["home"] as const;
  * schedule unless asked).
  */
 export function ReviewHubPage() {
+  const { t } = useI18n();
   const data = useQuery({ queryKey: dashboardKey, queryFn: dashboard.get });
   return (
     <div className="page">
       <header className="page-header">
-        <h1>Review</h1>
-        <p className="hint">Scheduled reviews keep what you've learned. Due counts use the same rules as a review session.</p>
+        <h1>{t("nav.review")}</h1>
+        <p className="hint">{t("home.intro")}</p>
       </header>
       <QueryState query={data}>
         {(d) =>
           d.courses.length === 0 ? (
             <p className="state">
-              No courses yet. <Link to="/">Create one on your dashboard</Link>.
+              {t("home.noCourses")} <Link to="/">{t("home.createOnDashboard")}</Link>.
             </p>
           ) : (
             <ul className="course-list">
@@ -41,13 +43,13 @@ export function ReviewHubPage() {
                           {course.title}
                         </Link>
                         <span className="metric-label">
-                          <b>{course.due_now}</b> due now · {course.items_introduced} of {course.items_trained} items introduced
+                          {t("home.meta", { due: course.due_now, introduced: course.items_introduced, trained: course.items_trained })}
                         </span>
                       </div>
                       <div className="course-actions">
                         <ReviewButton courseId={course.id} due={course.due_now} />
                         <Link className="button" to={studyLink(course.id, "PRACTICE", { mode: "MARKED_HARD" })}>
-                          Practice hard questions
+                          {t("course.practiceHard")}
                         </Link>
                       </div>
                     </article>

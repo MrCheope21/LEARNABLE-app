@@ -7,6 +7,7 @@ import { CollapseToggle, useCollapsed } from "../../components/Collapsible";
 import { HelpTip } from "../../components/HelpTip";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { dateTime } from "../../components/labels";
+import { useI18n } from "../../i18n";
 import { outlineKey } from "../curriculum/CourseLayout";
 
 const ACCEPT = ".pdf,.docx,.pptx,.txt,.md,.markdown,image/*";
@@ -17,6 +18,7 @@ type Purpose = Schemas["DocumentPurpose"];
 
 /** A Course's (or one Chapter's) study material: upload, processing status, delete. */
 export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapterId?: string }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const key = ["documents", courseId, chapterId ?? "all"];
   const list = useQuery({
@@ -56,7 +58,7 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      setDownloadError(userMessage(e));
+      setDownloadError(userMessage(e, t));
     }
   };
 
@@ -82,26 +84,26 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
           <CollapseToggle
             expanded={expanded}
             onToggle={() => collapse.toggle(panelId)}
-            label="study material"
+            label={t("mat.collapseLabel")}
             controls={`${panelId}-body`}
           />
-          <h2 id="material-heading">{chapterId ? "Chapter material" : "All study material"}</h2>
-          <HelpTip text="help.material" topic="Study material" guide="material" />
+          <h2 id="material-heading">{chapterId ? t("mat.chapterTitle") : t("course.allMaterial")}</h2>
+          <HelpTip text="help.material" topic={t("menu.material")} guide="material" />
           {!expanded && list.data && (
             <span className="hint">
-              {list.data.length} {list.data.length === 1 ? "file" : "files"}
+              {t(list.data.length === 1 ? "mat.files.one" : "mat.files.other", { n: list.data.length })}
             </span>
           )}
         </div>
         <div className="actions">
           <button type="button" onClick={() => materialInput.current?.click()} disabled={upload.isPending}>
-            {pending === "MATERIAL" ? "Uploading…" : "Upload material"}
+            {pending === "MATERIAL" ? t("mat.uploading") : t("mat.upload")}
           </button>
           <button type="button" onClick={() => questionsInput.current?.click()} disabled={upload.isPending}>
-            {pending === "QUESTION_BANK" ? "Uploading…" : "Upload questions & answers"}
+            {pending === "QUESTION_BANK" ? t("mat.uploading") : t("mat.uploadQa")}
           </button>
           <button type="button" aria-expanded={pasting} onClick={() => setPasting((v) => !v)} disabled={upload.isPending}>
-            Paste text
+            {t("mat.paste")}
           </button>
         </div>
         {fileInput(materialInput, ACCEPT, "MATERIAL", "material-input")}
@@ -109,17 +111,10 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
       </header>
       <div id={`${panelId}-body`} hidden={!expanded}>
       <details className="hint format-help">
-        <summary>How to prepare questions &amp; answers</summary>
-        <p>
-          Upload a PDF, Word, text or Markdown file where each question starts with <code>Domanda:</code> and its
-          expected answer with <code>Risposta:</code> (or <code>Question:</code> / <code>Answer:</code>), at the
-          beginning of a line. Headings group the questions into topics.
-        </p>
+        <summary>{t("mat.howTo")}</summary>
+        <p>{t("mat.howToBody")}</p>
         <pre>{"# Topic\nDomanda: What is …?\nRisposta: It is …"}</pre>
-        <p>
-          Each question becomes a concept marked not studied, with your answer as the expected answer. Activate it
-          to start reviewing. No AI is used for the import.
-        </p>
+        <p>{t("mat.howToBody2")}</p>
       </details>
       {pasting && (
         <PasteTextForm
@@ -141,20 +136,20 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
           {downloadError}
         </p>
       )}
-      <QueryState query={list} label="Loading material…">
+      <QueryState query={list} label={t("mat.loading")}>
         {(items) =>
           items.length === 0 ? (
-            <p className="hint">No material yet. Upload PDF, Word, PowerPoint, text or Markdown files.</p>
+            <p className="hint">{t("mat.none")}</p>
           ) : (
             <table className="table">
               <thead>
                 <tr>
-                  <th scope="col">File</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Passages</th>
-                  <th scope="col">Added</th>
+                  <th scope="col">{t("mat.file")}</th>
+                  <th scope="col">{t("mat.status")}</th>
+                  <th scope="col">{t("mat.passages")}</th>
+                  <th scope="col">{t("mat.added")}</th>
                   <th scope="col">
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t("mat.actions")}</span>
                   </th>
                 </tr>
               </thead>
@@ -163,11 +158,11 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
                   <tr key={doc.id}>
                     <td>
                       {doc.filename}
-                      {doc.purpose === "QUESTION_BANK" && <span className="pill"> Q&amp;A</span>}
+                      {doc.purpose === "QUESTION_BANK" && <span className="pill"> {t("mat.qa")}</span>}
                     </td>
                     <td>
                       <span className={`pill status-${doc.status.toLowerCase()}`}>
-                        {doc.status === "PROCESSING" ? "Processing…" : doc.status === "READY" ? "Ready" : "Failed"}
+                        {doc.status === "PROCESSING" ? t("mat.processing") : doc.status === "READY" ? t("mat.ready") : t("mat.failed")}
                       </span>
                       {doc.error_message && <span className="hint"> {doc.error_message}</span>}
                       {doc.import_notice && <span className="hint"> {doc.import_notice}</span>}
@@ -176,18 +171,18 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
                     <td>{dateTime(doc.created_at)}</td>
                     <td>
                       <button type="button" className="link" onClick={() => void download(doc.id, doc.filename)}>
-                        Download
+                        {t("mat.download")}
                       </button>
                       <button
                         type="button"
                         className="link danger"
                         onClick={() => {
-                          if (window.confirm(`Delete ${doc.filename}? Concepts built from it will be flagged for review.`)) {
+                          if (window.confirm(t("mat.confirmDelete", { name: doc.filename }))) {
                             remove.mutate(doc.id);
                           }
                         }}
                       >
-                        Delete
+                        {t("common.delete")}
                       </button>
                     </td>
                   </tr>
@@ -221,6 +216,7 @@ function PasteTextForm({
   onSubmit: (file: File, purpose: Purpose) => void;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [purpose, setPurpose] = useState<Purpose>("MATERIAL");
@@ -228,43 +224,43 @@ function PasteTextForm({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!text.trim()) return;
-    const name = (title.trim() || `Pasted text ${new Date().toISOString().slice(0, 16).replace("T", " ")}`)
+    const name = (title.trim() || t("mat.pastedName", { when: new Date().toISOString().slice(0, 16).replace("T", " ") }))
       .replace(/[\\/:*?"<>|]+/g, " ")
       .slice(0, 150);
     onSubmit(new File([text], `${name}.md`, { type: "text/markdown" }), purpose);
   };
   return (
-    <form className="paste-form" onSubmit={submit} aria-label="Paste text">
+    <form className="paste-form" onSubmit={submit} aria-label={t("mat.pasteAria")}>
       <label>
-        Title
-        <input value={title} maxLength={150} placeholder="e.g. Lecture 3 notes" onChange={(e) => setTitle(e.target.value)} />
+        {t("common.title")}
+        <input value={title} maxLength={150} placeholder={t("mat.pastePlaceholder")} onChange={(e) => setTitle(e.target.value)} />
       </label>
       <fieldset className="purpose-choice">
-        <legend>This text is</legend>
+        <legend>{t("mat.thisTextIs")}</legend>
         <label className="toggle">
           <input type="radio" name="paste-purpose" checked={purpose === "MATERIAL"} onChange={() => setPurpose("MATERIAL")} />
-          Study material
+          {t("mat.asMaterial")}
         </label>
         <label className="toggle">
           <input type="radio" name="paste-purpose" checked={purpose === "QUESTION_BANK"} onChange={() => setPurpose("QUESTION_BANK")} />
-          Questions &amp; answers (Domanda: / Risposta:)
+          {t("mat.asQa")}
         </label>
       </fieldset>
-      <label htmlFor={textId}>Text</label>
+      <label htmlFor={textId}>{t("mat.text")}</label>
       <textarea
         id={textId}
         rows={12}
         required
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={purpose === "QUESTION_BANK" ? "# Topic\nDomanda: …?\nRisposta: …" : "# Heading\nYour notes…"}
+        placeholder={purpose === "QUESTION_BANK" ? t("mat.textPlaceholderQa") : t("mat.textPlaceholder")}
       />
       <div className="actions" style={{ marginTop: 0 }}>
         <button type="submit" className="primary" disabled={busy || !text.trim()}>
-          {busy ? "Adding…" : "Add text"}
+          {busy ? t("mat.adding") : t("mat.addText")}
         </button>
         <button type="button" className="link" onClick={onCancel}>
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </form>

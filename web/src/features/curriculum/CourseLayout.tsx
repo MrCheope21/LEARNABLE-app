@@ -4,7 +4,8 @@ import { courses } from "../../api/endpoints";
 import { CollapseToggle, useCollapsed } from "../../components/Collapsible";
 import { ReadOnlyCourseProvider } from "../../components/CourseAccess";
 import { QueryState } from "../../components/QueryState";
-import { studyStateLabel } from "../../components/labels";
+import { useLabels } from "../../components/useLabels";
+import { useI18n } from "../../i18n";
 
 export const outlineKey = (courseId: string) => ["outline", courseId] as const;
 export const courseProgressKey = (courseId: string) => ["progress", courseId] as const;
@@ -27,15 +28,17 @@ export function CourseLayout() {
   const tree = useCollapsed(`learnable.tree-collapsed.${courseId}`);
   const outline = useQuery({ queryKey: outlineKey(courseId), queryFn: () => courses.outline(courseId) });
   const readOnly = Boolean(course.data?.marketplace_listing_id);
+  const { t } = useI18n();
+  const { studyStateLabel } = useLabels();
 
   return (
     <ReadOnlyCourseProvider value={readOnly}>
     <div className="course-workspace">
-      <nav className="tree" aria-label="Curriculum">
+      <nav className="tree" aria-label={t("course.curriculum")}>
         <NavLink end to={`/courses/${courseId}`} className="tree-course">
-          {course.data?.title ?? "Course"}
+          {course.data?.title ?? t("course.fallback")}
         </NavLink>
-        <QueryState query={outline} label="Loading curriculum…">
+        <QueryState query={outline} label={t("course.loadingCurriculum")}>
           {(chapters) => {
             // The branch holding the page you're on stays open, even if you collapsed it.
             const openChapter = chapters.find(
@@ -114,14 +117,17 @@ export function CourseLayout() {
         </QueryState>
         {!readOnly && (
           <NavLink to={`/courses/${courseId}/material`} className="tree-extra">
-            All study material
+            {t("course.allMaterial")}
           </NavLink>
         )}
         <NavLink to={`/courses/${courseId}/questions`} className="tree-extra">
-          Manage questions
+          {t("course.manageQuestions")}
+        </NavLink>
+        <NavLink to={`/courses/${courseId}/leaderboard`} className="tree-extra">
+          {t("course.leaderboardLink")}
         </NavLink>
         <NavLink to={`/courses/${courseId}/weak-spots`} className="tree-extra">
-          What you keep getting wrong
+          {t("course.weakSpots")}
         </NavLink>
       </nav>
       <div className="workspace-main">

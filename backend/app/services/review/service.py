@@ -44,6 +44,7 @@ from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, Topic
 from app.models.document import Document, DocumentChunk
 from app.models.enums import (
+    AnswerMethod,
     EvaluationClassification,
     EvaluationStatus,
     MemoryState,
@@ -68,6 +69,7 @@ from app.schemas.review import (
     OverrideCreate,
     PotentialXp,
     Reference,
+    RepeatCreate,
     ScheduleChange,
     SessionCard,
     SessionCreate,
@@ -76,8 +78,8 @@ from app.schemas.review import (
 )
 from app.services import drawings
 from app.services.courses.service import get_owned_course
-from app.services.evaluation.resolver import RESOLVER_VERSION, resolve_outcome
-from app.services.review import pool
+from app.services.evaluation.resolver import RESOLVER_VERSION, repeat_offered, resolve_outcome
+from app.services.review import pool, progress
 from app.services.rewards import service as rewards
 from app.services.rewards.hints import build_hint
 from app.services.scheduling.policy import SchedulingError, Transition
@@ -224,7 +226,7 @@ def next_card(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> Session
             sources=_item_sources(db, item),
             drawing=item.answer_format == "DRAWING",
         )
-    round_number, rounds_total = _round(session, item)
+    round_number, rounds_total = _round(db, session, item)
     potential = rewards.potential(db, session, item, utc_now())
     hint = _hint_state(db, session, item, question)
     db.commit()
@@ -254,13 +256,15 @@ def next_card(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> Session
     )
 
 
-def _round(session: ReviewSession, item: LearningItem) -> tuple[int | None, int | None]:
-    """CONSOLIDATION: which of the item's consecutive slots is current ("Round 2 of 3")."""
+def _round(
+    db: Session, session: ReviewSession, item: LearningItem
+) -> tuple[int | None, int | None]:
+    """CONSOLIDATION: which good answer the item is on ("Good answer 2 of 3"): it needs three,
+    in a row or not, so a wrong answer doesn't move this on."""
     if session.intent is not SessionIntent.CONSOLIDATION:
         return None, None
-    key = str(item.id)
-    done = session.item_ids[: session.position + 1].count(key)
-    return done, session.item_ids.count(key)
+    needed = progress.GOOD_ANSWERS_NEEDED
+    return min(progress.good_answers(db, session.id, item.id) + 1, needed), needed
 
 
 def _hint_state(
@@ -373,6 +377,7 @@ def _pending_answer(db: Session, session: ReviewSession, item: LearningItem) -> 
             Answer.session_id == session.id,
             Answer.learning_item_id == item.id,
             Answer.final_outcome.is_(None),
+            Answer.repeat_of_id.is_(None),
             Answer.created_at >= session.started_at,
         )
         .order_by(Answer.created_at.desc())
@@ -428,7 +433,7 @@ def submit_answer(
 
     drawing = _drawn_answer(item, payload)
     now = utc_now()
-    round_number, _ = _round(session, item)
+    round_number, _ = _round(db, session, item)
     answer = Answer(
         id=uuid.uuid4(),
         user_id=user_id,
@@ -590,6 +595,71 @@ def override(
     return _result(db, answer, session, item, transition)
 
 
+def repeat_answer(
+    db: Session,
+    provider: AIProvider | None,
+    storage: DocumentStorage,
+    user_id: uuid.UUID,
+    answer_id: uuid.UUID,
+    payload: RepeatCreate,
+) -> AnswerResult:
+    """The student reviewed the reference answer and repeated it, and the repeat is evaluated
+    like any answer. Repeated well (GOOD): the first answer counts as correct, with the full XP,
+    and the schedule moves forward. Not well: the first answer is failed (AGAIN), the item goes
+    back to level 0 and must be answered well again. The AI's own evaluation of the first answer
+    and its resolved outcome stay as they were, for the record. If the repeat can't be judged,
+    the student grades the first answer themselves."""
+    answer, session, item = _owned_answer(db, user_id, answer_id)
+    if not answer.repeat_offered:
+        raise ConflictError(
+            "This answer can't be repeated.", details={"reason": "repeat_not_offered"}
+        )
+    if answer.final_outcome is not None:
+        raise ConflictError(
+            "This answer already has its grade.", details={"reason": "already_graded"}
+        )
+    question = _question_of(db, answer)
+    now = utc_now()
+    answer.repeat_text = payload.text
+    answer.repeated_at = now
+    repeat = Answer(
+        id=uuid.uuid4(),
+        user_id=user_id,
+        course_id=answer.course_id,
+        session_id=answer.session_id,
+        learning_item_id=answer.learning_item_id,
+        question_formulation_id=answer.question_formulation_id,
+        intent=answer.intent,
+        method=AnswerMethod.TEXT,
+        text=payload.text,
+        created_at=now,
+        repeat_of_id=answer.id,
+    )
+    db.add(repeat)
+    db.commit()
+
+    evaluation = _evaluate(db, provider, storage, item, repeat, question)
+    db.add(evaluation)
+    judged = (
+        resolve_outcome(_evidence(evaluation))
+        if evaluation.status is EvaluationStatus.COMPLETED
+        else None
+    )
+    repeat.resolved_outcome = judged
+    repeat.resolver_version = RESOLVER_VERSION
+    if judged is None:
+        # Can't tell how well it was repeated: the first answer waits for the student's grade.
+        _commit_finalization(db)
+        return _result(db, answer, session, item, None)
+    outcome = ReviewOutcome.GOOD if judged is ReviewOutcome.GOOD else ReviewOutcome.AGAIN
+    answer.final_outcome = outcome
+    # classification=None credits the attempt like a grade the student gave: a GOOD earns XP as
+    # a correct answer, an AGAIN earns none.
+    transition = _apply_outcome(db, session, item, answer, outcome, classification=None)
+    _commit_finalization(db)
+    return _result(db, answer, session, item, transition)
+
+
 def _set_override(answer: Answer, payload: OverrideCreate) -> None:
     answer.override_outcome = payload.outcome
     answer.override_note = payload.note
@@ -610,11 +680,21 @@ def _evaluate_and_apply(
     db.add(evaluation)
     if evaluation.status is not EvaluationStatus.COMPLETED:
         return None
-    outcome = resolve_outcome(_evidence(evaluation))
+    evidence = _evidence(evaluation)
+    outcome = resolve_outcome(evidence)
     answer.resolved_outcome = outcome
     answer.resolver_version = RESOLVER_VERSION
     if outcome is None:
         return None  # inconclusive: the user grades it
+    if (
+        session.intent is not SessionIntent.PRACTICE
+        and answer.drawing_type is None
+        and repeat_offered(evidence, outcome)
+    ):
+        # Green on 3 of 4 scores but not a GOOD: not graded yet. The student reviews the
+        # reference and repeats the answer (repeat_answer), and it then counts as correct.
+        answer.repeat_offered = True
+        return None
     answer.final_outcome = outcome
     return _apply_outcome(
         db, session, item, answer, outcome, classification=evaluation.classification
@@ -743,7 +823,7 @@ def _apply_outcome(
     answer.finalized_at = now
     state_before, due_before = item.review_state.state, item.review_state.due_at
     transition = None
-    if session.affects_schedule and _moves_schedule(session, item):
+    if session.affects_schedule and _moves_schedule(db, session, item, outcome):
         transition = _schedule(db, item, answer, outcome, session.intent)
     user = db.get(User, session.user_id)
     if user is not None:
@@ -765,12 +845,8 @@ def _apply_outcome(
         )
     current = current_item(db, session)
     if current is not None and current.id == item.id:
-        if (
-            session.intent is SessionIntent.LEARN
-            and item.review_state.state is MemoryState.NEW
-            and session.item_ids.count(str(item.id)) < MAX_LEARN_ATTEMPTS
-        ):
-            # Not encoded yet: ask again after the rest (initial retrieval until it sticks).
+        if _comes_back(db, session, item, outcome, transition):
+            # Not done with it yet: ask again after the rest of the session.
             session.item_ids = [*session.item_ids, str(item.id)]
         session.position += 1
         if session.position >= len(session.item_ids):
@@ -778,14 +854,52 @@ def _apply_outcome(
     return transition
 
 
-def _moves_schedule(session: ReviewSession, item: LearningItem) -> bool:
-    """CONSOLIDATION: three answers seconds apart are one act of encoding, not three reviews.
-    Only the item's last round goes through the policy (process_learning with that round's
-    outcome), so the item starts at level 1 (4 hours) at most, like any first success; failing
-    the last round leaves it NEW for the next batch. Earlier rounds are kept as answers."""
+def _moves_schedule(
+    db: Session, session: ReviewSession, item: LearningItem, outcome: ReviewOutcome
+) -> bool:
+    """CONSOLIDATION (the first study of an item): it must be answered well three times, in a
+    row or not, before it counts as learned. Only the answer that completes the third goes
+    through the policy (process_learning), so the item starts at level 1 (4 hours) at most, like
+    any first success. Until then it stays NEW; the answers before are kept as answers."""
     if session.intent is not SessionIntent.CONSOLIDATION:
         return True
-    return str(item.id) not in session.item_ids[session.position + 1 :]
+    return (
+        progress.is_good(outcome)
+        and progress.good_answers(db, session.id, item.id) >= progress.GOOD_ANSWERS_NEEDED
+    )
+
+
+def _comes_back(
+    db: Session,
+    session: ReviewSession,
+    item: LearningItem,
+    outcome: ReviewOutcome,
+    transition: Transition | None,
+) -> bool:
+    """Whether the item is asked again later in this same session.
+
+    - LEARN: until it is encoded (a few attempts at most).
+    - CONSOLIDATION: after an answer that wasn't good. Each good answer uses up one of the
+      item's three slots and each other answer adds one, so the slots left are always the good
+      answers still needed.
+    - SCHEDULED_REVIEW: a failed item is back at level 0 and must be answered well once before
+      it is no longer required in this session (and not forever: see MAX_RELEARN_ATTEMPTS).
+    """
+    state = item.review_state
+    if session.intent is SessionIntent.LEARN:
+        return (
+            state.state is MemoryState.NEW
+            and session.item_ids.count(str(item.id)) < MAX_LEARN_ATTEMPTS
+        )
+    if session.intent is SessionIntent.CONSOLIDATION:
+        return session.affects_schedule and not progress.is_good(outcome)
+    if session.intent is SessionIntent.SCHEDULED_REVIEW and transition is not None:
+        return (
+            state.state is MemoryState.RELEARNING
+            and state.level == 0
+            and progress.attempts(db, session.id, item.id) < progress.MAX_RELEARN_ATTEMPTS
+        )
+    return False
 
 
 def _schedule(
@@ -933,6 +1047,17 @@ def _latest_evaluation(
     )
 
 
+def _repeat_evaluation(db: Session, answer: Answer) -> Evaluation | None:
+    """The evaluation of the student's repeat of this answer, if they repeated it."""
+    return db.scalar(
+        select(Evaluation)
+        .join(Answer, Answer.id == Evaluation.answer_id)
+        .where(Answer.repeat_of_id == answer.id)
+        .order_by(Evaluation.created_at.desc())
+        .limit(1)
+    )
+
+
 def _question_of(db: Session, answer: Answer) -> QuestionFormulation:
     question = db.get(QuestionFormulation, answer.question_formulation_id)
     if question is None:
@@ -949,6 +1074,7 @@ def _result(
 ) -> AnswerResult:
     latest = _latest_evaluation(db, answer)
     second = _latest_evaluation(db, answer, second_opinion=True)
+    repeat = _repeat_evaluation(db, answer)
     schedule = None
     if transition is not None:
         schedule = ScheduleChange(
@@ -968,11 +1094,15 @@ def _result(
         text=answer.text,
         evaluation=EvaluationRead.model_validate(latest) if latest else None,
         second_opinion=EvaluationRead.model_validate(second) if second else None,
+        repeat=EvaluationRead.model_validate(repeat) if repeat else None,
         resolved_outcome=answer.resolved_outcome,
         resolver_version=answer.resolver_version,
         override_outcome=answer.override_outcome,
         final_outcome=answer.final_outcome,
         needs_self_grade=answer.final_outcome is None,
+        needs_repeat=answer.repeat_offered
+        and answer.repeated_at is None
+        and answer.final_outcome is None,
         schedule=schedule,
         reference=Reference(
             expected_knowledge=item.expected_knowledge,

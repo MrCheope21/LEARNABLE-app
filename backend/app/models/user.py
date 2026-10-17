@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Integer, String, Uuid
+from sqlalchemy import Boolean, Integer, String, Uuid, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -15,6 +15,9 @@ class User(Base):
     # Always stored lowercased (normalized in app/auth/schemas.py), so uniqueness is
     # case-insensitive in practice.
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    # Optional sign-in name, an alternative to the email. Lowercase letters, digits and . _ -
+    # (app/auth/schemas.py); never contains "@", so it can't be mistaken for an email.
+    username: Mapped[str | None] = mapped_column(String(30), unique=True, index=True, default=None)
     hashed_password: Mapped[str] = mapped_column(String(255))
     # IANA zone ("Europe/Rome"): decides the user's calendar day for streaks, the daily goal,
     # XP today and the activity calendar. Set from the device at registration; UTC otherwise
@@ -26,6 +29,9 @@ class User(Base):
     language: Mapped[str] = mapped_column(String(8), default="en", server_default="en")
     # How the user wants to be shown; optional, the email is used otherwise.
     display_name: Mapped[str | None] = mapped_column(String(80), default=None)
+    # Opt-in to the community: appears on leaderboards, can be found and followed. Off by
+    # default; needs a display_name (the email is never shown to other users).
+    community_visible: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     # Carried by every access token; a password change increments it, so every existing session
     # (on every device) ends at once.
     token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

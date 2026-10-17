@@ -12,6 +12,8 @@ import { CourseOverview } from "../features/curriculum/CourseOverview";
 import { ProposalPage } from "../features/curriculum/ProposalPage";
 import { QuestionsPage } from "../features/curriculum/QuestionsPage";
 import { WeakSpotsPage } from "../features/curriculum/WeakSpotsPage";
+import { CommunityPage, ProfilePage } from "../features/community/CommunityPage";
+import { CourseLeaderboardPage } from "../features/community/CourseLeaderboardPage";
 import { GuidePage } from "../features/guide/GuidePage";
 import { ListingPage } from "../features/marketplace/ListingPage";
 import { MarketplacePage } from "../features/marketplace/MarketplacePage";
@@ -75,12 +77,16 @@ function SignedInRoutes() {
           <Route path="material" element={<CourseMaterialRoute />} />
           <Route path="questions" element={<QuestionsPage />} />
           <Route path="weak-spots" element={<WeakSpotsPage />} />
+          <Route path="leaderboard" element={<CourseLeaderboardPage />} />
         </Route>
         <Route path="review" element={<ReviewHubPage />} />
         <Route path="progress" element={<ProgressPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="guide" element={<GuidePage />} />
+        <Route path="community" element={<CommunityPage />} />
+        <Route path="community/friends" element={<CommunityPage tab="friends" />} />
+        <Route path="community/users/:userId" element={<ProfilePage />} />
         <Route path="marketplace" element={<MarketplacePage />} />
         <Route path="marketplace/:listingId" element={<ListingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

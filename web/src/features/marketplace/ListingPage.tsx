@@ -3,7 +3,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { marketplace } from "../../api/endpoints";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { dateTime } from "../../components/labels";
-import { categoryIcon, categoryLabel, count, languageLabel, levelLabel, priceLabel } from "./labels";
+import { useLabels } from "../../components/useLabels";
+import { useI18n } from "../../i18n";
+import { categoryIcon } from "./labels";
 
 /**
  * A course's marketplace page, as its author wrote it: what it covers, who it's for, what you'll
@@ -11,6 +13,8 @@ import { categoryIcon, categoryLabel, count, languageLabel, levelLabel, priceLab
  * the course is in your courses.
  */
 export function ListingPage() {
+  const { t } = useI18n();
+  const { categoryLabel, levelLabel, languageName, priceLabel, count } = useLabels();
   const { listingId = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -28,9 +32,9 @@ export function ListingPage() {
   return (
     <div className="page listing-page">
       <p className="breadcrumbs">
-        <Link to="/marketplace">← Marketplace</Link>
+        <Link to="/marketplace">← {t("nav.marketplace")}</Link>
       </p>
-      <QueryState query={listing} label="Loading course…">
+      <QueryState query={listing} label={t("mkt.loadingCourse")}>
         {(data) => (
           <>
             <header className="card listing-hero">
@@ -40,33 +44,33 @@ export function ListingPage() {
               <h1>{data.title}</h1>
               {data.subtitle && <p className="listing-subtitle">{data.subtitle}</p>}
               <p className="hint">
-                by <strong>{data.author}</strong> · {levelLabel[data.level]} · {languageLabel[data.language] ?? data.language}
-                {data.published_at && ` · updated ${dateTime(data.updated_at)}`}
+                {t("mkt.by", { author: data.author })} · {levelLabel[data.level]} · {languageName(data.language)}
+                {data.published_at && ` · ${t("mkt.updated", { date: dateTime(data.updated_at) })}`}
               </p>
               <dl className="listing-stats">
                 <div>
-                  <dt>Questions</dt>
+                  <dt>{t("concept.questions")}</dt>
                   <dd>{data.item_count}</dd>
                 </div>
                 <div>
-                  <dt>Chapters</dt>
+                  <dt>{t("course.chapters")}</dt>
                   <dd>{data.chapter_count}</dd>
                 </div>
                 <div>
-                  <dt>Students</dt>
+                  <dt>{t("mkt.statStudents")}</dt>
                   <dd>{data.acquisition_count}</dd>
                 </div>
               </dl>
               <div className="actions">
                 {data.is_mine ? (
-                  <span className="pill">Your course{data.status !== "PUBLISHED" && ` · ${data.status === "DRAFT" ? "draft" : "not published"}`}</span>
+                  <span className="pill">{t("mkt.yourCourse")}{data.status !== "PUBLISHED" && ` · ${data.status === "DRAFT" ? t("mkt.draftTag") : t("mkt.notPublishedTag")}`}</span>
                 ) : data.course_id ? (
                   <Link className="button primary" to={`/courses/${data.course_id}`}>
-                    Open in my courses
+                    {t("mkt.open")}
                   </Link>
                 ) : (
                   <button type="button" className="primary" disabled={acquire.isPending} onClick={() => acquire.mutate()}>
-                    {data.has_access ? "Add back to my courses" : `Add to my courses · ${priceLabel(data)}`}
+                    {data.has_access ? t("mkt.addBack") : t("mkt.add", { price: priceLabel(data) })}
                   </button>
                 )}
               </div>
@@ -74,13 +78,13 @@ export function ListingPage() {
             </header>
 
             <section className="card">
-              <h2>About this course</h2>
+              <h2>{t("mkt.about")}</h2>
               <p className="reading listing-description">{data.description}</p>
             </section>
 
             {data.outcomes.length > 0 && (
               <section className="card">
-                <h2>What you'll learn</h2>
+                <h2>{t("mkt.learn")}</h2>
                 <ul className="outcomes">
                   {data.outcomes.map((o, i) => (
                     <li key={i}>{o}</li>
@@ -91,25 +95,22 @@ export function ListingPage() {
 
             {data.audience && (
               <section className="card">
-                <h2>Who it's for</h2>
+                <h2>{t("mkt.audience")}</h2>
                 <p className="reading">{data.audience}</p>
               </section>
             )}
 
             <section className="card">
-              <h2>Chapters</h2>
+              <h2>{t("course.chapters")}</h2>
               <ol className="listing-chapters">
                 {data.chapters.map((chapter, i) => (
                   <li key={i}>
                     <span>{chapter.title}</span>
-                    <span className="hint">{count(chapter.questions, "question", "questions")}</span>
+                    <span className="hint">{count("unit.question", chapter.questions)}</span>
                   </li>
                 ))}
               </ol>
-              <p className="hint">
-                The questions and answers become visible once the course is in your courses. You study them inside LEARNABLE: the
-                author's material can't be downloaded.
-              </p>
+              <p className="hint">{t("mkt.hiddenNote")}</p>
             </section>
           </>
         )}

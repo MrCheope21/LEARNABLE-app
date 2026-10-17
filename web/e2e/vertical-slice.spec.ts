@@ -65,7 +65,7 @@ async function answerCurrent(page: Page): Promise<AnswerResult> {
   return result;
 }
 
-test("consolidation loop: concept → activate → I have studied it → 3 rounds with a hint → XP → dashboard", async ({ page }) => {
+test("consolidation loop: concept → activate → I have studied it → 3 good answers with a hint → XP → dashboard", async ({ page }) => {
   const startedAt = Date.now();
   await signIn(page);
 
@@ -86,8 +86,8 @@ test("consolidation loop: concept → activate → I have studied it → 3 round
   await expect(page.getByText(/answers/).filter({ hasText: "This batch" })).toBeVisible();
   await studied.click();
 
-  // Round 1 of 3, with the potential XP; a hint is confirmed before it is shown.
-  await expect(page.getByText("Round 1 of 3")).toBeVisible();
+  // Good answer 1 of 3, with the potential XP; a hint is confirmed before it is shown.
+  await expect(page.getByText("Good answer 1 of 3")).toBeVisible();
   await expect(page.getByText(/Correct answer: \+10 XP/)).toBeVisible();
   await page.getByRole("button", { name: "Show hint" }).click();
   await expect(page.getByText("Using a hint halves the XP for this answer.")).toBeVisible();
@@ -105,11 +105,11 @@ test("consolidation loop: concept → activate → I have studied it → 3 round
 
   // Rounds 2 and 3 of the same item: 20 and 30 XP.
   await page.getByRole("button", { name: /Continue/ }).click();
-  await expect(page.getByText("Round 2 of 3")).toBeVisible();
+  await expect(page.getByText("Good answer 2 of 3")).toBeVisible();
   const second = await answerCurrent(page);
   expect(second.xp?.xp).toBe(20);
   await page.getByRole("button", { name: /Continue/ }).click();
-  await expect(page.getByText("Round 3 of 3")).toBeVisible();
+  await expect(page.getByText("Good answer 3 of 3")).toBeVisible();
   const third = await answerCurrent(page);
   expect(third.xp?.xp).toBe(30);
   // Only the last round is scheduled: an encoding, level 0 → 1.

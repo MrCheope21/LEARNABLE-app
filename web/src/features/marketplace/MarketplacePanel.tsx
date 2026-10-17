@@ -1,10 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useId, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { Link, useLocation } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { marketplace } from "../../api/endpoints";
 import { ErrorBanner } from "../../components/QueryState";
-import { CATEGORIES, LEVELS, categoryLabel, count, levelLabel } from "./labels";
+import { useLabels } from "../../components/useLabels";
+import { useI18n } from "../../i18n";
+import { CATEGORIES, LEVELS } from "./labels";
+
+export const MARKETPLACE_ANCHOR = "#marketplace-page";
 
 type Info = Schemas["ListingInfo"];
 type MyListing = Schemas["MyListing"];
@@ -22,22 +26,17 @@ function infoOf(listing: MyListing): Info {
  * whose it is and what that means.
  */
 export function MarketplacePanel({ courseId, courseTitle }: { courseId: string; courseTitle: string }) {
+  const { t } = useI18n();
   const state = useQuery({ queryKey: ["course-marketplace", courseId], queryFn: () => marketplace.forCourse(courseId) });
   if (!state.data) return null;
   const { origin, listing } = state.data;
   if (origin) {
     return (
-      <section className="card marketplace-origin" aria-label="From the marketplace">
-        <h2>🛒 From the marketplace</h2>
-        <p>
-          Made by <strong>{origin.author}</strong> (version {origin.version}). Its author keeps the chapters, questions and answers up
-          to date, so you can't edit them here: updates reach you automatically.
-        </p>
-        <p className="hint">
-          Your study is your own: activating concepts, pausing, your answers, your review plan and XP, and the priority you give
-          each question (only you see it).
-        </p>
-        <Link to={`/marketplace/${origin.listing_id}`}>See its marketplace page</Link>
+      <section className="card marketplace-origin" aria-label={t("sales.originTitle")}>
+        <h2>{t("sales.originTitle")}</h2>
+        <p>{t("sales.madeBy", { author: origin.author, version: origin.version })}</p>
+        <p className="hint">{t("sales.yourStudy")}</p>
+        <Link to={`/marketplace/${origin.listing_id}`}>{t("sales.seePage")}</Link>
       </section>
     );
   }
@@ -45,8 +44,16 @@ export function MarketplacePanel({ courseId, courseTitle }: { courseId: string; 
 }
 
 function SalesPage({ courseId, courseTitle, listing }: { courseId: string; courseTitle: string; listing: MyListing | null }) {
+  const { t } = useI18n();
+  const { categoryLabel, levelLabel, count } = useLabels();
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+  // "Publish to the marketplace" links here (#marketplace-page): open the editor and show it.
+  const { hash } = useLocation();
+  const [open, setOpen] = useState(hash === MARKETPLACE_ANCHOR);
+  const section = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (hash === MARKETPLACE_ANCHOR) section.current?.scrollIntoView({ block: "start" });
+  }, [hash]);
   const [info, setInfo] = useState<Info>(() => (listing ? infoOf(listing) : { ...EMPTY, title: courseTitle }));
   const [outcomes, setOutcomes] = useState(() => (info.outcomes ?? []).join("\n"));
   const [tags, setTags] = useState(() => (info.tags ?? []).join(", "));
@@ -77,7 +84,7 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
   };
   const save = useMutation({
     mutationFn: () => marketplace.saveInfo(courseId, payload()),
-    onSuccess: (updated) => refresh(updated, updated.status === "PUBLISHED" ? "Saved: the marketplace page shows it now." : "Draft saved. Nobody else sees it until you publish."),
+    onSuccess: (updated) => refresh(updated, updated.status === "PUBLISHED" ? t("sales.noteSaved") : t("sales.noteDraft")),
   });
   const publish = useMutation({
     mutationFn: () => marketplace.publish(courseId, { ...payload(), rights_confirmed: true }),
@@ -85,13 +92,13 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
       refresh(
         updated,
         updated.version > 1
-          ? `Published version ${updated.version}: everyone who has the course now gets your latest questions.`
-          : "Published! Other users can now find it in the Marketplace.",
+          ? t("sales.notePublishedV", { n: updated.version })
+          : t("sales.notePublished"),
       ),
   });
   const unpublish = useMutation({
     mutationFn: () => marketplace.unpublish(listing!.id),
-    onSuccess: (updated) => refresh(updated, "Unpublished: new people can't find it. Those who already have it keep it."),
+    onSuccess: (updated) => refresh(updated, t("sales.noteUnpublished")),
   });
   const busy = save.isPending || publish.isPending || unpublish.isPending;
   const set = (patch: Partial<Info>) => setInfo((current) => ({ ...current, ...patch }));
@@ -104,40 +111,36 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
 
   const status = listing?.status ?? "NONE";
   return (
-    <section className="card sales-page" aria-labelledby={`${ids}-title`}>
+    <section ref={section} id="marketplace-page" className="card sales-page" aria-labelledby={`${ids}-title`}>
       <header className="card-header">
-        <h2 id={`${ids}-title`}>🛒 Marketplace page</h2>
+        <h2 id={`${ids}-title`}>{t("sales.title")}</h2>
         <span className="pill">
-          {status === "PUBLISHED" ? `Published · version ${listing!.version}` : status === "UNPUBLISHED" ? "Not published" : status === "DRAFT" ? "Draft" : "Not shared"}
+          {status === "PUBLISHED" ? t("sales.pPublished", { n: listing!.version }) : status === "UNPUBLISHED" ? t("sales.pNot") : status === "DRAFT" ? t("sales.pDraft") : t("sales.pNone")}
         </span>
       </header>
-      <p className="hint">
-        Share this course with other users. Here you write its page, the only thing people see before adding it: what it covers, who
-        it's for, what they'll learn. They also see the chapter titles and how many questions there are; the questions themselves
-        only once they have it, and your uploaded material never.
-      </p>
+      <p className="hint">{t("sales.explain")}</p>
       {listing && status === "PUBLISHED" && (
         <p>
-          <Link to={`/marketplace/${listing.id}`}>See it as others do</Link> · {count(listing.acquisition_count, "student", "students")}
+          <Link to={`/marketplace/${listing.id}`}>{t("sales.seeAsOthers")}</Link> · {count("mkt.students", listing.acquisition_count)}
         </p>
       )}
       {!open ? (
         <button type="button" className={listing ? undefined : "primary"} onClick={() => setOpen(true)}>
-          {listing ? "Edit the marketplace page" : "Write a marketplace page"}
+          {listing ? t("sales.edit") : t("sales.write")}
         </button>
       ) : (
         <form onSubmit={submit} className="sales-form">
           <label>
-            Title
+            {t("common.title")}
             <input value={info.title} maxLength={200} required onChange={(e) => set({ title: e.target.value })} />
           </label>
           <label>
-            Subtitle <span className="hint">(one line, e.g. "All 300 oral exam questions, with model answers")</span>
+            {t("sales.subtitle")} <span className="hint">{t("sales.subtitleHint")}</span>
             <input value={info.subtitle} maxLength={200} onChange={(e) => set({ subtitle: e.target.value })} />
           </label>
           <div className="sales-row">
             <label>
-              Category
+              {t("sales.category")}
               <select value={info.category} onChange={(e) => set({ category: e.target.value as Info["category"] })}>
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -147,7 +150,7 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
               </select>
             </label>
             <label>
-              Level
+              {t("mkt.level")}
               <select value={info.level} onChange={(e) => set({ level: e.target.value as Info["level"] })}>
                 {LEVELS.map((l) => (
                   <option key={l} value={l}>
@@ -158,47 +161,45 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
             </label>
           </div>
           <label>
-            Description <span className="hint">(what it covers, how you made it, how to use it)</span>
+            {t("sales.description")} <span className="hint">{t("sales.descriptionHint")}</span>
             <textarea rows={6} value={info.description} maxLength={5000} required onChange={(e) => set({ description: e.target.value })} />
           </label>
           <label>
-            What students will learn <span className="hint">(one per line, up to 8)</span>
+            {t("sales.outcomes")} <span className="hint">{t("sales.outcomesHint")}</span>
             <textarea rows={4} value={outcomes} onChange={(e) => setOutcomes(e.target.value)} />
           </label>
           <label>
-            Who it's for
+            {t("mkt.audience")}
             <textarea rows={2} value={info.audience} maxLength={1000} onChange={(e) => set({ audience: e.target.value })} />
           </label>
           <label>
-            Tags <span className="hint">(comma separated, up to 8)</span>
+            {t("sales.tags")} <span className="hint">{t("sales.tagsHint")}</span>
             <input value={tags} onChange={(e) => setTags(e.target.value)} />
           </label>
           <div className="actions">
             <button type="submit" disabled={!valid || busy}>
-              {save.isPending ? "Saving…" : status === "PUBLISHED" ? "Save page" : "Save draft"}
+              {save.isPending ? t("common.saving") : status === "PUBLISHED" ? t("sales.savePage") : t("sales.saveDraft")}
             </button>
             <button type="button" className="link" onClick={() => setOpen(false)}>
-              Close
+              {t("common.close")}
             </button>
           </div>
           <fieldset className="publish-box">
-            <legend>{status === "PUBLISHED" ? "Publish an update" : "Publish"}</legend>
+            <legend>{status === "PUBLISHED" ? t("sales.publishUpdate") : t("sales.publish")}</legend>
             <p className="hint">
-              {status === "PUBLISHED"
-                ? "Sends your current chapters, questions and answers to everyone who has the course. Their own progress is kept."
-                : "Makes the course visible in the Marketplace. It's free for now. You can keep editing it and publish updates later."}
+              {status === "PUBLISHED" ? t("sales.publishHintUpdate") : t("sales.publishHint")}
             </p>
             <label className="toggle">
               <input type="checkbox" checked={rights} onChange={(e) => setRights(e.target.checked)} />
-              The questions and answers are mine to share (I wrote them, or I have the rights to the material they come from).
+              {t("sales.rights")}
             </label>
             <div className="actions" style={{ marginTop: 0 }}>
               <button type="button" className="primary" disabled={!valid || !rights || busy} onClick={() => publish.mutate()}>
-                {publish.isPending ? "Publishing…" : status === "PUBLISHED" ? "Publish update" : "Publish"}
+                {publish.isPending ? t("sales.publishing") : status === "PUBLISHED" ? t("sales.publishUpdateBtn") : t("sales.publish")}
               </button>
               {status === "PUBLISHED" && (
                 <button type="button" className="link danger" disabled={busy} onClick={() => unpublish.mutate()}>
-                  Unpublish
+                  {t("sales.unpublish")}
                 </button>
               )}
             </div>

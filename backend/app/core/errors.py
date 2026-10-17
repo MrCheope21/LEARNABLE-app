@@ -41,6 +41,11 @@ class NotFoundError(AppError):
     error_type = "not_found"
 
 
+class RegistrationClosedError(AppError):
+    status_code = 403
+    error_type = "registration_closed"
+
+
 class ConflictError(AppError):
     status_code = 409
     error_type = "conflict"

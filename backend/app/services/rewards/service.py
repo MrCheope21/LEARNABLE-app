@@ -12,7 +12,7 @@ from datetime import date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.dialects import postgresql, sqlite
 from sqlalchemy.orm import Session
 
@@ -69,19 +69,22 @@ def occasion_for(
     due_before: datetime | None,
     at: datetime,
 ) -> Occasion | None:
-    """Eligible attempts (§3): an item's first three consolidation rounds, and a scheduled review
-    of an item that was due. Learning with the answer shown first (LEARN), practice and exams
-    earn nothing."""
+    """Eligible attempts (§3): an item's consolidation answers until it has been rewarded for
+    three correct ones, and a scheduled review of an item that was due. Learning with the answer
+    shown first (LEARN), practice and exams earn nothing."""
     if session.intent is SessionIntent.CONSOLIDATION:
-        done = db.scalar(
-            select(func.count())
+        awards = db.execute(
+            select(
+                func.count(),
+                func.coalesce(func.sum(case((XpAward.correct.is_(True), 1), else_=0)), 0),
+            )
             .select_from(XpAward)
             .where(XpAward.learning_item_id == item.id, XpAward.reason == XpReason.INITIAL)
-        )
-        attempt = (done or 0) + 1
-        if attempt > policy.INITIAL_ROUNDS:
+        ).one()
+        attempts, correct = int(awards[0]), int(awards[1])
+        if correct >= policy.INITIAL_ROUNDS:
             return None
-        return Occasion(XpReason.INITIAL, f"initial:{attempt}")
+        return Occasion(XpReason.INITIAL, f"initial:{attempts + 1}")
     if session.intent is SessionIntent.SCHEDULED_REVIEW:
         if state_before is MemoryState.NEW or due_before is None or _aware(due_before) > at:
             return None

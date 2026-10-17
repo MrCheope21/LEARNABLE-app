@@ -24,6 +24,7 @@ export function SettingsPage() {
         {(user) => (
           <>
             <ProfileSection user={user} />
+            <CommunitySection user={user} />
             <LanguageSection user={user} />
             <section className="card settings-section" aria-labelledby="settings-study">
               <h2 id="settings-study">{t("settings.study")}</h2>
@@ -50,11 +51,38 @@ function useSaveProfile() {
   });
 }
 
+/** Opt in or out of the leaderboards, search and following. Off until the user turns it on. */
+function CommunitySection({ user }: { user: User }) {
+  const { t } = useI18n();
+  const save = useSaveProfile();
+  const id = useId();
+  return (
+    <section className="card settings-section" aria-labelledby="settings-community">
+      <h2 id="settings-community">{t("settings.community")}</h2>
+      <label className="toggle" htmlFor={id}>
+        <input
+          id={id}
+          type="checkbox"
+          checked={user.community_visible}
+          disabled={save.isPending || (!user.community_visible && !user.display_name)}
+          onChange={(e) => save.mutate({ community_visible: e.target.checked })}
+        />
+        {t("settings.communityToggle")}
+      </label>
+      <p className="hint">{t("settings.communityHint")}</p>
+      {!user.display_name && <p className="hint">{t("community.needName")}</p>}
+      <ErrorBanner error={save.error} />
+    </section>
+  );
+}
+
 function ProfileSection({ user }: { user: User }) {
   const { t } = useI18n();
   const save = useSaveProfile();
   const [name, setName] = useState(user.display_name ?? "");
   const nameId = useId();
+  const [username, setUsername] = useState(user.username ?? "");
+  const usernameId = useId();
   const submit = (event: FormEvent) => {
     event.preventDefault();
     save.mutate({ display_name: name });
@@ -83,6 +111,33 @@ function ProfileSection({ user }: { user: User }) {
         <p className="hint">{t("settings.displayNameHint")}</p>
         {save.isSuccess && <p role="status" className="hint">{t("common.saved")}</p>}
         <ErrorBanner error={save.error} />
+      </form>
+      <form
+        className="settings-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save.mutate({ username: username.trim() });
+        }}
+      >
+        <label htmlFor={usernameId}>{t("settings.username")}</label>
+        <div className="inline-field">
+          <input
+            id={usernameId}
+            value={username}
+            minLength={0}
+            maxLength={30}
+            autoCapitalize="none"
+            spellCheck={false}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <button
+            type="submit"
+            aria-label={`${t("settings.username")}: ${t("common.save")}`}
+            disabled={save.isPending || username.trim().toLowerCase() === (user.username ?? "")}>
+            {save.isPending ? t("common.saving") : t("common.save")}
+          </button>
+        </div>
+        <p className="hint">{t("settings.usernameHint")}</p>
       </form>
       <dl className="settings-facts">
         <dt>{t("settings.email")}</dt>
