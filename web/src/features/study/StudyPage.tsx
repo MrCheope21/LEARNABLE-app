@@ -161,7 +161,22 @@ export function StudyPage() {
           />
         </main>
         {source && <SourcePanel source={source} onClose={() => setSource(null)} />}
-        {conceptPanel && <ConceptPanel courseId={courseId} conceptId={conceptPanel} onClose={() => setConceptPanel(null)} />}
+        {conceptPanel && (
+          <ConceptPanel
+            courseId={courseId}
+            conceptId={conceptPanel}
+            onClose={() => setConceptPanel(null)}
+            onNext={
+              s.phase.kind === "result" && !s.phase.result.needs_self_grade && !s.phase.result.needs_repeat
+                ? () => {
+                    setConceptPanel(null);
+                    void s.loadNext();
+                  }
+                : undefined
+            }
+            working={s.working}
+          />
+        )}
       </div>
     </div>
   );

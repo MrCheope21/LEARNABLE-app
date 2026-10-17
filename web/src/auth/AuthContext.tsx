@@ -7,7 +7,7 @@ import { drafts } from "../features/study/drafts";
 interface AuthState {
   isSignedIn: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, language?: Schemas["UserCreate"]["language"]) => Promise<void>;
+  register: (email: string, password: string, language?: Schemas["UserCreate"]["language"], username?: string) => Promise<void>;
   signOut: () => void;
 }
 
@@ -43,8 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const register = useCallback(
-    async (email: string, password: string, language?: Schemas["UserCreate"]["language"]) => {
-      await auth.register({ email, password, timezone: deviceTimezone(), language: language ?? "en" });
+    async (email: string, password: string, language?: Schemas["UserCreate"]["language"], username?: string) => {
+      await auth.register({ email, password, timezone: deviceTimezone(), language: language ?? "en", ...(username ? { username } : {}) });
       await signIn(email, password);
     },
     [signIn],

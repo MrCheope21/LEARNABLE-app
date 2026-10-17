@@ -81,6 +81,8 @@ function ProfileSection({ user }: { user: User }) {
   const save = useSaveProfile();
   const [name, setName] = useState(user.display_name ?? "");
   const nameId = useId();
+  const [username, setUsername] = useState(user.username ?? "");
+  const usernameId = useId();
   const submit = (event: FormEvent) => {
     event.preventDefault();
     save.mutate({ display_name: name });
@@ -109,6 +111,33 @@ function ProfileSection({ user }: { user: User }) {
         <p className="hint">{t("settings.displayNameHint")}</p>
         {save.isSuccess && <p role="status" className="hint">{t("common.saved")}</p>}
         <ErrorBanner error={save.error} />
+      </form>
+      <form
+        className="settings-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save.mutate({ username: username.trim() });
+        }}
+      >
+        <label htmlFor={usernameId}>{t("settings.username")}</label>
+        <div className="inline-field">
+          <input
+            id={usernameId}
+            value={username}
+            minLength={0}
+            maxLength={30}
+            autoCapitalize="none"
+            spellCheck={false}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <button
+            type="submit"
+            aria-label={`${t("settings.username")}: ${t("common.save")}`}
+            disabled={save.isPending || username.trim().toLowerCase() === (user.username ?? "")}>
+            {save.isPending ? t("common.saving") : t("common.save")}
+          </button>
+        </div>
+        <p className="hint">{t("settings.usernameHint")}</p>
       </form>
       <dl className="settings-facts">
         <dt>{t("settings.email")}</dt>

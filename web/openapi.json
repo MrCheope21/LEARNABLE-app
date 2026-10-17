@@ -5769,6 +5769,19 @@
               }
             ],
             "title": "Timezone"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
           }
         },
         "required": [
@@ -5782,7 +5795,8 @@
         "additionalProperties": false,
         "properties": {
           "email": {
-            "format": "email",
+            "maxLength": 320,
+            "minLength": 1,
             "title": "Email",
             "type": "string"
           },
@@ -5873,6 +5887,18 @@
               }
             ],
             "title": "Timezone"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
           }
         },
         "title": "UserPreferencesUpdate",
@@ -5927,11 +5953,23 @@
           "timezone": {
             "title": "Timezone",
             "type": "string"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
           }
         },
         "required": [
           "id",
           "email",
+          "username",
           "timezone",
           "daily_goal",
           "language",

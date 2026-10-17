@@ -10,6 +10,7 @@ export function SignInPage() {
   const { t, language, setLocalLanguage } = useI18n();
   const [mode, setMode] = useState<"signIn" | "register" | "forgot">("signIn");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,7 +27,7 @@ export function SignInPage() {
     setError(null);
     try {
       if (mode === "signIn") await signIn(email.trim(), password);
-      else await register(email.trim(), password, language);
+      else await register(email.trim(), password, language, username.trim() || undefined);
       setPassword("");
     } catch (e) {
       setError(userMessage(e));
@@ -51,9 +52,33 @@ export function SignInPage() {
         </a>
         <h1 id="signin-title">{mode === "signIn" ? t("signin.title") : t("signin.registerTitle")}</h1>
         <label>
-          {t("signin.email")}
-          <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          {mode === "signIn" ? t("signin.emailOrUsername") : t("signin.email")}
+          <input
+            type={mode === "signIn" ? "text" : "email"}
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </label>
+        {mode === "register" && (
+          <label>
+            {t("signin.username")}
+            <input
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              minLength={3}
+              maxLength={30}
+              pattern="[A-Za-z0-9._\-]+"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <span className="hint">{t("signin.usernameHint")}</span>
+          </label>
+        )}
         <label>
           {t("signin.password")}
           <input

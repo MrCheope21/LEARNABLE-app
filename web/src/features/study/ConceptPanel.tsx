@@ -8,7 +8,20 @@ import { useI18n } from "../../i18n";
  * "Study this concept" beside the question: everything the concept teaches (each learning item's
  * expected answer and key points), without leaving the session.
  */
-export function ConceptPanel({ courseId, conceptId, onClose }: { courseId: string; conceptId: string; onClose: () => void }) {
+export function ConceptPanel({
+  courseId,
+  conceptId,
+  onClose,
+  onNext,
+  working = false,
+}: {
+  courseId: string;
+  conceptId: string;
+  onClose: () => void;
+  /** After an answer: close the panel and go on to the next question. */
+  onNext?: () => void;
+  working?: boolean;
+}) {
   const { t } = useI18n();
   const concept = useQuery({ queryKey: ["concept", conceptId], queryFn: () => concepts.get(conceptId) });
   const items = useQuery({ queryKey: ["items", conceptId], queryFn: () => concepts.learningItems(conceptId) });
@@ -23,6 +36,11 @@ export function ConceptPanel({ courseId, conceptId, onClose }: { courseId: strin
           {t("common.close")}
         </button>
       </header>
+      {onNext && (
+        <button type="button" className="primary" disabled={working} onClick={onNext}>
+          {t("conceptPanel.next")}
+        </button>
+      )}
       {concept.data?.description && <p>{concept.data.description}</p>}
       <QueryState query={items} label={t("conceptPanel.loading")}>
         {(list) => (
@@ -43,6 +61,11 @@ export function ConceptPanel({ courseId, conceptId, onClose }: { courseId: strin
           </ol>
         )}
       </QueryState>
+      {onNext && (
+        <button type="button" className="primary" disabled={working} onClick={onNext}>
+          {t("conceptPanel.next")}
+        </button>
+      )}
       <p className="hint">
         <Link to={`/courses/${courseId}/concepts/${conceptId}`} target="_blank" rel="noopener">
           {t("conceptPanel.openFull")}

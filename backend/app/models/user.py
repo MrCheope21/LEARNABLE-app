@@ -15,6 +15,9 @@ class User(Base):
     # Always stored lowercased (normalized in app/auth/schemas.py), so uniqueness is
     # case-insensitive in practice.
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    # Optional sign-in name, an alternative to the email. Lowercase letters, digits and . _ -
+    # (app/auth/schemas.py); never contains "@", so it can't be mistaken for an email.
+    username: Mapped[str | None] = mapped_column(String(30), unique=True, index=True, default=None)
     hashed_password: Mapped[str] = mapped_column(String(255))
     # IANA zone ("Europe/Rome"): decides the user's calendar day for streaks, the daily goal,
     # XP today and the activity calendar. Set from the device at registration; UTC otherwise

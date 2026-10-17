@@ -3857,13 +3857,12 @@ export interface components {
             password: string;
             /** Timezone */
             timezone?: string | null;
+            /** Username */
+            username?: string | null;
         };
         /** UserLogin */
         UserLogin: {
-            /**
-             * Email
-             * Format: email
-             */
+            /** Email */
             email: string;
             /** Password */
             password: string;
@@ -3880,6 +3879,8 @@ export interface components {
             language?: ("en" | "it" | "es" | "fr" | "de" | "zh" | "ja" | "ar" | "hi") | null;
             /** Timezone */
             timezone?: string | null;
+            /** Username */
+            username?: string | null;
         };
         /** UserRead */
         UserRead: {
@@ -3906,6 +3907,8 @@ export interface components {
             language: "en" | "it" | "es" | "fr" | "de" | "zh" | "ja" | "ar" | "hi";
             /** Timezone */
             timezone: string;
+            /** Username */
+            username: string | null;
         };
         /** ValidationError */
         ValidationError: {
