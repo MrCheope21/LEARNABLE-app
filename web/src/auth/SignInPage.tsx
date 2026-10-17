@@ -76,9 +76,9 @@ export function SignInPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
-            <span className="hint">{t("signin.usernameHint")}</span>
           </label>
         )}
+        {mode === "register" && <p className="hint">{t("signin.usernameHint")}</p>}
         <label>
           {t("signin.password")}
           <input
