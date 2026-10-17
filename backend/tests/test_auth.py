@@ -204,3 +204,18 @@ def test_a_username_can_be_set_changed_and_cleared_in_the_profile(client):
     assert patch("later_1").status_code == 200  # your own name isn't "taken"
     assert patch("").json()["username"] is None
     assert _login(client, "later_1").status_code == 401
+
+
+def test_registration_can_be_closed_without_locking_out_existing_accounts(client, monkeypatch):
+    from app.core.config import get_settings
+
+    _register(client, "member@example.com")
+    monkeypatch.setenv("REGISTRATION_OPEN", "false")
+    get_settings.cache_clear()
+    try:
+        closed = _register(client, "newcomer@example.com")
+        assert (closed.status_code, closed.json()["error_type"]) == (403, "registration_closed")
+        assert _login(client, "member@example.com").status_code == 200
+    finally:
+        monkeypatch.delenv("REGISTRATION_OPEN")
+        get_settings.cache_clear()

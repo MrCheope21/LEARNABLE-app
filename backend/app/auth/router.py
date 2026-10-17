@@ -26,7 +26,12 @@ from app.auth.security import (
     verify_password,
 )
 from app.core.config import get_settings
-from app.core.errors import AuthenticationError, ConflictError, InvalidRequestError
+from app.core.errors import (
+    AuthenticationError,
+    ConflictError,
+    InvalidRequestError,
+    RegistrationClosedError,
+)
 from app.core.rate_limit import limiter, per_ip, per_user
 from app.db.session import get_db
 from app.email.sender import EmailSender, get_email_sender
@@ -53,6 +58,8 @@ def _username_taken(db: Session, username: str, except_id: object = None) -> boo
     dependencies=[Depends(per_ip("register", 10, 3600))],
 )
 def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
+    if not get_settings().registration_open:
+        raise RegistrationClosedError("New accounts are not being accepted on this server.")
     if db.scalar(select(User).where(User.email == payload.email)) is not None:
         raise ConflictError("Email already registered")
     if payload.username and _username_taken(db, payload.username):
