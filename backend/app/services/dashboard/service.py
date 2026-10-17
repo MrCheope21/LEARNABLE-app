@@ -42,6 +42,7 @@ from app.schemas.dashboard import (
     XpSummary,
 )
 from app.services.courses.service import get_owned_course
+from app.services.review import progress
 from app.services.review.pool import eligible_items_for_user
 from app.services.rewards.service import local_day, zone
 
@@ -81,7 +82,7 @@ def dashboard(db: Session, user: User, weeks: int = DEFAULT_ACTIVITY_WEEKS) -> D
         as_of=as_of,
         timezone=zone(user.timezone).key,
         today=today,
-        next_step=_next_step(cards, unfinished),
+        next_step=_next_step(cards, unfinished, _good_rounds(db, unfinished)),
         courses=cards,
         xp=XpSummary(total=xp_total, today=today_row.xp if today_row else 0),
         streak=_streak(db, user.id, today),
@@ -402,7 +403,16 @@ def _unfinished_consolidations(db: Session, user_id: uuid.UUID) -> list[ReviewSe
 # --- Next step ---
 
 
-def _next_step(cards: list[CourseCard], unfinished: list[ReviewSession]) -> NextStep:
+def _good_rounds(db: Session, sessions: list[ReviewSession]) -> dict[uuid.UUID, int]:
+    """Per open consolidation batch: the good answers its current item already has."""
+    return {
+        s.id: progress.good_answers(db, s.id, uuid.UUID(s.item_ids[s.position])) for s in sessions
+    }
+
+
+def _next_step(
+    cards: list[CourseCard], unfinished: list[ReviewSession], good_rounds: dict[uuid.UUID, int]
+) -> NextStep:
     """One recommendation, by a fixed priority (docs/XP_AND_ACTIVITY.md §6):
     1. resume an unfinished consolidation batch (its rounds are immediate: waiting loses them);
     2. review due items (the course with most due);
@@ -416,7 +426,6 @@ def _next_step(cards: list[CourseCard], unfinished: list[ReviewSession]) -> Next
     unfinished = [s for s in unfinished if s.course_id in titles]
     if unfinished:
         session = unfinished[0]
-        key = session.item_ids[session.position]
         card = next((c for c in cards if c.id == session.course_id), None)
         concept = card.learn.concept if card and card.learn.session_id == session.id else None
         return NextStep(
@@ -427,8 +436,8 @@ def _next_step(cards: list[CourseCard], unfinished: list[ReviewSession]) -> Next
             concept_title=concept.title if concept else None,
             session_id=session.id,
             count=len(session.item_ids) - session.position,
-            round=session.item_ids[: session.position + 1].count(key),
-            rounds_total=session.item_ids.count(key),
+            round=min(good_rounds.get(session.id, 0) + 1, progress.GOOD_ANSWERS_NEEDED),
+            rounds_total=progress.GOOD_ANSWERS_NEEDED,
         )
     due = max(cards, key=lambda c: c.due_now, default=None)
     if due is not None and due.due_now > 0:

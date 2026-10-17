@@ -137,6 +137,9 @@ class Answer(Base):
     # review the reference answer and repeat it (services/evaluation/resolver.py).
     repeat_offered: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     repeat_text: Mapped[str | None] = mapped_column(Text, default=None)
+    # This answer is the student's repeat of another one (the "review and repeat" step): it is
+    # evaluated like an answer, but only to decide that other answer's grade; never scheduled.
+    repeat_of_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True, default=None)
     repeated_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
 

@@ -37,7 +37,7 @@ happens inside each transition. A `Transition` carries `before`, `after`, `outco
 `reviewed_at` and `lateness`. Every Learning Item stores the policy name and version it started
 with (`get_policy(name, version)`), so a later default never re-interprets existing items.
 
-## 3. ChessableStyleSchedulingPolicy (MVP default, `chessable` v1)
+## 3. ChessableStyleSchedulingPolicy (MVP default, `chessable` v3)
 
 The ladder lives only in `app/services/scheduling/config.py`. Changing a value means a new
 policy version, because every history row records the version that produced it.
@@ -53,11 +53,18 @@ policy version, because every history row records the version that produced it.
 | 7 | 3 months (91 days) |
 | 8 | 6 months (182 days) |
 
-Transitions (owner decisions, 2026-09-24):
+**Policy v3 (owner decision, 2026-10-17): a failed review goes to level zero.** AGAIN on an
+encoded item sends it to level 0 (state RELEARNING, due immediately, timer reset), not to level
+1. In a session the item stays required until it is answered well once; that good answer starts
+it again at level 1. v2 (earlier) held the level on HARD and dropped gently on a first lapse;
+v1 predates both. Stored rows keep the version that produced them; the migration moved existing
+states to v3.
+
+Transitions (owner decisions, 2026-09-24; AGAIN on a review is level 0 since v3):
 
 | | Encoding (NEW item, LEARN) | Review (encoded item) |
 |---|---|---|
-| **AGAIN** | stays NEW, asked again in the session (≤3 times) | **back to level 1**; a lapse (+1 `lapse_count`, state RELEARNING) if the item was REVIEW/MASTERED; failing at level 1 or while relearning is not a new lapse |
+| **AGAIN** | stays NEW, asked again in the session (≤3 times) | **back to level 0** (v3); a lapse (+1 `lapse_count`, state RELEARNING) if the item was REVIEW/MASTERED; failing at level 1 or while relearning is not a new lapse |
 | **HARD** | level 1 | **+1 level, like GOOD**, and the item is **marked hard** (+1 `hard_count`) |
 | **GOOD** | level 1 | +1 level |
 | **EASY** | level 2 | +2 levels |
@@ -123,7 +130,11 @@ evaluation and `resolved_outcome` stay as written, for the record.
   scores but so incomplete it doesn't pass), no repeat is offered: it is graded AGAIN and the
   schedule restarts as for any failed review. The repeat is a chance to correct a near miss, not
   a way around failing.
-- The repeat is not evaluated again; it only has to be written (non-empty).
+- **The repeat is evaluated** like any answer (since 2026-10-17). Repeated well (resolver GOOD):
+  the first answer is final GOOD, full XP, and the schedule moves forward. Anything less (HARD,
+  AGAIN): the first answer is final AGAIN, the item goes to level 0 and must be answered well
+  again in the session. If the repeat can't be judged the student grades the first answer. The
+  repeat is stored as its own Answer (`repeat_of_id`), not as a pending card.
 - The student may instead grade the answer themselves (override), as for any ungraded answer.
 - Not offered in PRACTICE sessions, for drawn answers, or when the evaluation is inconclusive
   (those keep going to the student's own grade).
@@ -136,26 +147,26 @@ evaluation and `resolved_outcome` stay as written, for the record.
 | LEARN | NEW (not encoded) | encoding success initializes it |
 | SCHEDULED_REVIEW | encoded and due | every final outcome goes through the policy |
 | PRACTICE | encoded, chosen by mode | unchanged unless `update_schedule` |
-| CONSOLIDATION | NEW items of one Concept, each three times in a row | only the item's last round (§4a) |
+| CONSOLIDATION | NEW items of one Concept, until answered well three times | only its third good answer (§4a) |
 | EXAM | — | not available yet; must never move the schedule by accident |
 
-## 4a. Consolidation: three rounds, one encoding
+## 4a. Consolidation: three good answers, one encoding
 
 "I have studied this concept" starts a `CONSOLIDATION` session (`POST /concepts/{id}/consolidation`,
-`app/services/review/consolidation.py`): a batch of up to 5 NEW items, each in three consecutive
-slots, so its question is asked three times in immediate succession with feedback after each
-round.
+`app/services/review/consolidation.py`): a batch of up to 5 NEW items. Each item is asked until it
+has been answered **well three times** (GOOD or EASY; HARD and AGAIN don't count), not
+necessarily in a row. Every answer that isn't good adds one more slot for that item
+(`services/review/progress.py`, at most `MAX_LEARN_ATTEMPTS`), so the batch size is a minimum.
 
-- Rounds 1 and 2 are stored (Answer + Evaluation, `consolidation_round`) but **don't** go through
-  the policy: they happen seconds apart and prove nothing about long-term retention.
-- The item's **last** round goes through `process_learning` with that round's final outcome,
-  exactly like a first retrieval in LEARN: GOOD/HARD → level 1 (4 hours), EASY → level 2,
-  AGAIN → stays NEW (it comes back in a later batch). One Review history row, intent
-  `CONSOLIDATION`; overrides replay it like any other.
-- So consolidation can never produce an interval longer than a single successful encoding, and a
-  wrong final round is handled by the normal learning policy.
-- The session is stored and resumable; asking again resumes the unfinished batch. XP for rounds
-  is separate and never read here (docs/XP_AND_ACTIVITY.md).
+- Answers before the third good one are stored (Answer + Evaluation, `consolidation_round`) but
+  **don't** go through the policy: they happen minutes apart and prove nothing about long-term
+  retention.
+- The **third good** answer goes through `process_learning` with its outcome, like a first
+  retrieval in LEARN: GOOD/HARD → level 1 (4 hours), EASY → level 2. One Review history row,
+  intent `CONSOLIDATION`; overrides replay it like any other.
+- An item that never reaches three good answers stays NEW and comes back in a later batch.
+- The card shows "Good answer n of 3". The session is stored and resumable; asking again
+  resumes the unfinished batch. XP is separate and never read here (docs/XP_AND_ACTIVITY.md).
 
 ## 5. Future scheduling policies
 

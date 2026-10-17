@@ -497,3 +497,6 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 @media (max-width: 640px) { .board-row { grid-template-columns: 2rem minmax(0, 1fr) auto; } .board-row button { grid-column: 2 / -1; justify-self: start; } }
 .repeat-panel { display: grid; gap: 0.5rem; margin-top: 0.8rem; padding: 1rem; border: 1px solid var(--good); border-radius: var(--radius); background: color-mix(in srgb, var(--good) 6%, var(--surface)); }
 .repeat-panel h3 { margin: 0; }
+
+.study-concept-row { margin: 0.2rem 0 0.6rem; }
+.study-concept { font-weight: 600; }

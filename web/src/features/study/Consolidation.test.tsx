@@ -51,7 +51,7 @@ describe("consolidation", () => {
     ]);
     renderApp(`/study/${course}?session=batch-1`);
 
-    expect(await screen.findByText("Round 2 of 3")).toBeInTheDocument();
+    expect(await screen.findByText("Good answer 2 of 3")).toBeInTheDocument();
     // Resumed, not recreated.
     expect(requests.some((r) => r.method === "POST" && r.path.endsWith("/review-sessions"))).toBe(false);
     expect(screen.getByText(/Correct answer: \+20 XP/)).toBeInTheDocument();

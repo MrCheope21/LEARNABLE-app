@@ -8,7 +8,7 @@ the isolation matrix, and the web/Playwright flows.
 XP and activity sit **beside** the learning loop and never feed back into it: the scheduler,
 the ReviewOutcomeResolver and mastery estimates never read them.
 
-## 1. "I have studied this concept": three consolidation rounds
+## 1. "I have studied this concept": three good answers
 
 Opening or activating a Concept isn't studying it. Activation prepares Learning Items; the user
 reads them; then **"I have studied this concept"** (`POST /concepts/{id}/consolidation`)
@@ -17,19 +17,21 @@ starts consolidation:
 - The Concept's NEW, trainable, askable items are taken in course order, **5 per batch**
   (15 answers). The plan (`GET /concepts/{id}/consolidation`) shows the batch size, the rounds
   and the number of answers before starting, and how many items wait for later batches.
-- A batch is a stored `CONSOLIDATION` review session whose pool holds each item **three times in
-  a row**. Each round is a separate answer, evaluated, with corrective feedback; the card shows
-  "Round n of 3". The same question (or an existing formulation of the same item) is asked
-  again; no new AI generation is needed.
-- Three **completed** rounds, not "until three correct": Correct → Wrong → Correct is 10 → 0 →
-  20 XP.
+- A batch is a stored `CONSOLIDATION` review session. Each item is asked until it has been
+  answered **well three times** (GOOD/EASY), not necessarily in a row; each answer is evaluated
+  with corrective feedback, and the card shows "Good answer n of 3". A not-good answer adds one
+  more slot for that item. The same question (or an existing formulation) is asked again; no new
+  AI generation is needed.
+- XP follows correct answers: the nth correct answer of an item earns 10n (halved by a hint).
+  Wrong → Correct → Correct → Correct is 0 → 10 → 20 → 30 XP; extra tries beyond the three
+  good answers earn nothing.
 - **Resume, never reset.** Leaving keeps the batch open; asking again (or "Resume" on the
   dashboard) continues at the same slot. A finished batch is never replayed; a new batch only
   takes items still NEW.
 - **Scheduler:** three answers seconds apart are one act of encoding, not three reviews. Only an
-  item's **last round** goes through the SchedulingPolicy (`process_learning` with that round's
-  outcome), so a correct item starts at level 1 (4 hours) like any first success, and a failed
-  last round leaves it NEW for a later batch. Every round is kept as an Answer with its
+  item's **third good answer** goes through the SchedulingPolicy (`process_learning` with that round's
+  outcome), so a correct item starts at level 1 (4 hours) like any first success, and an item that never
+  gets three good answers stays NEW for a later batch. Every round is kept as an Answer with its
   Evaluation (`consolidation_round` 1-3); only the last one writes a Review history row
   (SCHEDULING.md §4a).
 - Completing a batch isn't consolidating the whole Concept: the end screen says how many items
@@ -65,7 +67,7 @@ awarded XP                        = base, halved if a hint was revealed first
 
 | Attempt | Eligible | Unique occasion |
 |---|---|---|
-| Consolidation round | the item's first **three** consolidation rounds, ever | `initial:1..3` |
+| Consolidation answer | until the item has **three correct** consolidation answers, ever | `initial:<attempt>` |
 | Scheduled review | only when the item was **due** when answered | `review:<due date>` |
 | LEARN (answer shown first) | no | — |
 | Practice (any mode, even with `update_schedule`) | no | — |

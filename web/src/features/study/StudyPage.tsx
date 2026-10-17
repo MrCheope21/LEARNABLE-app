@@ -424,6 +424,11 @@ function Result({
     <article className="card result">
       <span className="eyebrow">{card.concept_title}</span>
       <h2 className="question">{card.question.text}</h2>
+      <p className="study-concept-row">
+        <button type="button" className="study-concept" onClick={() => openConcept(card.concept_id)}>
+          {t("study.studyConcept")}
+        </button>
+      </p>
       {result.has_drawing ? (
         <section className="drawing-compare" aria-label={t("study.drawingCompare")}>
           <figure>
@@ -471,6 +476,12 @@ function Result({
           <EvaluationView evaluation={evaluation} />
         </section>
       )}
+      {result.repeat && (
+        <section className="evaluation repeat-evaluation" aria-label={t("study.repeat.evalTitle")}>
+          <h3>{t("study.repeat.evalTitle")}</h3>
+          <EvaluationView evaluation={result.repeat} />
+        </section>
+      )}
       {result.second_opinion && (
         <section className="evaluation second-opinion" aria-label={t("study.secondOpinion")}>
           <h3>{t("study.secondOpinion")}</h3>
@@ -489,9 +500,6 @@ function Result({
       </details>
 
       <ScheduleNote result={result} />
-      <button type="button" className="link" onClick={() => openConcept(card.concept_id)}>
-        {t("study.studyConcept")}
-      </button>
 
       {repeating && !disputing && (
         <section className="repeat-panel" aria-labelledby="repeat-title">

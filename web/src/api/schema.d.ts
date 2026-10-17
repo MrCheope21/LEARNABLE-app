@@ -132,8 +132,9 @@ export interface paths {
         put?: never;
         /**
          * Repeat Answer
-         * @description Review the reference answer and repeat it: an answer that was green on at least 3 of
-         *     the 4 scores then counts as correct on the first try (409 `repeat_not_offered` otherwise).
+         * @description Review the reference answer and repeat it (409 `repeat_not_offered` otherwise). The
+         *     repeat is evaluated: repeated well, the first answer counts as correct; not well, it is
+         *     failed and the item goes back to level 0.
          */
         post: operations["repeat_answer_api_v1_answers__answer_id__repeat_post"];
         delete?: never;
@@ -1899,6 +1900,7 @@ export interface components {
              */
             question_formulation_id: string;
             reference: components["schemas"]["Reference"];
+            repeat?: components["schemas"]["EvaluationRead"] | null;
             resolved_outcome: components["schemas"]["ReviewOutcome"] | null;
             /** Resolver Version */
             resolver_version: string | null;
@@ -1955,6 +1957,7 @@ export interface components {
              */
             question_formulation_id: string;
             reference: components["schemas"]["Reference"];
+            repeat?: components["schemas"]["EvaluationRead"] | null;
             resolved_outcome: components["schemas"]["ReviewOutcome"] | null;
             /** Resolver Version */
             resolver_version: string | null;

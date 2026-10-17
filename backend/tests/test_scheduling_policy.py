@@ -205,8 +205,9 @@ def test_items_are_independent_values():
 
 def test_policy_registry():
     assert get_policy().name == "chessable"
-    assert get_policy().version == "2"
-    assert get_policy("chessable", "2") is get_policy()
+    assert get_policy().version == "3"
+    assert get_policy("chessable", "3") is get_policy()
+    assert get_policy("chessable", "2") is not get_policy()
     assert get_policy("chessable", "1") is not get_policy()
     with pytest.raises(SchedulingError):
         get_policy("fsrs", "1")
@@ -260,3 +261,55 @@ def test_v2_uses_the_same_ladder():
     assert [v2.interval_for(level) for level in range(1, 9)] == [
         policy.interval_for(level) for level in range(1, 9)
     ]
+
+
+# --- v3 (owner decision 2026-10-17): a failed review goes back to level 0 ---
+
+v3 = get_policy()
+
+
+@pytest.mark.parametrize("level", [1, 3, 7, 8])
+def test_v3_a_failed_review_goes_back_to_level_zero_due_now(level):
+    t = v3.process_review(learned(level), AGAIN, NOW)
+    assert (t.after.state, t.after.level) == (MemoryState.RELEARNING, 0)
+    assert (t.after.interval, t.after.due_at) == (None, NOW)
+
+
+def test_v3_only_a_slip_of_a_reviewed_item_counts_as_a_lapse():
+    assert v3.process_review(learned(4), AGAIN, NOW).after.lapse_count == 1
+    assert v3.process_review(learned(1), AGAIN, NOW).after.lapse_count == 0
+
+
+def test_v3_failing_again_at_level_zero_changes_nothing_more():
+    zero = v3.process_review(learned(5), AGAIN, NOW).after
+    again = v3.process_review(zero, AGAIN, NOW + timedelta(minutes=5)).after
+    assert (again.state, again.level, again.due_at) == (
+        MemoryState.RELEARNING,
+        0,
+        NOW + timedelta(minutes=5),
+    )
+    assert again.lapse_count == zero.lapse_count
+
+
+def test_v3_an_answer_that_is_only_hard_does_not_leave_level_zero():
+    zero = v3.process_review(learned(5), AGAIN, NOW).after
+    hard = v3.process_review(zero, HARD, NOW).after
+    assert (hard.state, hard.level) == (MemoryState.RELEARNING, 0)
+    assert hard.marked_hard
+
+
+def test_v3_a_good_answer_starts_again_from_level_one():
+    zero = v3.process_review(learned(5), AGAIN, NOW).after
+    good = v3.process_review(zero, GOOD, NOW).after
+    assert (good.state, good.level, good.due_at) == (
+        MemoryState.LEARNING,
+        1,
+        NOW + v3.interval_for(1),
+    )
+    easy = v3.process_review(zero, EASY, NOW).after
+    assert easy.level == 2
+
+
+def test_v3_keeps_the_ladder_and_hard_holds_the_level():
+    assert v3.process_review(learned(3), GOOD, NOW).after.level == 4
+    assert v3.process_review(learned(3), HARD, NOW).after.level == 3

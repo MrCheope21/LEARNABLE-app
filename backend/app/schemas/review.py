@@ -205,6 +205,8 @@ class AnswerResult(BaseModel):
     evaluation: EvaluationRead | None
     # The latest second opinion, asked for after the student disputed the grade; null if none.
     second_opinion: EvaluationRead | None = None
+    # The evaluation of the student's repeat (the "review and repeat" step), when they made one.
+    repeat: EvaluationRead | None = None
     resolved_outcome: ReviewOutcome | None
     resolver_version: str | None
     override_outcome: ReviewOutcome | None
