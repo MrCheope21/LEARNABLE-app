@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
+import { AdminPage } from "../features/admin/AdminPage";
 import { ApiError } from "../api/client";
 import { AuthProvider, useAuth } from "../auth/AuthContext";
 import { ResetPasswordPage } from "../auth/PasswordPages";
@@ -83,6 +84,7 @@ function SignedInRoutes() {
         <Route path="progress" element={<ProgressPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="admin" element={<AdminPage />} />
         <Route path="guide" element={<GuidePage />} />
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/friends" element={<CommunityPage tab="friends" />} />

@@ -61,6 +61,8 @@ Language = Literal["en", "it", "es", "fr", "de", "zh", "ja", "ar", "hi"]
 class UserCreate(_AuthInput):
     email: NormalizedEmail
     username: Username | None = None
+    # The code from an administrator's invitation link; required unless sign-up is open.
+    invite: Annotated[str, BeforeValidator(_strip), Field(max_length=200)] | None = None
     password: NewPassword
     # The device's zone; UTC when omitted (it can be changed later).
     timezone: Timezone | None = None

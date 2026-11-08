@@ -161,6 +161,16 @@ export function userMessage(error: unknown, t: Translator = english): string {
       return t("error.state");
     case "rate_limited":
       return t("error.rateLimited");
+    case "account_suspended":
+      return t("error.suspended");
+    case "invitation_invalid":
+      return t("error.invitation");
+    case "quota_exceeded":
+      return error.details.reason === "shared_limit" ? t("error.quotaShared") : t("error.quotaDaily");
+    case "storage_quota_exceeded":
+      return t("error.storageLimit");
+    case "forbidden":
+      return t("error.forbidden");
     case "conflict":
       return error.details.reason === "managed_course" ? t("error.managedCourse") : error.message || t("error.generic");
     case "internal_error":

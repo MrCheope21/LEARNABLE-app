@@ -1,4 +1,5 @@
 import re
+import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
 from sqlalchemy import select
@@ -31,13 +32,12 @@ from app.core.errors import (
     AuthenticationError,
     ConflictError,
     InvalidRequestError,
-    RegistrationClosedError,
 )
 from app.core.rate_limit import limiter, per_ip, per_user
 from app.db.session import get_db
 from app.email.sender import EmailSender, get_email_sender
 from app.models.user import User
-from app.services import community
+from app.services import community, invitations
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -59,13 +59,18 @@ def _username_taken(db: Session, username: str, except_id: object = None) -> boo
     dependencies=[Depends(per_ip("register", 10, 3600))],
 )
 def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
-    if not get_settings().registration_open:
-        raise RegistrationClosedError("New accounts are not being accepted on this server.")
+    # Open sign-up, or an invitation from an administrator (docs/MULTI_USER.md).
+    invitation = (
+        None
+        if get_settings().registration_open
+        else invitations.check(db, payload.invite, payload.email)
+    )
     if db.scalar(select(User).where(User.email == payload.email)) is not None:
         raise ConflictError("Email already registered")
     if payload.username and _username_taken(db, payload.username):
         raise ConflictError("Username already taken")
     user = User(
+        id=uuid.uuid4(),
         email=payload.email,
         username=payload.username,
         hashed_password=hash_password(payload.password),
@@ -74,6 +79,9 @@ def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
     )
     db.add(user)
     try:
+        db.flush()
+        if invitation is not None:
+            invitations.consume(db, invitation, user.id)
         db.commit()
     except IntegrityError as exc:
         # Two concurrent registrations for the same email both pass the check above; the unique

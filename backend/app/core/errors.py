@@ -41,11 +41,6 @@ class NotFoundError(AppError):
     error_type = "not_found"
 
 
-class RegistrationClosedError(AppError):
-    status_code = 403
-    error_type = "registration_closed"
-
-
 class ConflictError(AppError):
     status_code = 409
     error_type = "conflict"
@@ -71,6 +66,21 @@ class AccountSuspendedError(AppError):
 class ForbiddenError(AppError):
     status_code = 403
     error_type = "forbidden"
+
+
+class InvitationInvalidError(AppError):
+    status_code = 403
+    error_type = "invitation_invalid"
+
+
+class QuotaExceededError(AppError):
+    status_code = 429
+    error_type = "quota_exceeded"
+
+
+class StorageQuotaExceededError(AppError):
+    status_code = 413
+    error_type = "storage_quota_exceeded"
 
 
 class PayloadTooLargeError(AppError):

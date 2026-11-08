@@ -24,6 +24,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Invitations */
+        get: operations["list_invitations_api_v1_admin_invitations_get"];
+        put?: never;
+        /** Create Invitation */
+        post: operations["create_invitation_api_v1_admin_invitations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invitations/{invitation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Invitation */
+        delete: operations["revoke_invitation_api_v1_admin_invitations__invitation_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Summary */
+        get: operations["summary_api_v1_admin_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Users */
+        get: operations["list_users_api_v1_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete User */
+        delete: operations["delete_user_api_v1_admin_users__user_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update User */
+        patch: operations["update_user_api_v1_admin_users__user_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset Password
+         * @description For someone who lost their password and has no working email link: a new random password,
+         *     shown once. Every session of that account ends. They should change it after signing in.
+         */
+        post: operations["reset_password_api_v1_admin_users__user_id__password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/answers/{answer_id}": {
         parameters: {
             query?: never;
@@ -1834,6 +1942,82 @@ export interface components {
             /** Xp */
             xp: number;
         };
+        /** AdminSummary */
+        AdminSummary: {
+            /** Active Users */
+            active_users: number;
+            /** Ai Requests Today */
+            ai_requests_today: number;
+            /** Default Evaluations */
+            default_evaluations: number;
+            /** Default Generations */
+            default_generations: number;
+            /** Default Storage Mb */
+            default_storage_mb: number;
+            /** Registration Open */
+            registration_open: boolean;
+            /** Shared Daily Cap */
+            shared_daily_cap: number;
+            /** Users */
+            users: number;
+        };
+        /** AdminUser */
+        AdminUser: {
+            /** Answer Count */
+            answer_count: number;
+            /** Course Count */
+            course_count: number;
+            /** Created At */
+            created_at: string;
+            /** Custom Limits */
+            custom_limits: boolean;
+            /** Display Name */
+            display_name: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Evaluations Limit */
+            evaluations_limit: number;
+            /** Evaluations Today */
+            evaluations_today: number;
+            /** Generations Limit */
+            generations_limit: number;
+            /** Generations Today */
+            generations_today: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Admin */
+            is_admin: boolean;
+            /** Last Active At */
+            last_active_at: string | null;
+            /** Storage Bytes */
+            storage_bytes: number;
+            /** Storage Limit Bytes */
+            storage_limit_bytes: number;
+            /** Username */
+            username: string | null;
+        };
+        /**
+         * AdminUserUpdate
+         * @description Omitted: unchanged. A limit set to null goes back to the server default.
+         */
+        AdminUserUpdate: {
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Limit Evaluations */
+            limit_evaluations?: number | null;
+            /** Limit Generations */
+            limit_generations?: number | null;
+            /** Limit Storage Mb */
+            limit_storage_mb?: number | null;
+        };
         /** AnswerCreate */
         AnswerCreate: {
             /** Drawing */
@@ -2809,6 +2993,73 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** InvitationCreate */
+        InvitationCreate: {
+            /** Days */
+            days?: number | null;
+            /** Email */
+            email?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /**
+         * InvitationCreated
+         * @description Returned once, at creation: the code can't be read back afterwards.
+         */
+        InvitationCreated: {
+            /** Created At */
+            created_at: string;
+            /** Email */
+            email: string | null;
+            /** Expires At */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Link */
+            link: string;
+            /** Note */
+            note: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "used" | "revoked" | "expired";
+            /** Used At */
+            used_at: string | null;
+            /** Used By Email */
+            used_by_email: string | null;
+        };
+        /** InvitationRead */
+        InvitationRead: {
+            /** Created At */
+            created_at: string;
+            /** Email */
+            email: string | null;
+            /** Expires At */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "used" | "revoked" | "expired";
+            /** Used At */
+            used_at: string | null;
+            /** Used By Email */
+            used_by_email: string | null;
+        };
         /**
          * ItemGenerationStatus
          * @description Learning Item generation for one Concept (background job, like curriculum proposals).
@@ -3738,6 +3989,11 @@ export interface components {
          * @enum {string}
          */
         StudyState: "NOT_STUDIED" | "STUDIED" | "ACTIVE" | "PAUSED" | "COMPLETED";
+        /** TemporaryPassword */
+        TemporaryPassword: {
+            /** Password */
+            password: string;
+        };
         /** Token */
         Token: {
             /** Access Token */
@@ -3847,6 +4103,8 @@ export interface components {
              * Format: email
              */
             email: string;
+            /** Invite */
+            invite?: string | null;
             /**
              * Language
              * @default en
@@ -4032,6 +4290,225 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Activity"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invitations_api_v1_admin_invitations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationRead"][];
+                };
+            };
+        };
+    };
+    create_invitation_api_v1_admin_invitations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_invitation_api_v1_admin_invitations__invitation_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    summary_api_v1_admin_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSummary"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_admin_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUser"][];
+                };
+            };
+        };
+    };
+    delete_user_api_v1_admin_users__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_v1_admin_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminUserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUser"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_password_api_v1_admin_users__user_id__password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemporaryPassword"];
                 };
             };
             /** @description Validation Error */

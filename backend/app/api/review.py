@@ -27,6 +27,7 @@ from app.schemas.review import (
     SessionRead,
 )
 from app.services import drawings
+from app.services.quota import EVALUATION, ai_quota
 from app.services.review import consolidation, service
 from app.storage.documents import DocumentStorage, get_document_storage
 
@@ -92,7 +93,7 @@ def next_card(session_id: uuid.UUID, db: Session = DB, user: User = CurrentUser)
     "/review-sessions/{session_id}/answers",
     response_model=AnswerResult,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(per_user("answers", 600, 3600))],
+    dependencies=[Depends(per_user("answers", 600, 3600)), Depends(ai_quota(EVALUATION))],
 )
 def submit_answer(
     session_id: uuid.UUID,
@@ -126,7 +127,7 @@ def get_answer(answer_id: uuid.UUID, db: Session = DB, user: User = CurrentUser)
 @router.post(
     "/answers/{answer_id}/evaluate",
     response_model=AnswerResult,
-    dependencies=[Depends(per_user("evaluate", 60, 3600))],
+    dependencies=[Depends(per_user("evaluate", 60, 3600)), Depends(ai_quota(EVALUATION))],
 )
 def retry_evaluation(
     answer_id: uuid.UUID,
@@ -142,7 +143,7 @@ def retry_evaluation(
 @router.post(
     "/answers/{answer_id}/repeat",
     response_model=AnswerResult,
-    dependencies=[Depends(per_user("evaluate", 60, 3600))],
+    dependencies=[Depends(per_user("evaluate", 60, 3600)), Depends(ai_quota(EVALUATION))],
 )
 def repeat_answer(
     answer_id: uuid.UUID,
@@ -161,7 +162,7 @@ def repeat_answer(
 @router.post(
     "/answers/{answer_id}/dispute",
     response_model=AnswerResult,
-    dependencies=[Depends(per_user("dispute", 30, 3600))],
+    dependencies=[Depends(per_user("dispute", 30, 3600)), Depends(ai_quota(EVALUATION))],
 )
 def dispute(
     answer_id: uuid.UUID,

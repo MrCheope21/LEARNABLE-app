@@ -81,9 +81,21 @@ class Settings(BaseSettings):
     # The built web client (web/dist). When set, this server also serves it, on the same origin
     # as /api (app/web.py; the production image sets it). Unset in development: Vite serves it.
     web_dist_dir: Path | None = None
-    # false: nobody new can sign up (existing accounts still sign in). For a private server
-    # whose AI quota and storage belong to one person.
+    # true: anyone can sign up. false: only with an invitation from an administrator (existing
+    # accounts sign in as usual).
     registration_open: bool = True
+    invitation_ttl_days: int = Field(default=7, ge=1, le=90)
+    # --- Daily limits per account (administrators have none), counted per UTC day ---
+    # AI evaluations (answers, repeats, second opinions) and AI generations (curriculum, items,
+    # questions). An account's own override (admin page) wins.
+    ai_daily_evaluations: int = Field(default=100, ge=0)
+    ai_daily_generations: int = Field(default=100, ge=0)
+    # The provider's free quota is shared by everyone: when the day's total reaches this many
+    # requests minus the reserve, only administrators can go on. 0 turns the guard off.
+    ai_shared_daily_cap: int = Field(default=0, ge=0)
+    ai_admin_reserve_percent: int = Field(default=20, ge=0, le=90)
+    # Uploaded material per account, in MB (0: unlimited).
+    storage_limit_mb: int = Field(default=500, ge=0)
     password_reset_ttl_minutes: int = Field(default=30, gt=0, le=24 * 60)
     # Outgoing email (app/email/sender.py). console: written to the server log (development).
     email_backend: Literal["console", "smtp"] = "console"

@@ -20,7 +20,7 @@ from app.models.course import Chapter, Concept
 from app.models.curriculum import ConceptSource
 from app.models.document import Document, DocumentChunk
 from app.models.enums import DocumentKind, DocumentPurpose, DocumentStatus
-from app.services import managed_courses
+from app.services import managed_courses, quota
 from app.services.courses.service import get_owned_course
 from app.services.documents.chunking import chunk_blocks
 from app.services.documents.detection import SUPPORTED_DESCRIPTION, clean_filename, detect_type
@@ -74,6 +74,7 @@ def upload_document(
             "Markdown (.md) files."
         )
 
+    quota.check_storage(db, user_id, len(data))
     sha256 = hashlib.sha256(data).hexdigest()
     existing = db.scalar(
         select(Document.id).where(Document.course_id == course_id, Document.sha256 == sha256)

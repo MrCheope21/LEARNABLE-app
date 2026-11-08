@@ -40,4 +40,8 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     # False: suspended. Signing in and every existing token stop working at once.
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    # Per-account overrides of the daily limits (null: the server defaults, see config.py).
+    limit_evaluations: Mapped[int | None] = mapped_column(Integer, default=None)
+    limit_generations: Mapped[int | None] = mapped_column(Integer, default=None)
+    limit_storage_mb: Mapped[int | None] = mapped_column(Integer, default=None)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)

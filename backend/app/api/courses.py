@@ -39,6 +39,7 @@ from app.schemas.courses import (
 from app.services.courses import service
 from app.services.documents.service import delete_course_files
 from app.services.learning import service as learning_service
+from app.services.quota import GENERATION, ai_quota
 from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(tags=["courses"])
@@ -243,7 +244,7 @@ def mark_concept_studied(
 @router.post(
     "/concepts/{concept_id}/activate",
     response_model=ConceptRead,
-    dependencies=[Depends(per_user("activate", 200, 3600))],
+    dependencies=[Depends(per_user("activate", 200, 3600)), Depends(ai_quota(GENERATION))],
 )
 def activate_concept(
     concept_id: uuid.UUID,

@@ -8,9 +8,12 @@ import { ForgotPasswordForm } from "./PasswordPages";
 export function SignInPage() {
   const { signIn, register } = useAuth();
   const { t, language, setLocalLanguage } = useI18n();
-  const [mode, setMode] = useState<"signIn" | "register" | "forgot">("signIn");
+  // An invitation link (/?invite=CODE) opens the sign-up form with the code filled in.
+  const inviteFromLink = new URLSearchParams(window.location.search).get("invite") ?? "";
+  const [mode, setMode] = useState<"signIn" | "register" | "forgot">(inviteFromLink ? "register" : "signIn");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [invite, setInvite] = useState(inviteFromLink);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,7 +30,7 @@ export function SignInPage() {
     setError(null);
     try {
       if (mode === "signIn") await signIn(email.trim(), password);
-      else await register(email.trim(), password, language, username.trim() || undefined);
+      else await register(email.trim(), password, language, username.trim() || undefined, invite.trim() || undefined);
       setPassword("");
     } catch (e) {
       setError(userMessage(e));
@@ -79,6 +82,15 @@ export function SignInPage() {
           </label>
         )}
         {mode === "register" && <p className="hint">{t("signin.usernameHint")}</p>}
+        {mode === "register" && (
+          <>
+            <label>
+              {t("signin.invite")}
+              <input autoComplete="off" autoCapitalize="none" spellCheck={false} value={invite} onChange={(e) => setInvite(e.target.value)} />
+            </label>
+            <p className="hint">{t("signin.inviteHint")}</p>
+          </>
+        )}
         <label>
           {t("signin.password")}
           <input

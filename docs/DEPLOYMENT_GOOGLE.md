@@ -16,9 +16,10 @@ nei limiti gratuiti di Google.
   eventuali costi.
 - L'app usa **SQLite** su questo server (una persona sola, niente PostgreSQL: la VM ha solo
   1 GB di RAM). Il database e i file caricati stanno in un unico volume Docker.
-- Le **registrazioni sono chiuse** (`REGISTRATION_OPEN=false`): nessun estraneo può creare un
-  account e consumare la tua quota di IA. Per far entrare una persona: mettilo a `true`,
-  riavvia, fai registrare, rimettilo a `false`.
+- Le **registrazioni sono solo su invito** (`REGISTRATION_OPEN=false`): nessun estraneo può
+  creare un account e consumare la tua quota di IA. Per far entrare una persona crei un invito
+  dalla pagina **Amministrazione** (menu dell'account) e le mandi il link. Vedi
+  docs/MULTI_USER.md.
 
 ## 1. Crea la VM
 
@@ -112,3 +113,21 @@ esegui `sh deploy/google/backup-on-server.sh`.
 - Memoria esaurita: `free -m`; lo swap da 2 GB è creato da `setup-vm.sh`.
 - Email di reset password: con `EMAIL_BACKEND=console` il link compare nei log del server
   (`docker compose ... logs backend`). Per l'invio vero serve un provider SMTP.
+
+## 10. Più utenti: primo avvio dopo l'aggiornamento
+
+Dopo aver aggiornato il codice (passo 8), sul server:
+
+```sh
+cd ~/LEARNABLE-app
+sh deploy/google/backup-on-server.sh                  # copia di sicurezza
+alias dc='docker compose -f deploy/google/docker-compose.yml --env-file .env'
+dc exec backend python scripts/manage_users.py list   # elenco degli account
+dc exec backend python scripts/manage_users.py delete --email-domain example.com        # mostra cosa cancellerebbe
+dc exec backend python scripts/manage_users.py delete --email-domain example.com --yes  # cancella gli account di prova
+dc exec backend python scripts/manage_users.py admin --email TUA@EMAIL                  # ti rende amministratore
+```
+
+Poi apri il sito, menu dell'account → **Amministrazione**. Nel `.env` del server puoi regolare
+`AI_DAILY_EVALUATIONS`, `AI_DAILY_GENERATIONS`, `STORAGE_LIMIT_MB` e `AI_SHARED_DAILY_CAP`
+(docs/MULTI_USER.md §3); dopo una modifica: `dc up -d`.

@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.admin import router as admin_router
 from app.api.community import router as community_router
 from app.api.courses import router as courses_router
 from app.api.curriculum import router as curriculum_router
@@ -13,6 +14,7 @@ from app.auth.router import router as auth_router
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth_router)
+api_router.include_router(admin_router)
 api_router.include_router(courses_router)
 api_router.include_router(documents_router)
 api_router.include_router(curriculum_router)

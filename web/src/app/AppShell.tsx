@@ -104,6 +104,11 @@ function AccountMenu() {
           <Link to="/guide" className="button" onClick={() => setOpen(false)}>
             {t("account.guide")}
           </Link>
+          {me.data?.is_admin && (
+            <Link to="/admin" className="button" onClick={() => setOpen(false)}>
+              {t("account.admin")}
+            </Link>
+          )}
           <button type="button" onClick={signOut}>
             {t("account.signOut")}
           </button>

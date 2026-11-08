@@ -12,7 +12,7 @@ cat > "$ENV" <<ENVEOF
 DOMAIN=$DOMAIN
 AUTH_SECRET=$SECRET
 PUBLIC_APP_URL=https://$DOMAIN
-# Nobody else can create accounts. Set to true only to let someone in, then back to false.
+# false: new accounts only with an invitation from an administrator (docs/MULTI_USER.md).
 REGISTRATION_OPEN=false
 EMAIL_BACKEND=console
 

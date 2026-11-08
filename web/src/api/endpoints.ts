@@ -392,3 +392,18 @@ export const community = {
   follow: (userId: Id) => call(api.PUT("/api/v1/community/users/{user_id}/follow", { params: { path: { user_id: userId } } })),
   unfollow: (userId: Id) => call(api.DELETE("/api/v1/community/users/{user_id}/follow", { params: { path: { user_id: userId } } })),
 };
+
+export const admin = {
+  summary: () => call(api.GET("/api/v1/admin/summary")),
+  users: () => call(api.GET("/api/v1/admin/users")),
+  updateUser: (id: Id, body: Schemas["AdminUserUpdate"]) =>
+    call(api.PATCH("/api/v1/admin/users/{user_id}", { params: { path: { user_id: id } }, body })),
+  deleteUser: (id: Id) =>
+    call(api.DELETE("/api/v1/admin/users/{user_id}", { params: { path: { user_id: id } } })),
+  resetPassword: (id: Id) =>
+    call(api.POST("/api/v1/admin/users/{user_id}/password", { params: { path: { user_id: id } } })),
+  invitations: () => call(api.GET("/api/v1/admin/invitations")),
+  createInvitation: (body: Schemas["InvitationCreate"]) => call(api.POST("/api/v1/admin/invitations", { body })),
+  revokeInvitation: (id: Id) =>
+    call(api.DELETE("/api/v1/admin/invitations/{invitation_id}", { params: { path: { invitation_id: id } } })),
+};

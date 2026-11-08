@@ -74,6 +74,228 @@
         "title": "ActivityDay",
         "type": "object"
       },
+      "AdminSummary": {
+        "properties": {
+          "active_users": {
+            "title": "Active Users",
+            "type": "integer"
+          },
+          "ai_requests_today": {
+            "title": "Ai Requests Today",
+            "type": "integer"
+          },
+          "default_evaluations": {
+            "title": "Default Evaluations",
+            "type": "integer"
+          },
+          "default_generations": {
+            "title": "Default Generations",
+            "type": "integer"
+          },
+          "default_storage_mb": {
+            "title": "Default Storage Mb",
+            "type": "integer"
+          },
+          "registration_open": {
+            "title": "Registration Open",
+            "type": "boolean"
+          },
+          "shared_daily_cap": {
+            "title": "Shared Daily Cap",
+            "type": "integer"
+          },
+          "users": {
+            "title": "Users",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "users",
+          "active_users",
+          "ai_requests_today",
+          "shared_daily_cap",
+          "registration_open",
+          "default_evaluations",
+          "default_generations",
+          "default_storage_mb"
+        ],
+        "title": "AdminSummary",
+        "type": "object"
+      },
+      "AdminUser": {
+        "properties": {
+          "answer_count": {
+            "title": "Answer Count",
+            "type": "integer"
+          },
+          "course_count": {
+            "title": "Course Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "custom_limits": {
+            "title": "Custom Limits",
+            "type": "boolean"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "evaluations_limit": {
+            "title": "Evaluations Limit",
+            "type": "integer"
+          },
+          "evaluations_today": {
+            "title": "Evaluations Today",
+            "type": "integer"
+          },
+          "generations_limit": {
+            "title": "Generations Limit",
+            "type": "integer"
+          },
+          "generations_today": {
+            "title": "Generations Today",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_admin": {
+            "title": "Is Admin",
+            "type": "boolean"
+          },
+          "last_active_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active At"
+          },
+          "storage_bytes": {
+            "title": "Storage Bytes",
+            "type": "integer"
+          },
+          "storage_limit_bytes": {
+            "title": "Storage Limit Bytes",
+            "type": "integer"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "username",
+          "display_name",
+          "created_at",
+          "last_active_at",
+          "is_admin",
+          "is_active",
+          "course_count",
+          "answer_count",
+          "storage_bytes",
+          "evaluations_today",
+          "generations_today",
+          "evaluations_limit",
+          "generations_limit",
+          "storage_limit_bytes",
+          "custom_limits"
+        ],
+        "title": "AdminUser",
+        "type": "object"
+      },
+      "AdminUserUpdate": {
+        "additionalProperties": false,
+        "description": "Omitted: unchanged. A limit set to null goes back to the server default.",
+        "properties": {
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "limit_evaluations": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Evaluations"
+          },
+          "limit_generations": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Generations"
+          },
+          "limit_storage_mb": {
+            "anyOf": [
+              {
+                "maximum": 1000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Storage Mb"
+          }
+        },
+        "title": "AdminUserUpdate",
+        "type": "object"
+      },
       "AnswerCreate": {
         "additionalProperties": false,
         "properties": {
@@ -2909,6 +3131,202 @@
         "title": "Introduction",
         "type": "object"
       },
+      "InvitationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "title": "InvitationCreate",
+        "type": "object"
+      },
+      "InvitationCreated": {
+        "description": "Returned once, at creation: the code can't be read back afterwards.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "link": {
+            "title": "Link",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "used",
+              "revoked",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "used_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used At"
+          },
+          "used_by_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used By Email"
+          }
+        },
+        "required": [
+          "id",
+          "note",
+          "email",
+          "status",
+          "created_at",
+          "expires_at",
+          "used_at",
+          "used_by_email",
+          "link"
+        ],
+        "title": "InvitationCreated",
+        "type": "object"
+      },
+      "InvitationRead": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "used",
+              "revoked",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "used_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used At"
+          },
+          "used_by_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used By Email"
+          }
+        },
+        "required": [
+          "id",
+          "note",
+          "email",
+          "status",
+          "created_at",
+          "expires_at",
+          "used_at",
+          "used_by_email"
+        ],
+        "title": "InvitationRead",
+        "type": "object"
+      },
       "ItemGenerationStatus": {
         "description": "Learning Item generation for one Concept (background job, like curriculum proposals).",
         "enum": [
@@ -5502,6 +5920,19 @@
         "title": "StudyState",
         "type": "string"
       },
+      "TemporaryPassword": {
+        "properties": {
+          "password": {
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "TemporaryPassword",
+        "type": "object"
+      },
       "Token": {
         "properties": {
           "access_token": {
@@ -5734,6 +6165,18 @@
             "format": "email",
             "title": "Email",
             "type": "string"
+          },
+          "invite": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite"
           },
           "language": {
             "default": "en",
@@ -6269,6 +6712,330 @@
         "summary": "Activity",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/invitations": {
+      "get": {
+        "operationId": "list_invitations_api_v1_admin_invitations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationRead"
+                  },
+                  "title": "Response List Invitations Api V1 Admin Invitations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Invitations",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "create_invitation_api_v1_admin_invitations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Invitation",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/invitations/{invitation_id}": {
+      "delete": {
+        "operationId": "revoke_invitation_api_v1_admin_invitations__invitation_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invitation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invitation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Invitation",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/summary": {
+      "get": {
+        "operationId": "summary_api_v1_admin_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Summary",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "list_users_api_v1_admin_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUser"
+                  },
+                  "title": "Response List Users Api V1 Admin Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Users",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}": {
+      "delete": {
+        "operationId": "delete_user_api_v1_admin_users__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete User",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "update_user_api_v1_admin_users__user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUserUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUser"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/password": {
+      "post": {
+        "description": "For someone who lost their password and has no working email link: a new random password,\nshown once. Every session of that account ends. They should change it after signing in.",
+        "operationId": "reset_password_api_v1_admin_users__user_id__password_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporaryPassword"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reset Password",
+        "tags": [
+          "admin"
         ]
       }
     },
