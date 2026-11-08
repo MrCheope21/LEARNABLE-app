@@ -81,6 +81,7 @@ class UserRead(BaseModel):
     id: UUID
     email: EmailStr
     username: str | None
+    is_admin: bool
     timezone: str
     # Completed answers per day.
     daily_goal: int

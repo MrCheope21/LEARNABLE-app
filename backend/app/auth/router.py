@@ -27,6 +27,7 @@ from app.auth.security import (
 )
 from app.core.config import get_settings
 from app.core.errors import (
+    AccountSuspendedError,
     AuthenticationError,
     ConflictError,
     InvalidRequestError,
@@ -99,6 +100,8 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
     if not verify_password(payload.password, user.hashed_password):
         limiter.record(failures, _FAILED_LOGIN_WINDOW)
         raise AuthenticationError(_INVALID_CREDENTIALS)
+    if not user.is_active:
+        raise AccountSuspendedError("This account is suspended.")
     if password_needs_rehash(user.hashed_password):
         user.hashed_password = hash_password(payload.password)
         db.commit()

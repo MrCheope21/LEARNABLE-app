@@ -5935,6 +5935,10 @@
             "title": "Id",
             "type": "string"
           },
+          "is_admin": {
+            "title": "Is Admin",
+            "type": "boolean"
+          },
           "language": {
             "enum": [
               "en",
@@ -5970,6 +5974,7 @@
           "id",
           "email",
           "username",
+          "is_admin",
           "timezone",
           "daily_goal",
           "language",

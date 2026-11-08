@@ -3900,6 +3900,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Is Admin */
+            is_admin: boolean;
             /**
              * Language
              * @enum {string}

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, Integer, String, Uuid, false
+from sqlalchemy import Boolean, Integer, String, Uuid, false, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -35,4 +35,9 @@ class User(Base):
     # Carried by every access token; a password change increments it, so every existing session
     # (on every device) ends at once.
     token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Administrators manage invitations and accounts (app/api/admin.py). Set from the command line
+    # (scripts/manage_users.py), never by an API call.
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # False: suspended. Signing in and every existing token stop working at once.
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
