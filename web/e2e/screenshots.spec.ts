@@ -11,7 +11,7 @@ const WIDTHS = [1440, 1024, 768, 390];
 async function signIn(page: Page) {
   await page.goto("/");
   await page.getByLabel("Email").fill("demo@example.com");
-  await page.getByLabel("Password").fill("learnable-demo-2026");
+  await page.getByLabel("Password", { exact: true }).fill("learnable-demo-2026");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
 }

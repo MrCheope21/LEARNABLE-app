@@ -51,7 +51,7 @@ async function apiGet<T>(page: Page, path: string, expected = 200): Promise<T> {
 async function signIn(page: Page, email = EMAIL, password = PASSWORD) {
   await page.goto("/");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
 }
@@ -169,7 +169,7 @@ test("two accounts: private material, private metrics, nothing cached across sig
   await page.goto("/");
   await page.getByRole("button", { name: "Create an account" }).click();
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText("Start your first course")).toBeVisible();
   await expect(page.getByText(COURSE)).toHaveCount(0);

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { userMessage } from "../api/client";
 import { BrandLogo } from "../brand/BrandLogo";
 import { Icon } from "../components/Icon";
@@ -19,6 +19,7 @@ export function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const passwordId = useId();
 
   const tooShort = mode === "register" && password.length < 12;
 
@@ -94,10 +95,11 @@ export function SignInPage() {
             <p className="hint">{t("signin.inviteHint")}</p>
           </>
         )}
-        <label>
-          {t("signin.password")}
+        <div className="field">
+          <label htmlFor={passwordId}>{t("signin.password")}</label>
           <span className="password-field">
             <input
+              id={passwordId}
               type={showPassword ? "text" : "password"}
               autoComplete={mode === "register" ? "new-password" : "current-password"}
               required
@@ -114,7 +116,7 @@ export function SignInPage() {
               <Icon name={showPassword ? "eyeOff" : "eye"} size={18} />
             </button>
           </span>
-        </label>
+        </div>
         {mode === "register" && <p className="hint">{t("signin.passwordRule")}</p>}
         {error && (
           <p role="alert" className="error">

@@ -618,3 +618,6 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .theme-choices { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .choice { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.9rem; border: 1px solid var(--border); border-radius: 10px; font-weight: 500; cursor: pointer; background: var(--surface); }
 .choice.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.field { display: grid; gap: 0.3rem; }
+.field > label { font-weight: 500; }

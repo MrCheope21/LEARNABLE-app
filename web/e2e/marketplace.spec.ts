@@ -14,7 +14,7 @@ async function signUp(request: APIRequestContext, email: string) {
 async function signIn(page: Page, email: string) {
   await page.goto("/");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
 }
@@ -65,7 +65,7 @@ test("an author publishes a course and another user adds it to their courses", a
   await expect(page.getByText("Chi è imprenditore ai sensi")).toHaveCount(0);
 
   await page.getByRole("button", { name: /Add to my courses/ }).click();
-  await expect(page.getByRole("heading", { name: "🛒 From the marketplace" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "From the marketplace" })).toBeVisible();
   await expect(page.getByText("Prof. Rossi").first()).toBeVisible();
   await expect(page.getByRole("button", { name: /^Rename/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Add chapter" })).toHaveCount(0);
@@ -73,7 +73,7 @@ test("an author publishes a course and another user adds it to their courses", a
 
   await page.goto("/");
   await expect(page.getByText("From the marketplace · by Prof. Rossi")).toBeVisible();
-  // On a phone: five nav links, the filters, and the questions with their own priority all fit,
+  // On a phone: the bottom bar, the filters, and the questions with their own priority all fit,
   // with no sideways scrolling.
   await page.setViewportSize({ width: 360, height: 800 });
   for (const path of ["/", "/marketplace", `${courseUrl}/questions`]) {
@@ -83,5 +83,9 @@ test("an author publishes a course and another user adds it to their courses", a
     expect(overflow, `sideways overflow on ${path}`).toBeLessThanOrEqual(0);
   }
   await expect(page.getByLabel("Your priority").first()).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Guide" })).toBeInViewport();
+  // The five main destinations are a bar at the bottom of the screen on a phone.
+  const bottom = page.getByRole("navigation", { name: "Main (mobile)" });
+  for (const name of ["Courses", "Review", "Progress", "Community", "Marketplace"]) {
+    await expect(bottom.getByRole("link", { name })).toBeInViewport();
+  }
 });
