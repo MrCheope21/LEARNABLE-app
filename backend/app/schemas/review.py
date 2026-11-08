@@ -111,6 +111,32 @@ class Card(BaseModel):
     answer_format: str = "TEXT"
 
 
+class QueueItem(BaseModel):
+    learning_item_id: UUID
+    question: str
+    chapter_id: UUID
+    chapter_title: str
+    topic_id: UUID
+    topic_title: str
+    concept_id: UUID
+    concept_title: str
+    level: int
+    marked_hard: bool
+    # Whole days past its due time (0: due today).
+    overdue_days: int
+    # Only in a running session: this is the question on screen.
+    current: bool = False
+
+
+class ReviewQueue(BaseModel):
+    total: int
+    items: list[QueueItem]
+
+
+class PickCreate(InputModel):
+    learning_item_id: UUID
+
+
 class SessionCard(BaseModel):
     session: SessionRead
     done: bool

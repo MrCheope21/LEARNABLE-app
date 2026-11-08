@@ -66,6 +66,11 @@ export function CourseOverview() {
                 </div>
                 <div className="course-actions">
                   <ReviewButton courseId={courseId} due={summary.data.due_now} />
+                  {summary.data.due_now > 0 && (
+                    <Link className="button" to={`/review/${courseId}`}>
+                      {t("rq.choose")}
+                    </Link>
+                  )}
                   <LearnButton courseId={courseId} learn={summary.data.learn} />
                   <Link className="button" to={studyLink(courseId, "PRACTICE", { mode: "MARKED_HARD" })}>
                     {t("course.practiceHard")}

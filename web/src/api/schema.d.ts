@@ -1142,6 +1142,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courses/{course_id}/review-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review Queue
+         * @description Every question due now, in the order they were added to the course, to choose from.
+         */
+        get: operations["review_queue_api_v1_courses__course_id__review_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/{course_id}/review-sessions": {
         parameters: {
             query?: never;
@@ -1766,6 +1786,46 @@ export interface paths {
          * @description The current question; the same one until it has an outcome or is skipped.
          */
         get: operations["next_card_api_v1_review_sessions__session_id__next_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/review-sessions/{session_id}/pick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pick
+         * @description Makes a question still to come the next one (the one that was next moves back a slot).
+         */
+        post: operations["pick_api_v1_review_sessions__session_id__pick_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/review-sessions/{session_id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Session Queue
+         * @description The questions still to come in this session, the one on screen first.
+         */
+        get: operations["session_queue_api_v1_review_sessions__session_id__queue_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3613,6 +3673,14 @@ export interface components {
             /** Xp Today */
             xp_today: number;
         };
+        /** PickCreate */
+        PickCreate: {
+            /**
+             * Learning Item Id
+             * Format: uuid
+             */
+            learning_item_id: string;
+        };
         /** Planner */
         Planner: {
             /** As Of */
@@ -3778,6 +3846,48 @@ export interface components {
             /** Text */
             text?: string | null;
         };
+        /** QueueItem */
+        QueueItem: {
+            /**
+             * Chapter Id
+             * Format: uuid
+             */
+            chapter_id: string;
+            /** Chapter Title */
+            chapter_title: string;
+            /**
+             * Concept Id
+             * Format: uuid
+             */
+            concept_id: string;
+            /** Concept Title */
+            concept_title: string;
+            /**
+             * Current
+             * @default false
+             */
+            current: boolean;
+            /**
+             * Learning Item Id
+             * Format: uuid
+             */
+            learning_item_id: string;
+            /** Level */
+            level: number;
+            /** Marked Hard */
+            marked_hard: boolean;
+            /** Overdue Days */
+            overdue_days: number;
+            /** Question */
+            question: string;
+            /**
+             * Topic Id
+             * Format: uuid
+             */
+            topic_id: string;
+            /** Topic Title */
+            topic_title: string;
+        };
         /**
          * Reference
          * @description The correct answer and where it comes from, shown with the feedback (spec §41, §66).
@@ -3831,6 +3941,13 @@ export interface components {
          * @enum {string}
          */
         ReviewOutcome: "AGAIN" | "HARD" | "GOOD" | "EASY";
+        /** ReviewQueue */
+        ReviewQueue: {
+            /** Items */
+            items: components["schemas"]["QueueItem"][];
+            /** Total */
+            total: number;
+        };
         /** ReviewRead */
         ReviewRead: {
             /**
@@ -6609,6 +6726,37 @@ export interface operations {
             };
         };
     };
+    review_queue_api_v1_courses__course_id__review_queue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_session_api_v1_courses__course_id__review_sessions_post: {
         parameters: {
             query?: never;
@@ -7892,6 +8040,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pick_api_v1_review_sessions__session_id__pick_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PickCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionCard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    session_queue_api_v1_review_sessions__session_id__queue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
                 };
             };
             /** @description Validation Error */

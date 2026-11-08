@@ -145,10 +145,23 @@ evaluation and `resolved_outcome` stay as written, for the record.
 | Intent | Items | Schedule |
 |---|---|---|
 | LEARN | NEW (not encoded) | encoding success initializes it |
-| SCHEDULED_REVIEW | encoded and due | every final outcome goes through the policy |
+| SCHEDULED_REVIEW | encoded and due: all of them (most overdue first), or the ones chosen from the due list (`selection_mode: SELECTED`, course order) | every final outcome goes through the policy |
 | PRACTICE | encoded, chosen by mode | unchanged unless `update_schedule` |
 | CONSOLIDATION | NEW items of one Concept, until answered well three times | only its third good answer (§4a) |
 | EXAM | — | not available yet; must never move the schedule by accident |
+
+### Choosing what to review (2026-11-08)
+
+- `GET /courses/{id}/review-queue`: every question due now, in the order they were added to the
+  course (chapter, topic, concept, question), with its chapter/topic/concept titles, level, hard
+  mark and days overdue. The web page `/review/:courseId` groups it, with search, filters
+  (all / marked hard / overdue) and checkboxes per question, topic or chapter.
+- A scheduled review of chosen questions (`SCHEDULED_REVIEW` + `SELECTED` + `learning_item_ids`)
+  asks only those that are due, in course order, and moves the schedule like any review.
+- During a review (not consolidation): `GET /review-sessions/{id}/queue` lists what is left and
+  `POST /review-sessions/{id}/pick` makes one of those the next question. The question that was
+  next moves back one slot; nothing is dropped, answered or skipped. A pick between answers
+  chooses the question after the one just answered.
 
 ## 4a. Consolidation: three good answers, one encoding
 

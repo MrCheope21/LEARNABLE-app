@@ -25,6 +25,7 @@ import { CoursesPage } from "../features/courses/CoursesPage";
 import { ActivityPage } from "../features/dashboard/ActivityPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { ReviewHubPage } from "../features/home/HomePage";
+import { ReviewQueuePage } from "../features/home/ReviewQueuePage";
 import { CourseMaterialPage } from "../features/material/MaterialPanel";
 import { ProgressPage } from "../features/progress/ProgressPage";
 import { StudyPage } from "../features/study/StudyPage";
@@ -81,6 +82,7 @@ function SignedInRoutes() {
           <Route path="leaderboard" element={<CourseLeaderboardPage />} />
         </Route>
         <Route path="review" element={<ReviewHubPage />} />
+        <Route path="review/:courseId" element={<ReviewQueuePage />} />
         <Route path="progress" element={<ProgressPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="settings" element={<SettingsPage />} />

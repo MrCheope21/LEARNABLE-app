@@ -297,6 +297,20 @@ export const study = {
         body: { question_formulation_id: questionId, text, method, ...(drawing ? { drawing } : {}) },
       }),
     ),
+  /** The questions still to come in this session, the one on screen first. */
+  queue: (sessionId: Id) =>
+    call(api.GET("/api/v1/review-sessions/{session_id}/queue", { params: { path: { session_id: sessionId } } })),
+  /** Makes a question still to come the next one. */
+  pick: (sessionId: Id, learningItemId: Id) =>
+    call(
+      api.POST("/api/v1/review-sessions/{session_id}/pick", {
+        params: { path: { session_id: sessionId } },
+        body: { learning_item_id: learningItemId },
+      }),
+    ),
+  /** Every question due now in a course, in the order they were added. */
+  dueQueue: (courseId: Id) =>
+    call(api.GET("/api/v1/courses/{course_id}/review-queue", { params: { path: { course_id: courseId } } })),
   skip: (sessionId: Id) =>
     call(
       api.POST("/api/v1/review-sessions/{session_id}/skip", {

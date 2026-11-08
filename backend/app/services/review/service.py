@@ -26,6 +26,7 @@ The first final outcome of an answer also records its XP and the day's activity
 import logging
 import uuid
 from dataclasses import replace
+from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -51,7 +52,7 @@ from app.models.enums import (
     ReviewOutcome,
     SessionIntent,
 )
-from app.models.learning import LearningItem, LearningItemSource, QuestionFormulation
+from app.models.learning import LearningItem, LearningItemSource, QuestionFormulation, ReviewState
 from app.models.review import Answer, Evaluation, Review, ReviewSession
 from app.models.rewards import HintReveal
 from app.models.user import User
@@ -68,8 +69,10 @@ from app.schemas.review import (
     Introduction,
     OverrideCreate,
     PotentialXp,
+    QueueItem,
     Reference,
     RepeatCreate,
+    ReviewQueue,
     ScheduleChange,
     SessionCard,
     SessionCreate,
@@ -388,6 +391,108 @@ def _pending_answer(db: Session, session: ReviewSession, item: LearningItem) -> 
         .order_by(Answer.created_at.desc())
         .limit(1)
     )
+
+
+def _queue_item(
+    db: Session, item: LearningItem, state: ReviewState | None, now: datetime, current: bool = False
+) -> QueueItem:
+    question = _pick_question(item)
+    chapter = db.get(Chapter, item.chapter_id)
+    topic = db.get(Topic, item.topic_id)
+    concept = db.get(Concept, item.concept_id)
+    overdue = 0
+    if state is not None and state.due_at is not None and state.due_at < now:
+        overdue = (now - state.due_at).days
+    return QueueItem(
+        learning_item_id=item.id,
+        question=question.text,
+        chapter_id=item.chapter_id,
+        chapter_title=chapter.title if chapter else "",
+        topic_id=item.topic_id,
+        topic_title=topic.title if topic else "",
+        concept_id=item.concept_id,
+        concept_title=concept.title if concept else "",
+        level=state.level if state else 0,
+        marked_hard=bool(state and state.marked_hard),
+        overdue_days=overdue,
+        current=current,
+    )
+
+
+def due_queue(db: Session, user_id: uuid.UUID, course_id: uuid.UUID) -> ReviewQueue:
+    """Every question due for review now, in the order they were added to the course (chapter,
+    topic, concept, question): what a scheduled review would ask, to choose from."""
+    get_owned_course(db, user_id, course_id)
+    now = utc_now()
+    stmt = pool.eligible_items(course_id).where(
+        ReviewState.state != MemoryState.NEW,
+        ReviewState.due_at <= now,
+        ReviewState.paused_at.is_(None),
+    )
+    items = db.scalars(stmt).all()
+    states = {
+        state.learning_item_id: state
+        for state in db.scalars(
+            select(ReviewState).where(ReviewState.learning_item_id.in_([i.id for i in items]))
+        )
+    }
+    return ReviewQueue(
+        total=len(items), items=[_queue_item(db, i, states.get(i.id), now) for i in items]
+    )
+
+
+def session_queue(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> ReviewQueue:
+    """The questions still to come in a running session (the one on screen first), to pick from."""
+    session = get_owned_session(db, user_id, session_id)
+    _check_pickable(session)
+    now = utc_now()
+    shown: set[uuid.UUID] = set()
+    items: list[QueueItem] = []
+    current = current_item(db, session)
+    db.commit()
+    for raw in session.item_ids[session.position :]:
+        item_id = uuid.UUID(raw)
+        if item_id in shown:
+            continue
+        item = db.get(LearningItem, item_id)
+        if item is None or not _still_askable(session, item):
+            continue
+        shown.add(item_id)
+        items.append(
+            _queue_item(
+                db,
+                item,
+                item.review_state,
+                now,
+                current=current is not None and item.id == current.id,
+            )
+        )
+    return ReviewQueue(total=len(items), items=items)
+
+
+def _check_pickable(session: ReviewSession) -> None:
+    if session.intent is SessionIntent.CONSOLIDATION:
+        raise ConflictError(
+            "Consolidation asks each question in a fixed order.",
+            details={"reason": "pick_not_available"},
+        )
+    if session.ended_at is not None:
+        raise ConflictError("This session is finished.", details={"reason": "session_finished"})
+
+
+def pick(db: Session, user_id: uuid.UUID, session_id: uuid.UUID, item_id: uuid.UUID) -> SessionCard:
+    """Makes a question that is still to come the next one. The question that was next moves
+    to the following slot: nothing is dropped, nothing is answered or skipped."""
+    session = get_owned_session(db, user_id, session_id)
+    _check_pickable(session)
+    remaining = list(session.item_ids[session.position :])
+    wanted = str(item_id)
+    if wanted not in remaining:
+        raise NotFoundError("That question isn't left in this session")
+    remaining.remove(wanted)
+    session.item_ids = [*session.item_ids[: session.position], wanted, *remaining]
+    db.commit()
+    return next_card(db, user_id, session_id)
 
 
 def skip(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> SessionCard:

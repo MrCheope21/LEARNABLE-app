@@ -89,6 +89,11 @@ function ReviewCard({ course }: { course: Schemas["CourseCard"] }) {
       </div>
       <div className="course-actions">
         <ReviewButton courseId={course.id} due={course.due_now} />
+        {course.due_now > 0 && (
+          <Link className="button" to={`/review/${course.id}`}>
+            {t("rq.choose")}
+          </Link>
+        )}
         <Link className="button" to={studyLink(course.id, "PRACTICE", { mode: "MARKED_HARD" })}>
           {t("course.practiceHard")}
         </Link>

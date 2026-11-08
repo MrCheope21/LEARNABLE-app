@@ -20,7 +20,9 @@ from app.schemas.review import (
     DisputeCreate,
     HintState,
     OverrideCreate,
+    PickCreate,
     RepeatCreate,
+    ReviewQueue,
     ReviewRead,
     SessionCard,
     SessionCreate,
@@ -107,6 +109,26 @@ def submit_answer(
     the answer is stored, even if evaluation failed (`needs_self_grade`). A drawing question
     takes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`."""
     return service.submit_answer(db, provider, storage, user.id, session_id, payload)
+
+
+@router.get("/courses/{course_id}/review-queue", response_model=ReviewQueue)
+def review_queue(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> ReviewQueue:
+    """Every question due now, in the order they were added to the course, to choose from."""
+    return service.due_queue(db, user.id, course_id)
+
+
+@router.get("/review-sessions/{session_id}/queue", response_model=ReviewQueue)
+def session_queue(session_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> ReviewQueue:
+    """The questions still to come in this session, the one on screen first."""
+    return service.session_queue(db, user.id, session_id)
+
+
+@router.post("/review-sessions/{session_id}/pick", response_model=SessionCard)
+def pick(
+    session_id: uuid.UUID, payload: PickCreate, db: Session = DB, user: User = CurrentUser
+) -> SessionCard:
+    """Makes a question still to come the next one (the one that was next moves back a slot)."""
+    return service.pick(db, user.id, session_id, payload.learning_item_id)
 
 
 @router.post("/review-sessions/{session_id}/skip", response_model=SessionCard)

@@ -16,6 +16,7 @@ import { courseProgressKey, weakSpotsKey } from "../curriculum/CourseLayout";
 import { homeKey } from "../home/HomePage";
 import { SourceLink, SourcePanel, type SourceRef } from "../source/SourcePanel";
 import { Icon } from "../../components/Icon";
+import { QueuePanel } from "./QueuePanel";
 import { ConceptPanel } from "./ConceptPanel";
 import { useI18n } from "../../i18n";
 import { DisputeForm } from "./DisputeForm";
@@ -34,7 +35,8 @@ export function sessionRequestFrom(params: URLSearchParams): Schemas["SessionCre
     selection_mode: items ? "SELECTED" : mode,
     concept_ids: concepts ? concepts.split(",").filter(Boolean) : null,
     learning_item_ids: items ? items.split(",").filter(Boolean) : null,
-    limit: 20,
+    // A chosen set is asked in full (up to 100); otherwise a session is 20 questions.
+    limit: items ? Math.min(100, items.split(",").filter(Boolean).length || 20) : 20,
     update_schedule: false,
   };
 }
@@ -70,13 +72,21 @@ export function StudyPage() {
   const [source, setSource] = useState<SourceRef | null>(null);
   // One side panel at a time: a source passage, or the whole concept.
   const [conceptPanel, setConceptPanel] = useState<string | null>(null);
+  const [queueOpen, setQueueOpen] = useState(false);
   const openSource = (ref: SourceRef) => {
     setConceptPanel(null);
+    setQueueOpen(false);
     setSource(ref);
   };
   const openConcept = (conceptId: string) => {
     setSource(null);
+    setQueueOpen(false);
     setConceptPanel(conceptId);
+  };
+  const openQueue = () => {
+    setSource(null);
+    setConceptPanel(null);
+    setQueueOpen((open) => !open);
   };
   const queryClient = useQueryClient();
   const course = useQuery({ queryKey: ["course", courseId], queryFn: () => courses.get(courseId) });
@@ -143,13 +153,18 @@ export function StudyPage() {
           {s.session && !s.session.affects_schedule && (
             <span className="pill">{t("study.ownReview")}</span>
           )}
+          {s.session && !consolidating && s.session.total > 1 && s.session.position < s.session.total && (
+            <button type="button" className="queue-toggle" aria-pressed={queueOpen} onClick={openQueue}>
+              <Icon name="list" size={16} /> {t("queue.open", { n: s.session.total - s.session.position + (s.phase.kind === "result" ? 0 : 0) })}
+            </button>
+          )}
         </div>
         <button type="button" onClick={() => void close()}>
           {consolidating ? t("study.leaveResume") : t("study.end")}
         </button>
       </header>
 
-      <div className={source || conceptPanel ? "study-body with-panel" : "study-body"}>
+      <div className={source || conceptPanel || queueOpen ? "study-body with-panel" : "study-body"}>
         <main className="study-main">
           <ErrorBanner error={s.error} onDismiss={s.clearError} />
           <PhaseView
@@ -162,6 +177,17 @@ export function StudyPage() {
           />
         </main>
         {source && <SourcePanel source={source} onClose={() => setSource(null)} />}
+        {queueOpen && s.session && (
+          <QueuePanel
+            sessionId={s.session.id}
+            working={s.working}
+            onClose={() => setQueueOpen(false)}
+            onPick={(itemId) => {
+              setQueueOpen(false);
+              void s.pick(itemId);
+            }}
+          />
+        )}
         {conceptPanel && (
           <ConceptPanel
             courseId={courseId}

@@ -233,6 +233,25 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     }
   }, [loadNext]);
 
+  /** Makes another question the next one, then shows it. */
+  const pick = useCallback(
+    async (learningItemId: string) => {
+      const current = sessionRef.current;
+      if (!current) return;
+      setWorking(true);
+      setError(null);
+      try {
+        await study.pick(current.id, learningItemId);
+        await loadNext();
+      } catch (e) {
+        setError(e);
+      } finally {
+        setWorking(false);
+      }
+    },
+    [loadNext],
+  );
+
   const end = useCallback(async () => {
     const current = sessionRef.current;
     if (!current || current.ended_at) return;
@@ -258,6 +277,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     results,
     start,
     loadNext,
+    pick,
     beginRecall,
     submit,
     override,

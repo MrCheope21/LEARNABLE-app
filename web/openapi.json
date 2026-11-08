@@ -4892,6 +4892,21 @@
         "title": "Person",
         "type": "object"
       },
+      "PickCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "learning_item_id": {
+            "format": "uuid",
+            "title": "Learning Item Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learning_item_id"
+        ],
+        "title": "PickCreate",
+        "type": "object"
+      },
       "Planner": {
         "properties": {
           "as_of": {
@@ -5343,6 +5358,78 @@
         "title": "QuestionUpdate",
         "type": "object"
       },
+      "QueueItem": {
+        "properties": {
+          "chapter_id": {
+            "format": "uuid",
+            "title": "Chapter Id",
+            "type": "string"
+          },
+          "chapter_title": {
+            "title": "Chapter Title",
+            "type": "string"
+          },
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "concept_title": {
+            "title": "Concept Title",
+            "type": "string"
+          },
+          "current": {
+            "default": false,
+            "title": "Current",
+            "type": "boolean"
+          },
+          "learning_item_id": {
+            "format": "uuid",
+            "title": "Learning Item Id",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "marked_hard": {
+            "title": "Marked Hard",
+            "type": "boolean"
+          },
+          "overdue_days": {
+            "title": "Overdue Days",
+            "type": "integer"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "topic_id": {
+            "format": "uuid",
+            "title": "Topic Id",
+            "type": "string"
+          },
+          "topic_title": {
+            "title": "Topic Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learning_item_id",
+          "question",
+          "chapter_id",
+          "chapter_title",
+          "topic_id",
+          "topic_title",
+          "concept_id",
+          "concept_title",
+          "level",
+          "marked_hard",
+          "overdue_days"
+        ],
+        "title": "QueueItem",
+        "type": "object"
+      },
       "Reference": {
         "description": "The correct answer and where it comes from, shown with the feedback (spec \u00a741, \u00a766).",
         "properties": {
@@ -5449,6 +5536,27 @@
         ],
         "title": "ReviewOutcome",
         "type": "string"
+      },
+      "ReviewQueue": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QueueItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "ReviewQueue",
+        "type": "object"
       },
       "ReviewRead": {
         "properties": {
@@ -10330,6 +10438,55 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/review-queue": {
+      "get": {
+        "description": "Every question due now, in the order they were added to the course, to choose from.",
+        "operationId": "review_queue_api_v1_courses__course_id__review_queue_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Review Queue",
+        "tags": [
+          "review"
+        ]
+      }
+    },
     "/api/v1/courses/{course_id}/review-sessions": {
       "post": {
         "description": "Builds the pool now and stores it (409 `empty_pool` when nothing qualifies).",
@@ -12486,6 +12643,114 @@
           }
         ],
         "summary": "Next Card",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/v1/review-sessions/{session_id}/pick": {
+      "post": {
+        "description": "Makes a question still to come the next one (the one that was next moves back a slot).",
+        "operationId": "pick_api_v1_review_sessions__session_id__pick_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PickCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Pick",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/v1/review-sessions/{session_id}/queue": {
+      "get": {
+        "description": "The questions still to come in this session, the one on screen first.",
+        "operationId": "session_queue_api_v1_review_sessions__session_id__queue_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Session Queue",
         "tags": [
           "review"
         ]
