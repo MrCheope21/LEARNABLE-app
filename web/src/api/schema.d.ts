@@ -2957,8 +2957,15 @@ export interface components {
         HintState: {
             /** Available */
             available: boolean;
+            /** Point Count */
+            point_count?: number | null;
             /** Revealed */
             revealed: boolean;
+            /**
+             * Terms
+             * @default []
+             */
+            terms: string[];
             /** Text */
             text: string | null;
         };

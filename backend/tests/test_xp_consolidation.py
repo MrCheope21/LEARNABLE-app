@@ -305,13 +305,21 @@ def test_a_hint_halves_xp_and_survives_a_reload(client, course):
     )
     session = studied(client, headers, c["id"]).json()
     shown = card(client, headers, session["id"])["card"]
-    assert shown["hint"] == {"available": True, "revealed": False, "text": None}
+    assert shown["hint"] == {
+        "available": True,
+        "revealed": False,
+        "text": None,
+        "point_count": None,
+        "terms": [],
+    }
     assert shown["potential_xp"]["xp_with_hint"] == 5
 
     revealed = hint(client, headers, session["id"]).json()
     assert revealed["revealed"] is True
-    assert revealed["text"].endswith("…")
-    assert "restituzione" not in revealed["text"]  # a cue, not the answer
+    # How many points to cover and a key term from each, never a sentence of the answer.
+    assert revealed["point_count"] == 2
+    assert revealed["terms"] == ["consegna", "restituzione"]
+    assert "obbligo di restituzione" not in revealed["text"]
     # Reloading shows it again; asking again returns the same hint, still one halving.
     assert card(client, headers, session["id"])["card"]["hint"] == revealed
     assert hint(client, headers, session["id"]).json() == revealed

@@ -15,7 +15,7 @@ from test_xp_consolidation import studied
 from app.models.rewards import DailyActivity
 from app.models.user import User
 from app.services.dashboard import service as dashboard_service
-from app.services.rewards.hints import build_hint
+from app.services.rewards.hints import build_cues
 from app.services.rewards.service import local_day
 from app.storage.documents import LocalDocumentStorage, S3DocumentStorage, StoredFileMissingError
 
@@ -347,26 +347,48 @@ def test_dashboard_query_count_does_not_grow_with_courses(client, learner, engin
 
 
 @pytest.mark.parametrize(
-    ("points", "reference", "expected"),
+    ("points", "reference", "question", "count", "terms"),
     [
         (
             ["consegna di denaro", "obbligo di restituzione"],
             "Consegna di denaro e obbligo.",
-            "consegna…",
+            "Che cos'è il mutuo?",
+            2,
+            ["consegna", "restituzione"],
         ),
+        # Words the question already contains are no cue.
         (
             ["Il deposito bancario trasferisce la proprietà del denaro alla banca"],
             "Il deposito bancario trasferisce la proprietà del denaro alla banca, "
             "che deve restituirlo.",
-            "Il deposito bancario…",
+            "Che cos'è il deposito bancario?",
+            1,
+            ["trasferisce"],
         ),
-        ([], "Sì.", None),
-        ([], "", None),
-        (["ok"], "ok", None),
+        # At most four terms, one per key point.
+        (
+            ["primo elemento", "secondo elemento", "terzo elemento", "quarto elemento", "quinto"],
+            "x",
+            "",
+            5,
+            ["elemento", "secondo", "elemento"],
+        ),
+        ([], "Sì.", "", None, None),
+        ([], "", "", None, None),
+        (["ok"], "ok", "", None, None),
     ],
 )
-def test_hint_is_a_cue_not_the_answer(points, reference, expected):
-    assert build_hint(points, reference) == expected
+def test_hint_cues_are_terms_and_a_count_not_the_answer(points, reference, question, count, terms):
+    cues = build_cues(points, reference, question)
+    if count is None:
+        assert cues is None
+        return
+    assert cues is not None
+    assert cues.point_count == count
+    assert len(cues.terms) <= 4
+    assert len(set(cues.terms)) == len(cues.terms)
+    if len(points) < 3:
+        assert cues.terms == terms
 
 
 # --- Downloads and storage ---

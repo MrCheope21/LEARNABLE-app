@@ -142,6 +142,7 @@ export function userMessage(error: unknown, t: Translator = english): string {
     case "authentication_failed":
       return error.message || t("error.session");
     case "validation_error":
+      if (error.details.reason === "use_concept_consolidation") return t("error.useConcept");
       // Rejections with a reason (e.g. wrong_password) carry a message written for the user.
       return typeof error.details.reason === "string" && error.message ? error.message : t("error.validation");
     case "not_found":

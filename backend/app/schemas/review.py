@@ -88,6 +88,9 @@ class HintState(BaseModel):
     # Revealed for this question slot: the answer earns half XP. Stored on the server.
     revealed: bool
     text: str | None
+    # What the hint shows once revealed: how many key points the answer covers and a few key terms.
+    point_count: int | None = None
+    terms: list[str] = []
 
 
 class Card(BaseModel):

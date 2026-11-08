@@ -34,6 +34,8 @@ export function SignInPage() {
     try {
       if (mode === "signIn") await signIn(email.trim(), password);
       else await register(email.trim(), password, language, username.trim() || undefined, invite.trim() || undefined);
+      // The code is spent: drop it from the address so signing out later opens the sign-in form.
+      window.history.replaceState(null, "", window.location.pathname);
       setPassword("");
     } catch (e) {
       setError(userMessage(e));

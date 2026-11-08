@@ -20,20 +20,29 @@ function rating(value: number): "Strong" | "Partial" | "Weak" {
 }
 
 /** The evaluator's four scores, one short row each, instead of a single grade. */
-export function ScoreBreakdown({ evaluation }: { evaluation: Evaluation }) {
+export function ScoreBreakdown({ evaluation, previous }: { evaluation: Evaluation; previous?: Evaluation }) {
   const { t } = useI18n();
   const rows = DIMENSIONS.flatMap(([key, labelKey]) => {
     const value = evaluation[key];
-    return value === null ? [] : [{ key, label: t(labelKey), value, grade: rating(value) }];
+    const before = previous?.[key] ?? null;
+    const change = value !== null && before !== null ? value - before : 0;
+    return value === null ? [] : [{ key, label: t(labelKey), value, grade: rating(value), change }];
   });
   if (rows.length === 0) return null;
   return (
     <ul className="scores" aria-label={t("eval.scoreBreakdown")}>
-      {rows.map(({ key, label, value, grade }) => (
+      {rows.map(({ key, label, value, grade, change }) => (
         <li key={key}>
           <span className="score-label">{label}</span>
           <meter min={0} max={1} low={0.5} high={0.8} optimum={1} value={value} aria-label={`${label}: ${t(`eval.${grade}` as MessageKey)}`} />
-          <span className={`score-rating ${TONE[grade]}`}>{t(`eval.${grade}` as MessageKey)}</span>
+          <span className={`score-rating ${TONE[grade]}`}>
+            {t(`eval.${grade}` as MessageKey)}
+            {Math.abs(change) >= 0.05 && (
+              <span className={change > 0 ? "delta up" : "delta down"} aria-label={t(change > 0 ? "eval.improved" : "eval.lowered")}>
+                {change > 0 ? "↑" : "↓"}
+              </span>
+            )}
+          </span>
         </li>
       ))}
     </ul>
@@ -81,7 +90,7 @@ export function PointChecklist({ evaluation }: { evaluation: Evaluation }) {
 }
 
 /** One evaluation: its verdict, feedback, scores and checklist. Used for both opinions. */
-export function EvaluationView({ evaluation }: { evaluation: Evaluation }) {
+export function EvaluationView({ evaluation, previous }: { evaluation: Evaluation; previous?: Evaluation }) {
   const { t } = useI18n();
   const { classificationLabel } = useLabels();
   if (evaluation.status !== "COMPLETED") {
@@ -101,7 +110,7 @@ export function EvaluationView({ evaluation }: { evaluation: Evaluation }) {
       {evaluation.context_sufficient === false && (
         <p className="banner warning">{t("eval.insufficient")}</p>
       )}
-      <ScoreBreakdown evaluation={evaluation} />
+      <ScoreBreakdown evaluation={evaluation} previous={previous?.status === "COMPLETED" ? previous : undefined} />
       <PointChecklist evaluation={evaluation} />
     </div>
   );

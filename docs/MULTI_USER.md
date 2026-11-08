@@ -69,6 +69,26 @@ autumn 2026 (third-party sources; check aistudio.google.com/rate-limit). Set
 `AI_SHARED_DAILY_CAP` a little under what your key really allows. Groq and Mistral can be added
 as automatic fall-backs (docs/FREE_AI_ROUTING.md) to raise it.
 
+## 4a. Testing the invitation journey
+
+`web/e2e/invitation.spec.ts` drives the whole path in a real browser: an administrator creates
+an invitation, a stranger without one is refused, the invited person opens the link (code
+pre-filled), creates an account and is signed in, the same link fails a second time, the
+administrator sees it used, and the newcomer can sign out and back in. It needs a backend with
+sign-up closed, so it is skipped unless `INVITE_E2E_URL` is set:
+
+```sh
+# backend (own temp database, one administrator inserted by hand)
+DATABASE_URL=sqlite:////tmp/inv.db REGISTRATION_OPEN=false PUBLIC_APP_URL=http://localhost:5174 \
+  AI_PROVIDER=mock AUTH_SECRET=... uvicorn app.main:app --port 8001
+# web
+LEARNABLE_API_PROXY_TARGET=http://localhost:8001 npx vite --port 5174
+INVITE_E2E_URL=http://localhost:5174 INVITE_E2E_ADMIN_EMAIL=... INVITE_E2E_ADMIN_PASSWORD=... \
+  npx playwright test invitation
+```
+
+Sign-up is limited to 10 per hour per address; restart the backend between repeated runs.
+
 ## 4. Not built yet
 
 - Outgoing email (reset-password links, invitation emails): needs an SMTP provider; until then

@@ -81,7 +81,7 @@ from app.services.courses.service import get_owned_course
 from app.services.evaluation.resolver import RESOLVER_VERSION, repeat_offered, resolve_outcome
 from app.services.review import pool, progress
 from app.services.rewards import service as rewards
-from app.services.rewards.hints import build_hint
+from app.services.rewards.hints import build_cues
 from app.services.scheduling.policy import SchedulingError, Transition
 from app.services.scheduling.store import (
     policy_for,
@@ -270,12 +270,19 @@ def _round(
 def _hint_state(
     db: Session, session: ReviewSession, item: LearningItem, question: QuestionFormulation
 ) -> HintState:
+    cues = build_cues(list(item.essential_points), item.expected_knowledge, question.text)
     revealed = rewards.hint_for_slot(db, session.id, session.position)
     if revealed is not None:
-        return HintState(available=True, revealed=True, text=revealed.text)
-    available = session.intent is not SessionIntent.LEARN and bool(
-        question.hint or build_hint(list(item.essential_points), item.expected_knowledge)
-    )
+        return HintState(
+            available=True,
+            revealed=True,
+            text=revealed.text,
+            point_count=cues.point_count if cues else None,
+            terms=cues.terms
+            if cues
+            else [t.strip() for t in revealed.text.split(",") if t.strip()],
+        )
+    available = session.intent is not SessionIntent.LEARN and cues is not None
     return HintState(available=available, revealed=False, text=None)
 
 
@@ -290,7 +297,7 @@ def reveal_hint(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> HintS
         raise ConflictError("This session is finished.", details={"reason": "session_finished"})
     existing = rewards.hint_for_slot(db, session.id, session.position)
     if existing is not None:
-        return HintState(available=True, revealed=True, text=existing.text)
+        return _hint_state(db, session, item, _pick_question(item))
     if _pending_answer(db, session, item) is not None:
         raise ConflictError(
             "This question has already been answered.", details={"reason": "answer_pending"}
@@ -302,12 +309,12 @@ def reveal_hint(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> HintS
             details={"reason": "hint_unavailable"},
         )
     question = _pick_question(item)
-    text = question.hint or build_hint(list(item.essential_points), item.expected_knowledge)
-    if not text:
+    cues = build_cues(list(item.essential_points), item.expected_knowledge, question.text)
+    if cues is None:
         raise ConflictError(
             "There's no hint for this question.", details={"reason": "hint_unavailable"}
         )
-    question.hint = text
+    text = cues.text
     db.add(
         HintReveal(
             user_id=user_id,
@@ -324,11 +331,9 @@ def reveal_hint(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> HintS
     except IntegrityError:
         # A concurrent reveal of the same slot won: show that one.
         db.rollback()
-        existing = rewards.hint_for_slot(db, session.id, session.position)
-        if existing is None:
+        if rewards.hint_for_slot(db, session.id, session.position) is None:
             raise
-        return HintState(available=True, revealed=True, text=existing.text)
-    return HintState(available=True, revealed=True, text=text)
+    return _hint_state(db, session, item, question)
 
 
 def current_item(db: Session, session: ReviewSession) -> LearningItem | None:

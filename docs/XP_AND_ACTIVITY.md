@@ -86,11 +86,14 @@ before the next due date can't earn twice.
 "Show hint" (`POST /review-sessions/{id}/hint`) before answering:
 
 - The UI states **"Using a hint halves the XP for this answer."** before anything is revealed.
-- The hint is the opening word(s) of the item's first key point (about a third of it, 1-6
-  words), or of its reference answer: a retrieval cue from the stored, source-grounded
-  reference, never the whole answer, never a new AI call (so it can't contradict the reference
-  and costs nothing). It's cached on the question formulation. When the reference is too short
-  to cut a cue from, there's honestly no hint (`hint_unavailable`), and nothing is recorded.
+- The hint (revised 2026-11-08; the earlier cue, the first words of the first key point, mostly
+  repeated the question and rarely helped) has two parts, both from the stored, source-grounded
+  reference, never a new AI call (so it can't contradict the reference and costs nothing):
+  **how many key points** the answer should cover, and up to four **key terms**, one per key
+  point: its longest word (5+ letters) that the question doesn't already contain. Whole
+  sentences are never shown. The server sends `point_count` and `terms`; the UI shows a count
+  and chips. When the reference is too short to cut cues from, there's honestly no hint
+  (`hint_unavailable`), and nothing is recorded.
 - The reveal is stored (`hint_reveals`, one per session slot) **before** it's returned. The
   answer to that slot is marked `hint_used` by the server; reloading, leaving or a
   client-side change can't remove it. Asking again returns the same hint: several hints still

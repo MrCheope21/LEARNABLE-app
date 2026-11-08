@@ -486,10 +486,23 @@ function Result({
 
       <Award result={result} />
 
-      {evaluation && (
-        <section className="evaluation" aria-label={t("study.firstEval")}>
-          {result.second_opinion && <h3>{t("study.firstEval")}</h3>}
-          <EvaluationView evaluation={evaluation} />
+      {(result.second_opinion ?? evaluation) && (
+        <section className="evaluation" aria-label={t("study.evaluation")}>
+          {result.second_opinion && (
+            <div className="revision-banner" role="status">
+              <strong>
+                <Icon name="review" size={16} /> {t("study.revised")}
+              </strong>
+              {result.second_opinion.user_argument && <blockquote>“{result.second_opinion.user_argument}”</blockquote>}
+            </div>
+          )}
+          <EvaluationView evaluation={(result.second_opinion ?? evaluation)!} previous={result.second_opinion ? evaluation ?? undefined : undefined} />
+          {result.second_opinion && evaluation && (
+            <details className="original-evaluation">
+              <summary>{t("study.originalEval")}</summary>
+              <EvaluationView evaluation={evaluation} />
+            </details>
+          )}
         </section>
       )}
       {result.repeat && (
@@ -498,13 +511,7 @@ function Result({
           <EvaluationView evaluation={result.repeat} />
         </section>
       )}
-      {result.second_opinion && (
-        <section className="evaluation second-opinion" aria-label={t("study.secondOpinion")}>
-          <h3>{t("study.secondOpinion")}</h3>
-          <p className="hint">{t("study.afterObjection", { text: result.second_opinion.user_argument ?? "" })}</p>
-          <EvaluationView evaluation={result.second_opinion} />
-        </section>
-      )}
+
 
       <details className="reference" open={!outcome || outcome === "AGAIN" || repeating}>
         <summary>{t("study.referenceSummary")}</summary>
@@ -536,7 +543,7 @@ function Result({
       )}
       {gradeMode ? (
         <section className="grades" aria-label={t("study.yourGrade")}>
-          {showDispute && (
+          {showDispute && !result.second_opinion && (
             <DisputeForm working={s.working} onAsk={s.dispute} testAi={evaluation?.ai_provider === "mock"} />
           )}
           <h3>{gradeTitle}</h3>
@@ -720,32 +727,52 @@ function PotentialXp({ card }: { card: Card }) {
   );
 }
 
-/** "Show hint": the halving is stated before anything is revealed; the server records it. */
+/**
+ * "Need a nudge?": the cost (half XP) is stated first, then the hint shows how many points the
+ * answer has to cover and a key term from each. The server records the reveal.
+ */
 function HintBox({ card, s, disabled }: { card: Card; s: Session; disabled: boolean }) {
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const hint = card.hint;
   if (!hint) return null;
   if (hint.revealed) {
+    const terms = hint.terms ?? [];
     return (
-      <div className="hint-box" role="note" aria-label={t("study.hintLabel")}>
-        <span className="eyebrow">{t("study.hintLabel")}</span>
-        <span className="hint-text">{hint.text}</span>
+      <div className="hint-card hint-reveal" role="note" aria-label={t("study.hintLabel")}>
+        <span className="hint-title">
+          <Icon name="bulb" size={18} /> {t("study.hintLabel")}
+        </span>
+        {hint.point_count ? <p>{t(hint.point_count === 1 ? "study.hintPoints.one" : "study.hintPoints.other", { n: hint.point_count })}</p> : null}
+        {terms.length > 0 ? (
+          <>
+            <span className="hint">{t("study.hintThink")}</span>
+            <span className="hint-chips">
+              {terms.map((term) => (
+                <span key={term} className="hint-chip">
+                  {term}
+                </span>
+              ))}
+            </span>
+          </>
+        ) : (
+          hint.text && <p>{hint.text}</p>
+        )}
       </div>
     );
   }
-  if (!hint.available) return <p className="hint">{t("study.noHint")}</p>;
+  if (!hint.available) return null;
   if (!confirming) {
     return (
       <div>
-        <button type="button" className="link" disabled={disabled} onClick={() => setConfirming(true)}>
-          {t("study.showHint")}
+        <button type="button" className="hint-ask" disabled={disabled} onClick={() => setConfirming(true)}>
+          <Icon name="bulb" size={18} /> {t("study.showHint")}
         </button>
       </div>
     );
   }
   return (
-    <div className="hint-box">
+    <div className="hint-confirm hint-reveal">
       <p>{t("study.hintHalves")}</p>
       <div className="actions" style={{ marginTop: 0 }}>
         <button

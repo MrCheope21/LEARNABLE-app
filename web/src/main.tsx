@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
 import "./styles.css";
 import "./dashboard.css";
+import "./polish.css";
 import { applyTheme, getTheme } from "./theme";
 
 applyTheme(getTheme());

@@ -621,3 +621,12 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 
 .field { display: grid; gap: 0.3rem; }
 .field > label { font-weight: 500; }
+
+/* Admin tabs are buttons: show which one is open */
+.tabs button { padding: 0.55rem 1rem; background: transparent; border: 0; border-bottom: 3px solid transparent; border-radius: 0; color: var(--muted); font-weight: 500; }
+.tabs button[aria-pressed="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* Study result: keep Continue within reach on a phone */
+@media (max-width: 640px) {
+  .result > .actions { position: sticky; bottom: 0; z-index: 3; background: var(--surface); padding: 0.6rem 0; margin-top: 0.8rem; border-top: 1px solid var(--border); }
+}

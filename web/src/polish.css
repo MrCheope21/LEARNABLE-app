@@ -1,0 +1,152 @@
+/* Design v2: calm, spacious, Apple-like. Loaded last, so it refines styles.css and dashboard.css
+   without changing any layout: type, colour tokens, shapes, depth, motion. */
+
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, system-ui, sans-serif;
+  --ease: cubic-bezier(0.22, 0.8, 0.28, 1);
+  --spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-2: #f2f2f4;
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --border: #e3e3e8;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 4%), 0 6px 20px rgb(0 0 0 / 4%);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 6%), 0 12px 32px rgb(0 0 0 / 9%);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0b0b0d; --surface: #1c1c1e; --surface-2: #2c2c2e; --border: #38383a; --shadow: 0 1px 2px rgb(0 0 0 / 40%); --shadow-lift: 0 10px 30px rgb(0 0 0 / 50%); }
+}
+:root[data-theme="dark"] { --bg: #0b0b0d; --surface: #1c1c1e; --surface-2: #2c2c2e; --border: #38383a; --shadow: 0 1px 2px rgb(0 0 0 / 40%); --shadow-lift: 0 10px 30px rgb(0 0 0 / 50%); }
+
+html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { background: var(--bg); }
+::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+
+/* Type: large titles, tight tracking, calm secondary text */
+h1 { font-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem); font-weight: 700; letter-spacing: -0.025em; line-height: 1.12; }
+h2 { font-size: 1.25rem; font-weight: 650; letter-spacing: -0.018em; }
+h3 { font-weight: 650; letter-spacing: -0.01em; }
+.page-header { margin-bottom: 1.1rem; }
+.page-header .hint { font-size: 1rem; }
+.eyebrow { letter-spacing: 0.06em; font-weight: 600; }
+.hint { line-height: 1.45; }
+
+/* Navigation: translucent bar that lets the page show through */
+.topnav { background: color-mix(in srgb, var(--nav-bg) 88%, transparent); -webkit-backdrop-filter: saturate(180%) blur(18px); backdrop-filter: saturate(180%) blur(18px); box-shadow: 0 1px 0 rgb(0 0 0 / 10%); }
+.nav-links a { border-radius: 10px; transition: background 160ms var(--ease), opacity 160ms; }
+.nav-stat { background: rgb(255 255 255 / 16%); }
+.bottom-nav { -webkit-backdrop-filter: saturate(180%) blur(18px); backdrop-filter: saturate(180%) blur(18px); background: color-mix(in srgb, var(--surface) 86%, transparent); }
+.bottom-nav a { transition: color 160ms var(--ease), transform 160ms var(--spring); }
+.bottom-nav a:active { transform: scale(0.92); }
+
+/* Surfaces */
+.card { border: 1px solid color-mix(in srgb, var(--border) 70%, transparent); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.25rem 1.4rem; transition: box-shadow 220ms var(--ease), transform 220ms var(--ease), border-color 220ms; }
+.course-card:hover, .listing-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+.course-cover, .listing-cover { position: relative; overflow: hidden; }
+.course-cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(145deg, rgb(255 255 255 / 22%), rgb(0 0 0 / 10%)); pointer-events: none; }
+.course-cover { border-radius: 16px; box-shadow: 0 4px 14px rgb(0 0 0 / 14%); }
+.banner { border-radius: var(--radius-sm); }
+.pill { padding: 0.15rem 0.6rem; font-weight: 500; }
+
+/* Controls: 44px targets, continuous corners, tactile press */
+button, .button { border-radius: var(--radius-sm); min-height: 44px; padding: 0.5rem 1.1rem; font-weight: 550; border-color: var(--border); transition: transform 140ms var(--spring), background 160ms var(--ease), box-shadow 160ms var(--ease), opacity 160ms, border-color 160ms; justify-content: center; }
+button:hover:not(:disabled), .button:hover { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+button:active:not(:disabled), .button:active { transform: scale(0.97); }
+button.primary, .button.primary, .button.learn, button.learn, .button.review, button.review { box-shadow: 0 1px 2px rgb(0 0 0 / 14%), 0 4px 12px color-mix(in srgb, var(--accent) 28%, transparent); border-color: transparent; }
+button.primary:hover:not(:disabled), .button.primary:hover { background: var(--brand-dark); }
+button.link, .nav-links a, .card-menu > button, .tabs button, .icon-button, .filters-toggle { box-shadow: none; }
+button.link { min-height: 0; padding: 0.25rem 0.4rem; border-radius: 8px; font-weight: 500; }
+button.link:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+button.large, .button.large { border-radius: 14px; }
+input, select, textarea { border-radius: var(--radius-sm); border-color: var(--border); padding: 0.6rem 0.8rem; min-height: 44px; transition: border-color 160ms, box-shadow 160ms; background: var(--surface); }
+textarea { min-height: 9rem; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 24%, transparent); }
+:focus-visible { outline-width: 3px; outline-offset: 2px; border-radius: 8px; }
+input[type="checkbox"], input[type="radio"] { min-height: 0; accent-color: var(--accent); }
+.bar, .state-bar-track { height: 8px; }
+.bar > span { transition: width 600ms var(--ease); }
+
+/* Segmented controls: tabs and category chips */
+.tabs { gap: 0.25rem; padding: 0.2rem; background: var(--surface-2); border: 0; border-radius: 12px; width: fit-content; max-width: 100%; overflow-x: auto; }
+.tabs button, .tabs a { border-radius: 9px; border: 0; padding: 0.4rem 1rem; min-height: 36px; font-weight: 550; }
+.tabs button[aria-pressed="true"], .tabs a.active { background: var(--surface); color: var(--text); border: 0; box-shadow: 0 1px 3px rgb(0 0 0 / 12%); }
+.category-chips button, .marketplace .category-chips button { border-radius: 999px; min-height: 36px; padding: 0.3rem 0.9rem; }
+
+/* Motion: pages ease in, results and reveals rise; all of it off for reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  .page, .dashboard, .study-main > *, .settings-page { animation: rise 320ms var(--ease) both; }
+  .result, .hint-reveal, .revision-banner { animation: rise 360ms var(--ease) both; }
+  .outcome-badge { animation: pop 420ms var(--spring) both; }
+  .award { animation: pop 460ms var(--spring) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
+  .card-menu ul, .tooltip { animation: pop 160ms var(--ease) both; }
+  details > *:not(summary) { animation: rise 220ms var(--ease) both; }
+}
+details > summary { cursor: pointer; border-radius: 8px; }
+
+/* Study: a focused, roomy card */
+.question { font-size: clamp(1.35rem, 1.1rem + 0.9vw, 1.7rem); letter-spacing: -0.02em; line-height: 1.25; }
+.your-answer { background: var(--surface-2); border-radius: var(--radius-sm); padding: 0.8rem 1rem; }
+.your-answer h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 0.25rem; }
+.study-concept { border-radius: 999px; min-height: 40px; padding: 0.35rem 1rem; background: color-mix(in srgb, var(--accent) 9%, var(--surface)); border-color: transparent; color: var(--accent); }
+.outcome-badge { letter-spacing: -0.02em; }
+
+/* Hints: an inline card with a count and key-term chips */
+.hint-ask { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); border-color: transparent; border-radius: 999px; min-height: 40px; padding: 0.35rem 1rem; }
+.hint-card { display: grid; gap: 0.6rem; padding: 0.9rem 1rem; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--warn) 11%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); }
+.hint-card .hint-title { display: flex; align-items: center; gap: 0.45rem; font-weight: 650; }
+.hint-card p { margin: 0; }
+.hint-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.hint-chip { padding: 0.25rem 0.75rem; border-radius: 999px; background: var(--surface); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); font-weight: 600; font-size: 0.95rem; }
+.hint-confirm { display: grid; gap: 0.6rem; padding: 0.9rem 1rem; border-radius: var(--radius-sm); background: var(--surface-2); }
+.hint-confirm p { margin: 0; }
+
+/* Second opinion: one evaluation, corrected in place */
+.revision-banner { display: grid; gap: 0.25rem; padding: 0.8rem 1rem; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--info) 11%, var(--surface)); border: 1px solid color-mix(in srgb, var(--info) 28%, transparent); }
+.revision-banner strong { display: flex; align-items: center; gap: 0.4rem; }
+.revision-banner blockquote { margin: 0; color: var(--muted); font-style: italic; }
+.original-evaluation { margin-top: 0.4rem; }
+.original-evaluation > summary { color: var(--muted); font-size: 0.9rem; padding: 0.3rem 0; }
+.delta { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.8rem; margin-inline-start: 0.35rem; }
+.delta.up { color: var(--good); }
+.delta.down { color: var(--bad); }
+
+/* Phones: the bottom bar and the sticky action row lean on the safe area */
+@media (max-width: 640px) {
+  .card { padding: 1rem 1.1rem; }
+  h1 { letter-spacing: -0.022em; }
+}
+
+/* Reading: comfortable measure and rhythm for what you study */
+.reading { font-size: 1.05rem; line-height: 1.7; max-width: 68ch; letter-spacing: -0.003em; }
+.reading + .reading { margin-top: 0.8rem; }
+.checklist, .scores { margin-top: 0.6rem; }
+.check-mark { box-shadow: inset 0 0 0 1px color-mix(in srgb, currentcolor 22%, transparent); }
+
+/* Course tree: soft rounded selection like a sidebar list */
+.tree a, .course-tree a, .tree-concept, .tree-topic, .tree-chapter { border-radius: 10px; transition: background 140ms var(--ease); }
+.tree a:hover, .tree-concept:hover, .tree-topic:hover, .tree-chapter:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.tree a[aria-current="page"], a.tree-concept[aria-current="page"], .tree .active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+/* Empty and calm states */
+.state { color: var(--muted); }
+.state.error-state { color: var(--bad); }
+.course-actions .button { min-height: 46px; }
+.grade { border-radius: 14px; transition: transform 140ms var(--spring), box-shadow 160ms var(--ease), border-color 160ms; }
+.grade:hover:not(:disabled) { box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+.grade:active:not(:disabled) { transform: scale(0.97); }
+.evaluation-body { display: grid; gap: 0.5rem; }
+.repeat-panel { border-radius: var(--radius-sm); }
+.consolidate { border-radius: var(--radius); }
+.next-step { border-radius: var(--radius); }
+.account-menu { border-radius: 16px; box-shadow: var(--shadow-lift); }
+dialog, .tooltip { border-radius: 14px; box-shadow: var(--shadow-lift); }

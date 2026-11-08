@@ -3041,9 +3041,28 @@
             "title": "Available",
             "type": "boolean"
           },
+          "point_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Point Count"
+          },
           "revealed": {
             "title": "Revealed",
             "type": "boolean"
+          },
+          "terms": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Terms",
+            "type": "array"
           },
           "text": {
             "anyOf": [

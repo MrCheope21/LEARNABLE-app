@@ -27,7 +27,7 @@ const round2: Schemas["SessionCard"] = {
     round: 2,
     rounds_total: 3,
     potential_xp: { eligible: true, ordinal: 2, xp: 20, xp_with_hint: 10 },
-    hint: { available: true, revealed: false, text: null },
+    hint: { available: true, revealed: false, text: null, terms: [] },
   },
 };
 const answered: Schemas["AnswerResult"] = {
@@ -45,7 +45,7 @@ describe("consolidation", () => {
     const { requests } = mockApi([
       ["GET", /\/review-sessions\/batch-1$/, ok(session)],
       ["GET", /\/review-sessions\/[^/]+\/next$/, sequence(round2)],
-      ["POST", /\/review-sessions\/[^/]+\/hint$/, ok({ available: true, revealed: true, text: "consegna…" })],
+      ["POST", /\/review-sessions\/[^/]+\/hint$/, ok({ available: true, revealed: true, text: "consegna, restituzione", point_count: 2, terms: ["consegna", "restituzione"] })],
       ["POST", /\/review-sessions\/[^/]+\/answers$/, ok(answered)],
       ["GET", /\/courses\/[^/]+$/, ok({ id: course, title: "Diritto bancario" })],
     ]);
@@ -64,7 +64,8 @@ describe("consolidation", () => {
 
     await user.click(screen.getByRole("button", { name: "Show hint" }));
     await user.click(screen.getByRole("button", { name: "Reveal hint" }));
-    expect(await screen.findByText("consegna…")).toBeInTheDocument();
+    expect(await screen.findByText("Your answer should cover 2 key points.")).toBeInTheDocument();
+    expect(await screen.findByText("consegna")).toBeInTheDocument();
     expect(screen.getByText(/Correct answer: \+10 XP/)).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Your answer"), "La consegna di denaro");
