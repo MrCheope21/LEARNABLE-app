@@ -21,13 +21,13 @@ export function WeakSpotsPage() {
   const spots = useQuery({ queryKey: weakSpotsKey(courseId), queryFn: () => dashboard.weakSpots(courseId) });
   return (
     <div className="page">
-      <header className="page-header">
+      <div className="page-header">
         <div className="title-row">
           <h1>{t("course.weakSpots")}</h1>
           <HelpTip text="help.weakSpots" topic={t("course.weakSpots")} guide="progress" />
         </div>
         <p className="hint">{t("weak.intro")}</p>
-      </header>
+      </div>
       <QueryState query={spots} label={t("weak.loading")}>
         {({ concepts }) =>
           concepts.length === 0 ? (

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { marketplace } from "../../api/endpoints";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { dateTime } from "../../components/labels";
+import { Icon } from "../../components/Icon";
 import { useLabels } from "../../components/useLabels";
 import { useI18n } from "../../i18n";
 import { categoryIcon } from "./labels";
@@ -39,7 +40,7 @@ export function ListingPage() {
           <>
             <header className="card listing-hero">
               <span className="listing-category">
-                {categoryIcon[data.category]} {categoryLabel[data.category]}
+                <Icon name={categoryIcon[data.category]} size={16} /> {categoryLabel[data.category]}
               </span>
               <h1>{data.title}</h1>
               {data.subtitle && <p className="listing-subtitle">{data.subtitle}</p>}

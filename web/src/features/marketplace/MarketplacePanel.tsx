@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { marketplace } from "../../api/endpoints";
 import { ErrorBanner } from "../../components/QueryState";
+import { Icon } from "../../components/Icon";
 import { useLabels } from "../../components/useLabels";
 import { useI18n } from "../../i18n";
 import { CATEGORIES, LEVELS } from "./labels";
@@ -33,7 +34,9 @@ export function MarketplacePanel({ courseId, courseTitle }: { courseId: string; 
   if (origin) {
     return (
       <section className="card marketplace-origin" aria-label={t("sales.originTitle")}>
-        <h2>{t("sales.originTitle")}</h2>
+        <h2 className="with-icon">
+          <Icon name="cart" size={20} /> {t("sales.originTitle")}
+        </h2>
         <p>{t("sales.madeBy", { author: origin.author, version: origin.version })}</p>
         <p className="hint">{t("sales.yourStudy")}</p>
         <Link to={`/marketplace/${origin.listing_id}`}>{t("sales.seePage")}</Link>
@@ -113,7 +116,9 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
   return (
     <section ref={section} id="marketplace-page" className="card sales-page" aria-labelledby={`${ids}-title`}>
       <header className="card-header">
-        <h2 id={`${ids}-title`}>{t("sales.title")}</h2>
+        <h2 id={`${ids}-title`} className="with-icon">
+          <Icon name="store" size={20} /> {t("sales.title")}
+        </h2>
         <span className="pill">
           {status === "PUBLISHED" ? t("sales.pPublished", { n: listing!.version }) : status === "UNPUBLISHED" ? t("sales.pNot") : status === "DRAFT" ? t("sales.pDraft") : t("sales.pNone")}
         </span>

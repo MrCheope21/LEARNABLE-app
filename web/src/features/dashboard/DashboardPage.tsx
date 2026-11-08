@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { auth, dashboard, deviceTimezone } from "../../api/endpoints";
 import { dashboardKey, FlameIcon, meKey, XpIcon } from "../../app/AppShell";
+import { Icon } from "../../components/Icon";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { useI18n } from "../../i18n";
 import type { Translator } from "../../api/client";
@@ -28,9 +29,10 @@ export function DashboardPage() {
           <div className="dashboard-main">
             <h1 className="sr-only">{t("dash.title")}</h1>
             <TodayStrip data={d} />
-            <QuickStart />
-            <TimezoneNote timezone={d.timezone} />
             <NextStepPanel step={d.next_step} />
+            <GettingStarted cards={d.courses} />
+            <QuickStart defaultHidden={d.courses.length > 0} />
+            <TimezoneNote timezone={d.timezone} />
             <CourseLibrary cards={d.courses} />
           </div>
           <aside className="dashboard-side" aria-label={t("dash.aside")}>
@@ -59,6 +61,31 @@ function TodayStrip({ data }: { data: Schemas["Dashboard"] }) {
       </span>
       <span className="nav-stat">{t("dash.goal", { done: data.goal.done, target: data.goal.target })}</span>
     </div>
+  );
+}
+
+/** First steps as a short checklist, until the first concept has been studied. */
+function GettingStarted({ cards }: { cards: Schemas["CourseCard"][] }) {
+  const { t } = useI18n();
+  const steps = [
+    { label: t("start.check.create"), done: cards.length > 0 },
+    { label: t("start.check.material"), done: cards.some((c) => c.concepts_total > 0) },
+    { label: t("start.check.study"), done: cards.some((c) => c.items_introduced > 0) },
+  ];
+  if (steps.every((step) => step.done)) return null;
+  return (
+    <section className="card getting-started" aria-labelledby="getting-started-title">
+      <h2 id="getting-started-title">{t("start.check.title")}</h2>
+      <ol>
+        {steps.map((step) => (
+          <li key={step.label} className={step.done ? "done" : undefined}>
+            <span className="check-dot" aria-hidden="true">{step.done && <Icon name="check" size={14} />}</span>
+            {step.label}
+            <span className="sr-only">{step.done ? " ✓" : ""}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 

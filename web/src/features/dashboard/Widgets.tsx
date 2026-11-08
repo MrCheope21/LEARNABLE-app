@@ -7,6 +7,7 @@ import { studyMinutes } from "../../components/labels";
 import { auth } from "../../api/endpoints";
 import { dashboardKey, FlameIcon, meKey, XpIcon } from "../../app/AppShell";
 import { ErrorBanner } from "../../components/QueryState";
+import { Icon } from "../../components/Icon";
 import { useI18n } from "../../i18n";
 import type { MessageKey } from "../../i18n/messages/en";
 
@@ -82,7 +83,9 @@ export function ExperienceWidget({ xp }: { xp: Dashboard["xp"] }) {
         <strong>{t("dash.xpTodayPlus", { n: xp.today.toLocaleString() })}</strong>
       </p>
       <p>
-        <Link to="/community">🏆 {t("community.seeLeaderboard")}</Link>
+        <Link to="/community" className="with-icon">
+          <Icon name="trophy" size={16} /> {t("community.seeLeaderboard")}
+        </Link>
       </p>
       <details className="hint">
         <summary>{t("xp.how")}</summary>
@@ -188,6 +191,11 @@ export function PlannerWidget({ planner }: { planner: Dashboard["planner"] }) {
           {t("planner.dueNow", { n: planner.horizons[0].items.toLocaleString(), min: studyMinutes(planner.horizons[0].items) })}
         </p>
       )}
+      {planner.horizons.every((h) => h.items === 0) ? (
+        <p className="planner-clear">
+          <Icon name="check" size={18} /> {t("planner.allClear")}
+        </p>
+      ) : (
       <table className="table planner">
         <caption className="sr-only">{t("planner.caption")}</caption>
         <thead>
@@ -205,6 +213,7 @@ export function PlannerWidget({ planner }: { planner: Dashboard["planner"] }) {
           ))}
         </tbody>
       </table>
+      )}
       <p className="hint">{t("planner.hint")}</p>
     </section>
   );

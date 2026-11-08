@@ -35,7 +35,7 @@ export function ChapterPage() {
           return (
             <>
               <Breadcrumbs courseId={courseId} chapterId={chapter.id} current={chapter.title} />
-              <header className="page-header">
+              <div className="page-header">
                 <EditableTitle
                   title={chapter.title}
                   description={chapter.description}
@@ -45,7 +45,7 @@ export function ChapterPage() {
                     refreshTitles(queryClient, courseId);
                   }}
                 />
-              </header>
+              </div>
               {chapterProgress && (
                 <div className="stat-grid">
                   <CurriculumBlock curriculum={chapterProgress.curriculum} />

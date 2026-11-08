@@ -95,7 +95,7 @@ export function ConceptPage() {
           return (
             <>
               <Breadcrumbs courseId={courseId} chapterId={data.chapter_id} topicId={data.topic_id} current={data.title} />
-              <header className="page-header">
+              <div className="page-header">
                 <EditableTitle
                   title={data.title}
                   description={data.description}
@@ -110,7 +110,7 @@ export function ConceptPage() {
                   <span className={`pill state-${data.study_state.toLowerCase()}`}>{studyStateLabel[data.study_state]}</span>
                   <HelpTip text="help.concept" topic="Concept" guide="study" />
                 </span>
-              </header>
+              </div>
               {data.needs_source_review && (
                 <p className="banner warning">
                   {t("concept.sourceDeleted")}

@@ -37,9 +37,9 @@ export function ProposalPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
+      <div className="page-header">
         <h1>{t("prop.title")}</h1>
-      </header>
+      </div>
       <QueryState query={proposal}>
         {(data) => {
           if (data.status === "GENERATING") {

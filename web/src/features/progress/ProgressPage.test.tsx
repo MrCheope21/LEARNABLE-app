@@ -15,7 +15,8 @@ describe("progress", () => {
     const curriculum = (await screen.findByRole("heading", { name: "Curriculum" })).closest("section")!;
     const memory = screen.getByRole("heading", { name: "Memory" }).closest("section")!;
     expect(within(curriculum).getByText("1 of 1")).toBeInTheDocument();
-    expect(within(memory).getByText("13%")).toBeInTheDocument();
+    // Shown in the ring and in the figures list.
+    expect(within(memory).getAllByText("13%").length).toBeGreaterThanOrEqual(1);
     expect(within(curriculum).queryByText("13%")).toBeNull();
     // The user's own day boundaries are sent, not assumed.
     expect(requests.some((r) => r.path.endsWith("/progress"))).toBe(true);

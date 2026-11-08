@@ -135,7 +135,7 @@ export function QuestionsPage() {
   return (
     <div className="page questions-page">
       <Breadcrumbs courseId={courseId} current={t("q.title")} />
-      <header className="page-header">
+      <div className="page-header">
         <div className="title-row">
           <h1>{t("q.title")}</h1>
           <HelpTip text="help.questions" topic={t("q.title")} guide="organise" />
@@ -143,7 +143,7 @@ export function QuestionsPage() {
         <p className="hint">
           {readOnly ? t("q.introManaged") : t("q.introOwn")}
         </p>
-      </header>
+      </div>
 
       <div className="toolbar">
         <label className="sr-only" htmlFor={searchId}>

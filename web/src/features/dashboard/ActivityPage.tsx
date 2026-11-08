@@ -10,10 +10,10 @@ export function ActivityPage() {
   const activity = useQuery({ queryKey: ["activity", 52], queryFn: () => dashboard.activity(52) });
   return (
     <div className="page">
-      <header className="page-header">
+      <div className="page-header">
         <h1>{t("activity.title")}</h1>
         <p className="hint">{t("activity.pageIntro")}</p>
-      </header>
+      </div>
       <section className="card">
         <QueryState query={activity}>{(data) => <ActivityCalendar activity={data} large />}</QueryState>
       </section>

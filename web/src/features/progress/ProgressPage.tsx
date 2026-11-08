@@ -25,9 +25,9 @@ export function ProgressPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
+      <div className="page-header">
         <h1>{t("nav.progress")}</h1>
-      </header>
+      </div>
       <QueryState query={home}>
         {(data) =>
           data.courses.length === 0 ? (

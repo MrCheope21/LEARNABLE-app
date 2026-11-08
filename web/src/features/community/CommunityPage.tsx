@@ -17,10 +17,10 @@ export function CommunityPage({ tab = "leaderboard" }: { tab?: "leaderboard" | "
   const { t } = useI18n();
   return (
     <div className="page community">
-      <header className="page-header">
+      <div className="page-header">
         <h1>{t("community.title")}</h1>
         <p className="hint">{t("community.intro")}</p>
-      </header>
+      </div>
       <nav className="tabs" aria-label={t("community.title")}>
         <NavLink end to="/community">
           {t("community.tab.leaderboard")}

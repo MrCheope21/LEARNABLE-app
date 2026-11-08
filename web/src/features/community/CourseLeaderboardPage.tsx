@@ -16,10 +16,10 @@ export function CourseLeaderboardPage() {
   const board = useQuery({ queryKey: [...key, period, scope], queryFn: () => community.courseLeaderboard(courseId, period, scope) });
   return (
     <div className="page community">
-      <header className="page-header">
+      <div className="page-header">
         <h1>{t("course.leaderboardTitle")}</h1>
         <p className="hint">{t("course.leaderboardIntro")}</p>
-      </header>
+      </div>
       <BoardControls period={period} scope={scope} onPeriod={setPeriod} onScope={setScope} />
       <QueryState query={board}>
         {(data) => (

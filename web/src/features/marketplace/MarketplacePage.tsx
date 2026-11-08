@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { marketplace, type ListingFilters } from "../../api/endpoints";
+import { Icon } from "../../components/Icon";
 import { HelpTip } from "../../components/HelpTip";
 import { QueryState } from "../../components/QueryState";
 import { useLabels } from "../../components/useLabels";
@@ -10,6 +11,8 @@ import { useI18n } from "../../i18n";
 import type { MessageKey } from "../../i18n/messages/en";
 import { CATEGORIES, LEVELS, categoryIcon } from "./labels";
 
+// Calm hues for the category band of a listing card (white icon on each meets contrast).
+const COVER_HUES = ["#1555DD", "#0F766E", "#7C3AED", "#B45309", "#BE185D", "#15803D", "#1D4ED8", "#9333EA", "#0E7490", "#A21CAF", "#C2410C", "#4338CA", "#475569"];
 const LANGUAGE_CODES = ["it", "en"];
 const SIZES = ["small", "medium", "large"] as const;
 const SORTS = ["popular", "newest", "largest"] as const;
@@ -32,16 +35,18 @@ export function MarketplacePage() {
   });
   const set = (patch: Partial<ListingFilters>) => setFilters((current) => ({ ...current, ...patch }));
   const ids = useId();
+  // Phones keep the extra filters folded away; the search box and the categories stay in view.
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   return (
     <div className="page marketplace">
-      <header className="page-header">
+      <div className="page-header">
         <div className="title-row">
           <h1>{t("nav.marketplace")}</h1>
           <HelpTip text="help.marketplace" topic={t("nav.marketplace")} guide="marketplace" />
         </div>
         <p className="hint">{t("mkt.intro")}</p>
-      </header>
+      </div>
 
       <PublishedByMe />
 
@@ -51,7 +56,7 @@ export function MarketplacePage() {
         </button>
         {CATEGORIES.map((c) => (
           <button key={c} type="button" aria-pressed={filters.category === c} onClick={() => set({ category: filters.category === c ? undefined : c })}>
-            {categoryIcon[c]} {categoryLabel[c]}
+            <Icon name={categoryIcon[c]} size={16} /> {categoryLabel[c]}
           </button>
         ))}
       </nav>
@@ -69,6 +74,10 @@ export function MarketplacePage() {
         </label>
         <input id={`${ids}-q`} type="search" placeholder={t("mkt.searchPlaceholder")} value={search} maxLength={200} onChange={(e) => setSearch(e.target.value)} />
         <button type="submit">{t("common.search")}</button>
+        <button type="button" className="filters-toggle" aria-expanded={filtersOpen} onClick={() => setFiltersOpen((v) => !v)}>
+          {t("mkt.filters")}
+        </button>
+        <div className={filtersOpen ? "filters-panel open" : "filters-panel"}>
         <label>
           {t("mkt.level")}
           <select value={filters.level ?? ""} onChange={(e) => set({ level: (e.target.value || undefined) as ListingFilters["level"] })}>
@@ -112,6 +121,7 @@ export function MarketplacePage() {
             ))}
           </select>
         </label>
+        </div>
       </form>
 
       <QueryState query={listings} label={t("mkt.loading")}>
@@ -165,9 +175,10 @@ function ListingCard({ listing }: { listing: Listing }) {
   const { categoryLabel, levelLabel, languageName, priceLabel, count } = useLabels();
   return (
     <article className="card listing-card" aria-labelledby={`listing-${listing.id}`}>
-      <span className="listing-category">
-        {categoryIcon[listing.category]} {categoryLabel[listing.category]}
-      </span>
+      <div className="listing-cover" style={{ background: COVER_HUES[CATEGORIES.indexOf(listing.category) % COVER_HUES.length] }} aria-hidden="true">
+        <Icon name={categoryIcon[listing.category]} size={30} />
+      </div>
+      <span className="listing-category">{categoryLabel[listing.category]}</span>
       <Link id={`listing-${listing.id}`} className="listing-title" to={`/marketplace/${listing.id}`}>
         {listing.title}
       </Link>

@@ -1,4 +1,6 @@
+import type { CSSProperties } from "react";
 import { HelpTip } from "./HelpTip";
+import { Icon } from "./Icon";
 import type { Schemas } from "../api/client";
 import { useI18n } from "../i18n";
 import { percent, studyMinutes } from "./labels";
@@ -14,6 +16,18 @@ export function CurriculumBlock({ curriculum }: { curriculum: Schemas["Curriculu
     <section className="stat-block" aria-labelledby="curriculum-heading">
       <h3 id="curriculum-heading">{t("course.curriculum")}</h3>
       <p className="hint">{t("pb.curriculumHint")}</p>
+      {curriculum.concepts > 0 && (
+        <div
+          className="bar bar-tall"
+          role="progressbar"
+          aria-label={t("pb.conceptsActive")}
+          aria-valuemin={0}
+          aria-valuemax={curriculum.concepts}
+          aria-valuenow={curriculum.active}
+        >
+          <span style={{ width: `${Math.round((curriculum.active / curriculum.concepts) * 100)}%` }} />
+        </div>
+      )}
       <dl className="stats">
         <Stat label={t("pb.conceptsActive")} value={t("pb.activeOf", { active: curriculum.active, total: curriculum.concepts })} />
         <Stat label={studyStateLabel.STUDIED} value={curriculum.studied} />
@@ -32,6 +46,19 @@ export function MemoryBlock({ memory }: { memory: Schemas["MemoryProgress"] }) {
     <section className="stat-block" aria-labelledby="memory-heading">
       <h3 id="memory-heading">{t("pb.memory")}</h3>
       <p className="hint">{t("pb.memoryHint")}</p>
+      <div className="ring-row">
+        <div className="ring" style={{ "--p": `${Math.round((memory.mastery ?? 0) * 100)}%` } as CSSProperties} aria-hidden="true">
+          <span>{percent(memory.mastery)}</span>
+        </div>
+        <StateBar
+          parts={[
+            { key: "new", n: memory.new, label: memoryStateLabel.NEW },
+            { key: "learning", n: memory.learning, label: memoryStateLabel.LEARNING },
+            { key: "review", n: memory.review + memory.relearning, label: memoryStateLabel.REVIEW },
+            { key: "mastered", n: memory.mastered, label: memoryStateLabel.MASTERED },
+          ]}
+        />
+      </div>
       <dl className="stats">
         <Stat label={t("pb.mastery")} value={percent(memory.mastery)} />
         <Stat label={t("pb.itemsTrained")} value={memory.items_trained} />
@@ -75,6 +102,11 @@ export function ReviewLoadBlock({ load, title }: { load: Schemas["ReviewLoad"]; 
       {load.overdue > 0 && (
         <p className="hint">{t(load.overdue === 1 ? "pb.overdue.one" : "pb.overdue.other", { n: load.overdue })}</p>
       )}
+      {rows.every((row) => row.items === 0) ? (
+        <p className="planner-clear">
+          <Icon name="check" size={18} /> {t("planner.allClear")}
+        </p>
+      ) : (
       <table className="table planner course-planner">
         <caption className="sr-only">{t("pb.caption")}</caption>
         <thead>
@@ -94,7 +126,25 @@ export function ReviewLoadBlock({ load, title }: { load: Schemas["ReviewLoad"]; 
           ))}
         </tbody>
       </table>
+      )}
     </section>
+  );
+}
+
+/** A single stacked bar for how the trained questions divide into memory states. */
+function StateBar({ parts }: { parts: { key: string; n: number; label: string }[] }) {
+  const total = parts.reduce((sum, part) => sum + part.n, 0);
+  if (total === 0) return null;
+  return (
+    <div className="state-bar" aria-hidden="true">
+      <div className="state-bar-track">
+        {parts
+          .filter((part) => part.n > 0)
+          .map((part) => (
+            <span key={part.key} className={`seg seg-${part.key}`} style={{ flexGrow: part.n }} title={`${part.label}: ${part.n}`} />
+          ))}
+      </div>
+    </div>
   );
 }
 

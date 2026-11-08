@@ -28,7 +28,7 @@ export function TopicPage() {
           return (
             <>
               <Breadcrumbs courseId={courseId} topicId={topic.id} current={topic.title} />
-              <header className="page-header">
+              <div className="page-header">
                 <EditableTitle
                   title={topic.title}
                   description={topic.description}
@@ -38,7 +38,7 @@ export function TopicPage() {
                     refreshTitles(queryClient, courseId);
                   }}
                 />
-              </header>
+              </div>
               <section className="card">
                 <h2>{t("topic.concepts")}</h2>
                 {topic.concepts.length === 0 ? (

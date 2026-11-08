@@ -16,8 +16,13 @@ export function QueryState<T>({
   const { t } = useI18n();
   if (query.isPending) {
     return (
-      <div className="state" role="status">
-        {label ?? t("common.loading")}
+      <div className="state skeleton-state" role="status" aria-busy="true">
+        <span className="sr-only">{label ?? t("common.loading")}</span>
+        <div className="skeleton" aria-hidden="true">
+          <span className="skeleton-line wide" />
+          <span className="skeleton-line" />
+          <span className="skeleton-line short" />
+        </div>
       </div>
     );
   }

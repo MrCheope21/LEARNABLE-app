@@ -15,6 +15,7 @@ import type { MessageKey } from "../../i18n/messages/en";
 import { courseProgressKey, weakSpotsKey } from "../curriculum/CourseLayout";
 import { homeKey } from "../home/HomePage";
 import { SourceLink, SourcePanel, type SourceRef } from "../source/SourcePanel";
+import { Icon } from "../../components/Icon";
 import { ConceptPanel } from "./ConceptPanel";
 import { useI18n } from "../../i18n";
 import { DisputeForm } from "./DisputeForm";
@@ -441,7 +442,7 @@ function Result({
       <h2 className="question">{card.question.text}</h2>
       <p className="study-concept-row">
         <button type="button" className="study-concept" onClick={() => openConcept(card.concept_id)}>
-          {t("study.studyConcept")}
+          <Icon name="book" size={18} /> {t("study.studyConcept")}
         </button>
       </p>
       {result.has_drawing ? (
@@ -903,7 +904,7 @@ function StudyConceptButton({
         disabled={disabled}
         onClick={() => (costsXp ? setConfirming(true) : openConcept(card.concept_id))}
       >
-        {t("study.dontRemember")}
+        <Icon name="book" size={18} /> {t("study.dontRemember")}
       </button>
     </div>
   );

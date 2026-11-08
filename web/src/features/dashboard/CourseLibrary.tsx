@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { courses } from "../../api/endpoints";
 import { dashboardKey } from "../../app/AppShell";
 import { ErrorBanner } from "../../components/QueryState";
+import { Icon } from "../../components/Icon";
 import { useI18n } from "../../i18n";
 import { useLabels } from "../../components/useLabels";
 import type { MessageKey } from "../../i18n/messages/en";
@@ -107,7 +108,7 @@ export function CourseLibrary({ cards, heading }: { cards: CourseCardData[]; hea
           {t("library.new")}
         </button>
         <Link className="button" to="/marketplace">
-          {t("library.marketplace")}
+          <Icon name="cart" size={18} /> {t("library.marketplace")}
         </Link>
       </div>
       {creating && <NewCourseForm onDone={() => setCreating(false)} />}
@@ -148,7 +149,7 @@ export function CourseCardView({ card }: { card: CourseCardData }) {
         </Link>
         {card.marketplace_author && (
           <span className="pill marketplace-pill" title={t("card.marketplaceHint")}>
-            {t("card.marketplacePill", { author: card.marketplace_author })}
+            <Icon name="cart" size={14} /> {t("card.marketplacePill", { author: card.marketplace_author })}
           </span>
         )}
         {card.description && <p className="course-description">{card.description}</p>}
@@ -163,8 +164,14 @@ export function CourseCardView({ card }: { card: CourseCardData }) {
       </div>
       <div className="course-actions">
         <CardMenu card={card} />
-        <ReviewButton courseId={card.id} due={card.due_now} />
-        <LearnButton courseId={card.id} learn={card.learn} />
+        {card.due_now > 0 ? (
+          <>
+            <ReviewButton courseId={card.id} due={card.due_now} />
+            <LearnButton courseId={card.id} learn={card.learn} secondary />
+          </>
+        ) : (
+          <LearnButton courseId={card.id} learn={card.learn} />
+        )}
       </div>
     </article>
   );

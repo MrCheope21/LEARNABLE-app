@@ -29,10 +29,10 @@ export function GuidePage() {
   }, [hash]);
   return (
     <div className="page guide-page">
-      <header className="page-header">
+      <div className="page-header">
         <h1>{t("guide.title")}</h1>
         <p className="lead">{t("guide.intro")}</p>
-      </header>
+      </div>
       <nav className="card guide-contents" aria-label={t("guide.contents")}>
         <h2>{t("guide.contents")}</h2>
         <ol>

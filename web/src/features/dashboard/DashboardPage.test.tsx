@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Schemas } from "../../api/client";
 import { mockApi, ok } from "../../test/mockApi";
+import { violations } from "../../test/axe";
 import { renderApp } from "../../test/render";
 
 const COURSE_ID = "11111111-1111-1111-1111-111111111111";
@@ -60,6 +61,16 @@ function dashboardData(overrides: Partial<Schemas["Dashboard"]> = {}): Schemas["
 const me = { id: "u1", email: "ada@example.com", timezone: "Europe/Rome", daily_goal: 20 };
 
 describe("dashboard", () => {
+  it("has no structural accessibility violations", async () => {
+    mockApi([
+      ["GET", /\/dashboard$/, ok(dashboardData())],
+      ["GET", /\/auth\/me$/, ok(me)],
+    ]);
+    const { container } = renderApp("/");
+    await screen.findByRole("region", { name: "Review 12 items" });
+    expect(await violations(container)).toEqual([]);
+  });
+
   it("shows the next step, course cards, and the personal widgets", async () => {
     mockApi([
       ["GET", /\/dashboard$/, ok(dashboardData())],
@@ -79,9 +90,9 @@ describe("dashboard", () => {
     expect(within(first).getByText(/learning items introduced/)).toBeInTheDocument();
     expect(within(first).getByRole("link", { name: "Review 12 items" })).toBeInTheDocument();
     expect(within(first).getByRole("link", { name: "Learn next" })).toHaveAttribute("href", `/courses/${COURSE_ID}/concepts/${CONCEPT_ID}`);
-    // A course with nothing due says so in plain text (not a dead button), and "Start learning" when activation is needed.
+    // A course with nothing due shows no review control at all (one primary action per card), and "Start learning" when activation is needed.
     const second = screen.getAllByRole("article")[1]!;
-    expect(within(second).getByText("✓ Nothing to review now")).toBeInTheDocument();
+    expect(within(second).queryByText("✓ Nothing to review now")).not.toBeInTheDocument();
     expect(within(second).queryByRole("link", { name: /Review/ })).not.toBeInTheDocument();
     expect(within(second).getByRole("link", { name: "Start learning" })).toBeInTheDocument();
 

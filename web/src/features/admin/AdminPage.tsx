@@ -34,7 +34,7 @@ export function AdminPage() {
   if (!me.data?.is_admin) return <Navigate to="/" replace />;
   return (
     <div className="page admin-page">
-      <header className="page-header">
+      <div className="page-header">
         <h1>{t("admin.title")}</h1>
         <p className="hint">{t("admin.intro")}</p>
         {summary.data && (
@@ -43,7 +43,7 @@ export function AdminPage() {
             {summary.data.shared_daily_cap > 0 && ` · ${t("admin.sharedCap", { cap: summary.data.shared_daily_cap })}`}
           </p>
         )}
-      </header>
+      </div>
       <nav className="tabs" aria-label={t("admin.title")}>
         <button type="button" aria-pressed={tab === "users"} onClick={() => setTab("users")}>
           {t("admin.tabUsers")}

@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { auth, dashboard } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
 import { BrandLogo } from "../brand/BrandLogo";
+import { Icon, type IconName } from "../components/Icon";
 import { ErrorBanner } from "../components/QueryState";
 import { useI18n } from "../i18n";
 
@@ -18,7 +19,31 @@ export function AppShell() {
       <div className="content">
         <Outlet />
       </div>
+      <BottomNav />
     </div>
+  );
+}
+
+const BOTTOM_ITEMS: { to: string; icon: IconName; label: "nav.courses" | "nav.review" | "nav.progress" | "nav.community" | "nav.marketplace" }[] = [
+  { to: "/courses", icon: "courses", label: "nav.courses" },
+  { to: "/review", icon: "review", label: "nav.review" },
+  { to: "/progress", icon: "progress", label: "nav.progress" },
+  { to: "/community", icon: "community", label: "nav.community" },
+  { to: "/marketplace", icon: "store", label: "nav.marketplace" },
+];
+
+/** Phones: the five main destinations as a fixed bar at the thumb, instead of a cramped top row. */
+function BottomNav() {
+  const { t } = useI18n();
+  return (
+    <nav className="bottom-nav" aria-label={t("nav.mobile")}>
+      {BOTTOM_ITEMS.map((item) => (
+        <NavLink key={item.to} to={item.to}>
+          <Icon name={item.icon} size={22} />
+          <span>{t(item.label)}</span>
+        </NavLink>
+      ))}
+    </nav>
   );
 }
 

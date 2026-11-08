@@ -84,19 +84,19 @@ export function learnTarget(courseId: string, learn: CourseCardData["learn"], t:
   }
 }
 
-export function LearnButton({ courseId, learn }: { courseId: string; learn: CourseCardData["learn"] }) {
+export function LearnButton({ courseId, learn, secondary = false }: { courseId: string; learn: CourseCardData["learn"]; secondary?: boolean }) {
   const { t } = useI18n();
   const target = learnTarget(courseId, learn, t);
   if (!target.to) {
     return (
-      <span className="button learn" aria-disabled="true" title={target.hint}>
+      <span className={secondary ? "button" : "button learn"} aria-disabled="true" title={target.hint}>
         {target.label}
       </span>
     );
   }
   return (
     <Tooltip text={target.hint}>
-      <Link className="button learn" to={target.to}>
+      <Link className={secondary ? "button" : "button learn"} to={target.to}>
         {target.label}
       </Link>
     </Tooltip>

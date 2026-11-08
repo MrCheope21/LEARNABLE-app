@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { userMessage } from "../api/client";
 import { BrandLogo } from "../brand/BrandLogo";
+import { Icon } from "../components/Icon";
 import { LANGUAGES, useI18n, type Language } from "../i18n";
 import { useAuth } from "./AuthContext";
 import { ForgotPasswordForm } from "./PasswordPages";
@@ -17,6 +18,7 @@ export function SignInPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const tooShort = mode === "register" && password.length < 12;
 
@@ -54,6 +56,7 @@ export function SignInPage() {
           <BrandLogo height={36} />
         </a>
         <h1 id="signin-title">{mode === "signIn" ? t("signin.title") : t("signin.registerTitle")}</h1>
+        <p className="hint signin-tagline">{t("signin.tagline")}</p>
         <label>
           {mode === "signIn" ? t("signin.emailOrUsername") : t("signin.email")}
           <input
@@ -93,13 +96,24 @@ export function SignInPage() {
         )}
         <label>
           {t("signin.password")}
-          <input
-            type="password"
-            autoComplete={mode === "register" ? "new-password" : "current-password"}
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <span className="password-field">
+            <input
+              type={showPassword ? "text" : "password"}
+              autoComplete={mode === "register" ? "new-password" : "current-password"}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="icon-button"
+              aria-pressed={showPassword}
+              aria-label={showPassword ? t("signin.hidePassword") : t("signin.showPassword")}
+              onClick={() => setShowPassword((v) => !v)}
+            >
+              <Icon name={showPassword ? "eyeOff" : "eye"} size={18} />
+            </button>
+          </span>
         </label>
         {mode === "register" && <p className="hint">{t("signin.passwordRule")}</p>}
         {error && (
