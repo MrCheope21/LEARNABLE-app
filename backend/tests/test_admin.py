@@ -230,3 +230,55 @@ def test_the_storage_limit_refuses_an_upload_that_does_not_fit(client, auth_head
         headers=headers,
     )
     assert small.status_code in (201, 202)
+
+
+class _Outbox:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, to, subject, body):
+        self.sent.append((to, subject, body))
+
+
+@pytest.fixture
+def outbox():
+    from app.email.sender import get_email_sender
+    from app.main import app
+
+    box = _Outbox()
+    app.dependency_overrides[get_email_sender] = lambda: box
+    yield box
+    app.dependency_overrides.pop(get_email_sender, None)
+
+
+def test_an_invitation_with_an_address_is_emailed_when_the_server_can_send(
+    client, admin, outbox, monkeypatch
+):
+    monkeypatch.setenv("EMAIL_BACKEND", "smtp")
+    monkeypatch.setenv("SMTP_HOST", "smtp.example.com")
+    monkeypatch.setenv("SMTP_FROM", "LEARNABLE <no-reply@example.com>")
+    get_settings.cache_clear()
+    try:
+        summary = client.get(f"{API}/admin/summary", headers=admin).json()
+        assert summary["email_enabled"] is True
+        created = _invite(client, admin, email="Anna@Example.com", note="Anna")
+        assert created["emailed"] is True
+        (to, subject, body) = outbox.sent[0]
+        assert to == "anna@example.com"
+        assert "LEARNABLE" in subject
+        assert created["link"] in body  # the same link the administrator sees
+        # An invitation without an address, or with send_email off, is not emailed.
+        assert _invite(client, admin)["emailed"] is False
+        assert _invite(client, admin, email="b@example.com", send_email=False)["emailed"] is False
+        assert len(outbox.sent) == 1
+    finally:
+        for name in ("EMAIL_BACKEND", "SMTP_HOST", "SMTP_FROM"):
+            monkeypatch.delenv(name)
+        get_settings.cache_clear()
+
+
+def test_nothing_is_emailed_when_the_server_cannot_send(client, admin, outbox):
+    summary = client.get(f"{API}/admin/summary", headers=admin).json()
+    assert summary["email_enabled"] is False
+    assert _invite(client, admin, email="c@example.com")["emailed"] is False
+    assert outbox.sent == []

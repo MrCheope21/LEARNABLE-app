@@ -298,6 +298,8 @@ export const en = {
   "admin.invEmail": "Only for this email (optional)",
   "admin.invDays": "Valid for (days)",
   "admin.invCreate": "Create invitation",
+  "admin.invSend": "Also send it by email",
+  "admin.invEmailed": "The invitation was emailed to {email}.",
   "admin.invLink": "Send this link to the person. It is shown only now:",
   "admin.copy": "Copy link",
   "admin.copied": "Copied",

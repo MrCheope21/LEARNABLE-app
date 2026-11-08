@@ -202,11 +202,14 @@ function Invitations() {
   const [note, setNote] = useState("");
   const [email, setEmail] = useState("");
   const [days, setDays] = useState("7");
+  const [sendEmail, setSendEmail] = useState(true);
+  const summary = useQuery({ queryKey: summaryKey, queryFn: admin.summary });
+  const canEmail = summary.data?.email_enabled === true;
   const [created, setCreated] = useState<Schemas["InvitationCreated"] | null>(null);
   const [copied, setCopied] = useState(false);
   const list = useQuery({ queryKey: invitationsKey, queryFn: admin.invitations });
   const create = useMutation({
-    mutationFn: () => admin.createInvitation({ note: note.trim(), email: email.trim() || null, days: Number(days) || null }),
+    mutationFn: () => admin.createInvitation({ note: note.trim(), email: email.trim() || null, days: Number(days) || null, send_email: sendEmail }),
     onSuccess: (invitation) => {
       setCreated(invitation);
       setCopied(false);
@@ -238,6 +241,12 @@ function Invitations() {
         <input id={`${ids}-n`} value={note} maxLength={120} onChange={(e) => setNote(e.target.value)} />
         <label htmlFor={`${ids}-m`}>{t("admin.invEmail")}</label>
         <input id={`${ids}-m`} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        {canEmail && email.trim() && (
+          <label className="toggle">
+            <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />
+            {t("admin.invSend")}
+          </label>
+        )}
         <label htmlFor={`${ids}-d`}>{t("admin.invDays")}</label>
         <input id={`${ids}-d`} type="number" min={1} max={90} value={days} onChange={(e) => setDays(e.target.value)} />
         <div className="actions">
@@ -249,6 +258,7 @@ function Invitations() {
       </form>
       {created && (
         <section className="card" role="status">
+          {created.emailed && created.email && <p className="banner info">{t("admin.invEmailed", { email: created.email })}</p>}
           <p>{t("admin.invLink")}</p>
           <p>
             <input readOnly value={created.link} aria-label={t("admin.invLink")} onFocus={(e) => e.currentTarget.select()} style={{ width: "100%" }} />

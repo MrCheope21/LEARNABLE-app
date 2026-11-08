@@ -45,6 +45,8 @@ class AdminSummary(BaseModel):
     ai_requests_today: int
     shared_daily_cap: int
     registration_open: bool
+    # Whether the server can send email (invitations by email, password reset links).
+    email_enabled: bool
     default_evaluations: int
     default_generations: int
     default_storage_mb: int
@@ -54,6 +56,8 @@ class InvitationCreate(InputModel):
     email: EmailStr | None = None
     note: str = Field(default="", max_length=120)
     days: int | None = Field(default=None, ge=1, le=90)
+    # With an email address: also send the link there (when the server can send email).
+    send_email: bool = True
 
 
 class InvitationRead(BaseModel):
@@ -71,6 +75,8 @@ class InvitationCreated(InvitationRead):
     """Returned once, at creation: the code can't be read back afterwards."""
 
     link: str
+    # True when the invitation was handed to the mail server for the address above.
+    emailed: bool = False
 
 
 class TemporaryPassword(BaseModel):

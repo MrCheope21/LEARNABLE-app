@@ -299,6 +299,8 @@ export const hi: Messages = {
   "admin.invEmail": "केवल इस ईमेल के लिए (वैकल्पिक)",
   "admin.invDays": "वैधता (दिन)",
   "admin.invCreate": "आमंत्रण बनाएँ",
+  "admin.invSend": "ईमेल से भी भेजें",
+  "admin.invEmailed": "आमंत्रण {email} को ईमेल से भेजा गया।",
   "admin.invLink": "यह लिंक व्यक्ति को भेजें। यह केवल अभी दिखता है:",
   "admin.copy": "लिंक कॉपी करें",
   "admin.copied": "कॉपी हुआ",

@@ -298,6 +298,8 @@ export const ja: Messages = {
   "admin.invEmail": "このメールのみ(任意)",
   "admin.invDays": "有効期間(日)",
   "admin.invCreate": "招待を作成",
+  "admin.invSend": "メールでも送る",
+  "admin.invEmailed": "招待を {email} にメールで送りました。",
   "admin.invLink": "このリンクを相手に送ってください。今回のみ表示されます:",
   "admin.copy": "リンクをコピー",
   "admin.copied": "コピーしました",

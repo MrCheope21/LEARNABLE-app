@@ -96,6 +96,10 @@
             "title": "Default Storage Mb",
             "type": "integer"
           },
+          "email_enabled": {
+            "title": "Email Enabled",
+            "type": "boolean"
+          },
           "registration_open": {
             "title": "Registration Open",
             "type": "boolean"
@@ -115,6 +119,7 @@
           "ai_requests_today",
           "shared_daily_cap",
           "registration_open",
+          "email_enabled",
           "default_evaluations",
           "default_generations",
           "default_storage_mb"
@@ -3183,6 +3188,11 @@
             "maxLength": 120,
             "title": "Note",
             "type": "string"
+          },
+          "send_email": {
+            "default": true,
+            "title": "Send Email",
+            "type": "boolean"
           }
         },
         "title": "InvitationCreate",
@@ -3205,6 +3215,11 @@
               }
             ],
             "title": "Email"
+          },
+          "emailed": {
+            "default": false,
+            "title": "Emailed",
+            "type": "boolean"
           },
           "expires_at": {
             "title": "Expires At",

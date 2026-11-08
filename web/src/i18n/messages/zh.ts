@@ -299,6 +299,8 @@ export const zh: Messages = {
   "admin.invEmail": "仅限此邮箱(可选)",
   "admin.invDays": "有效期(天)",
   "admin.invCreate": "创建邀请",
+  "admin.invSend": "同时通过邮件发送",
+  "admin.invEmailed": "邀请已通过邮件发送至 {email}。",
   "admin.invLink": "把此链接发给对方。它只显示这一次:",
   "admin.copy": "复制链接",
   "admin.copied": "已复制",

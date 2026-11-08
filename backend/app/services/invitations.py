@@ -37,6 +37,21 @@ def create(
     return invitation, token
 
 
+def invitation_email(link: str, days: int, inviter: str | None) -> tuple[str, str]:
+    who = inviter or "Un amministratore / An administrator"
+    subject = "Invito a LEARNABLE / You're invited to LEARNABLE"
+    body = (
+        f"{who} ti ha invitato a LEARNABLE, l'app per studiare e ripassare nel momento giusto.\n\n"
+        f"Crea il tuo account da qui (il link vale per una persona, per {days} giorni):\n{link}\n\n"
+        "Se non te l'aspettavi, ignora questa email.\n\n"
+        "---\n\n"
+        f"{who} invited you to LEARNABLE, the app to study and review at the right time.\n\n"
+        f"Create your account here (the link works for one person, for {days} days):\n{link}\n\n"
+        "If you weren't expecting this, ignore this email.\n"
+    )
+    return subject, body
+
+
 def status_of(invitation: Invitation) -> str:
     if invitation.used_at is not None:
         return "used"

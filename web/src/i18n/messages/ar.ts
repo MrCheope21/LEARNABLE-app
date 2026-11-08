@@ -299,6 +299,8 @@ export const ar: Messages = {
   "admin.invEmail": "لهذا البريد فقط (اختياري)",
   "admin.invDays": "صالحة لمدة (أيام)",
   "admin.invCreate": "إنشاء دعوة",
+  "admin.invSend": "أرسلها أيضًا بالبريد الإلكتروني",
+  "admin.invEmailed": "أُرسلت الدعوة بالبريد الإلكتروني إلى {email}.",
   "admin.invLink": "أرسل هذا الرابط للشخص. يظهر الآن فقط:",
   "admin.copy": "نسخ الرابط",
   "admin.copied": "تم النسخ",

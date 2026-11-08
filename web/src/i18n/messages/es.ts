@@ -298,6 +298,8 @@ export const es: Messages = {
   "admin.invEmail": "Solo para este correo (opcional)",
   "admin.invDays": "Válida durante (días)",
   "admin.invCreate": "Crear invitación",
+  "admin.invSend": "Enviar también por correo",
+  "admin.invEmailed": "La invitación se envió por correo a {email}.",
   "admin.invLink": "Envía este enlace a la persona. Solo se muestra ahora:",
   "admin.copy": "Copiar enlace",
   "admin.copied": "Copiado",

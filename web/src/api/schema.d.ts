@@ -2014,6 +2014,8 @@ export interface components {
             default_generations: number;
             /** Default Storage Mb */
             default_storage_mb: number;
+            /** Email Enabled */
+            email_enabled: boolean;
             /** Registration Open */
             registration_open: boolean;
             /** Shared Daily Cap */
@@ -3071,6 +3073,11 @@ export interface components {
              * @default
              */
             note: string;
+            /**
+             * Send Email
+             * @default true
+             */
+            send_email: boolean;
         };
         /**
          * InvitationCreated
@@ -3081,6 +3088,11 @@ export interface components {
             created_at: string;
             /** Email */
             email: string | null;
+            /**
+             * Emailed
+             * @default false
+             */
+            emailed: boolean;
             /** Expires At */
             expires_at: string;
             /**

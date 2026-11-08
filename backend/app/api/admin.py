@@ -7,7 +7,7 @@ answers stay private.
 import secrets
 import uuid
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -16,6 +16,7 @@ from app.auth.dependencies import require_admin
 from app.core.config import get_settings
 from app.core.errors import ConflictError, NotFoundError
 from app.db.session import get_db
+from app.email.sender import EmailSender, get_email_sender
 from app.models.auth import Invitation
 from app.models.course import Course
 from app.models.document import Document
@@ -103,6 +104,7 @@ def summary(db: Session = DB) -> AdminSummary:
         ai_requests_today=quota.total_today(db),
         shared_daily_cap=settings.ai_shared_daily_cap,
         registration_open=settings.registration_open,
+        email_enabled=settings.email_backend == "smtp",
         default_evaluations=settings.ai_daily_evaluations,
         default_generations=settings.ai_daily_generations,
         default_storage_mb=settings.storage_limit_mb,
@@ -169,12 +171,22 @@ def list_invitations(db: Session = DB) -> list[InvitationRead]:
 
 @router.post("/invitations", response_model=InvitationCreated, status_code=status.HTTP_201_CREATED)
 def create_invitation(
-    payload: InvitationCreate, admin: User = Depends(require_admin), db: Session = DB
+    payload: InvitationCreate,
+    background_tasks: BackgroundTasks,
+    admin: User = Depends(require_admin),
+    db: Session = DB,
+    sender: EmailSender = Depends(get_email_sender),
 ) -> InvitationCreated:
     invitation, token = invitations.create(db, admin.id, payload.email, payload.note, payload.days)
     base = _invitation_read(db, invitation)
-    link = f"{get_settings().public_app_url.rstrip('/')}/?invite={token}"
-    return InvitationCreated(**base.model_dump(), link=link)
+    settings = get_settings()
+    link = f"{settings.public_app_url.rstrip('/')}/?invite={token}"
+    emailed = bool(payload.email and payload.send_email and settings.email_backend == "smtp")
+    if emailed:
+        days = payload.days or settings.invitation_ttl_days
+        subject, body = invitations.invitation_email(link, days, admin.display_name)
+        background_tasks.add_task(sender.send, str(payload.email).lower(), subject, body)
+    return InvitationCreated(**base.model_dump(), link=link, emailed=emailed)
 
 
 @router.delete("/invitations/{invitation_id}", response_model=InvitationRead)
