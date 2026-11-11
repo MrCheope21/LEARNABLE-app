@@ -8,6 +8,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.documents import router as documents_router
 from app.api.learning import router as learning_router
 from app.api.marketplace import router as marketplace_router
+from app.api.payments import router as payments_router
 from app.api.progress import router as progress_router
 from app.api.review import router as review_router
 from app.auth.router import router as auth_router
@@ -23,4 +24,5 @@ api_router.include_router(review_router)
 api_router.include_router(progress_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(marketplace_router)
+api_router.include_router(payments_router)
 api_router.include_router(community_router)

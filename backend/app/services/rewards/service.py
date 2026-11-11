@@ -103,18 +103,20 @@ def record_attempt(
     occasion: Occasion | None,
     classification: EvaluationClassification | None,
     at: datetime,
+    level: int,
     self_grade: ReviewOutcome | None = None,
 ) -> XpAward | None:
     """The attempt is complete (first final outcome). Writes its award (when eligible) and its
     day's activity. Returns the award row, or None when the attempt wasn't eligible.
     `classification` is the AI evaluation's; `self_grade` the student's own grade when they
-    graded it themselves, which earns XP like an AI-correct answer."""
+    graded it themselves, which earns XP like an AI-correct answer. `level` is the item's level
+    when it was asked (before this answer moved it): it sets the reward."""
     award: XpAward | None = None
     if occasion is not None:
         correct = policy.is_correct(classification, answer.resolved_outcome, self_grade)
         ordinal = _count_success(db, user.id, item) if correct else None
-        base = policy.base_xp(ordinal) if ordinal is not None else 0
-        xp = policy.awarded_xp(ordinal, answer.hint_used) if ordinal is not None else 0
+        base = policy.base_xp(level) if correct else 0
+        xp = policy.awarded_xp(level, answer.hint_used) if correct else 0
         award = XpAward(
             user_id=user.id,
             course_id=item.course_id,
@@ -125,6 +127,7 @@ def record_attempt(
             occasion_key=occasion.key,
             correct=correct,
             ordinal=ordinal,
+            level=level,
             base_xp=base,
             hint_used=answer.hint_used,
             xp=xp,
@@ -147,8 +150,11 @@ def regrade(db: Session, user: User, item: LearningItem, answer: Answer, at: dat
         return
     award.correct = True
     award.ordinal = _count_success(db, user.id, item)
-    award.base_xp = policy.base_xp(award.ordinal)
-    award.xp = policy.awarded_xp(award.ordinal, answer.hint_used)
+    # The level the item was at when the answer was given (awards from before xp_v2 have none:
+    # they are paid as level 0).
+    level = award.level or 0
+    award.base_xp = policy.base_xp(level)
+    award.xp = policy.awarded_xp(level, answer.hint_used)
     _add_activity(db, user, at, xp=award.xp, attempts=0)
 
 
@@ -205,8 +211,8 @@ def _add_activity(db: Session, user: User, at: datetime, *, xp: int, attempts: i
 @dataclass(frozen=True)
 class Potential:
     eligible: bool
-    # The ordinal and XP a correct answer would get now; 0 when not eligible.
-    ordinal: int
+    # The item's level and the XP a correct answer would get now; 0 when not eligible.
+    level: int
     xp: int
     xp_with_hint: int
 
@@ -217,18 +223,12 @@ def potential(db: Session, session: ReviewSession, item: LearningItem, at: datet
         db, session, item, state_before=state.state, due_before=state.due_at, at=at
     )
     if occasion is None:
-        return Potential(eligible=False, ordinal=0, xp=0, xp_with_hint=0)
-    done = db.scalar(
-        select(ItemSuccessCounter.successful_answers).where(
-            ItemSuccessCounter.learning_item_id == item.id
-        )
-    )
-    ordinal = (done or 0) + 1
+        return Potential(eligible=False, level=0, xp=0, xp_with_hint=0)
     return Potential(
         eligible=True,
-        ordinal=ordinal,
-        xp=policy.awarded_xp(ordinal, hint_used=False),
-        xp_with_hint=policy.awarded_xp(ordinal, hint_used=True),
+        level=state.level,
+        xp=policy.awarded_xp(state.level, hint_used=False),
+        xp_with_hint=policy.awarded_xp(state.level, hint_used=True),
     )
 
 

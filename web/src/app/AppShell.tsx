@@ -6,7 +6,9 @@ import { useAuth } from "../auth/AuthContext";
 import { BrandLogo } from "../brand/BrandLogo";
 import { Icon, type IconName } from "../components/Icon";
 import { ErrorBanner } from "../components/QueryState";
+import { badge, useInbox } from "../features/notifications/useInbox";
 import { useI18n } from "../i18n";
+import { useOffline } from "../pwa";
 
 export const dashboardKey = ["dashboard"] as const;
 export const meKey = ["me"] as const;
@@ -16,11 +18,23 @@ export function AppShell() {
   return (
     <div className="shell">
       <TopNav />
+      <OfflineNotice />
       <div className="content">
         <Outlet />
       </div>
       <BottomNav />
     </div>
+  );
+}
+
+/** Without a network the app still opens (service worker), but nothing can be loaded or saved. */
+function OfflineNotice() {
+  const { t } = useI18n();
+  if (!useOffline()) return null;
+  return (
+    <p className="offline-notice" role="status">
+      {t("offline.notice")}
+    </p>
   );
 }
 
@@ -35,11 +49,20 @@ const BOTTOM_ITEMS: { to: string; icon: IconName; label: "nav.courses" | "nav.re
 /** Phones: the five main destinations as a fixed bar at the thumb, instead of a cramped top row. */
 function BottomNav() {
   const { t } = useI18n();
+  const inbox = useInbox();
+  const social = inbox.messages + inbox.friend_requests;
   return (
     <nav className="bottom-nav" aria-label={t("nav.mobile")}>
       {BOTTOM_ITEMS.map((item) => (
         <NavLink key={item.to} to={item.to}>
-          <Icon name={item.icon} size={22} />
+          <span className="bottom-icon">
+            <Icon name={item.icon} size={22} />
+            {item.to === "/community" && social > 0 && (
+              <span className="count-badge" role="img" aria-label={t("nav.socialBadge", { n: social })}>
+                {badge(social)}
+              </span>
+            )}
+          </span>
           <span>{t(item.label)}</span>
         </NavLink>
       ))}
@@ -52,6 +75,8 @@ export function TopNav() {
   const streak = summary.data?.streak.current;
   const xp = summary.data?.xp.total;
   const { t } = useI18n();
+  const inbox = useInbox();
+  const social = inbox.messages + inbox.friend_requests;
   return (
     <header className="topnav">
       <div className="topnav-inner">
@@ -62,7 +87,14 @@ export function TopNav() {
           <NavLink to="/courses">{t("nav.courses")}</NavLink>
           <NavLink to="/review">{t("nav.review")}</NavLink>
           <NavLink to="/progress">{t("nav.progress")}</NavLink>
-          <NavLink to="/community">{t("nav.community")}</NavLink>
+          <NavLink to="/community">
+            {t("nav.community")}
+            {social > 0 && (
+              <span className="count-badge" role="img" aria-label={t("nav.socialBadge", { n: social })}>
+                {badge(social)}
+              </span>
+            )}
+          </NavLink>
           <NavLink to="/marketplace">{t("nav.marketplace")}</NavLink>
           <NavLink to="/guide">{t("nav.guide")}</NavLink>
         </nav>
@@ -77,6 +109,14 @@ export function TopNav() {
               <XpIcon /> {xp.toLocaleString()}
             </span>
           )}
+          <NavLink to="/notifications" className="nav-bell" aria-label={inbox.notifications > 0 ? t("nav.notificationsN", { n: inbox.notifications }) : t("nav.notifications")}>
+            <Icon name="bell" size={20} />
+            {inbox.notifications > 0 && (
+              <span className="count-badge" aria-hidden="true">
+                {badge(inbox.notifications)}
+              </span>
+            )}
+          </NavLink>
           <AccountMenu />
         </div>
       </div>
@@ -178,11 +218,59 @@ function groupedZones(current: string): [string, { zone: string; label: string }
   return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
+// One well-known city per offset people actually live in: enough for nearly everyone, instead
+// of the browser's ~400 zones.
+const COMMON_ZONES = [
+  "Pacific/Honolulu",
+  "America/Anchorage",
+  "America/Los_Angeles",
+  "America/Denver",
+  "America/Chicago",
+  "America/New_York",
+  "America/Sao_Paulo",
+  "Atlantic/Azores",
+  "Europe/London",
+  "Europe/Rome",
+  "Europe/Athens",
+  "Europe/Istanbul",
+  "Asia/Dubai",
+  "Asia/Karachi",
+  "Asia/Kolkata",
+  "Asia/Dhaka",
+  "Asia/Bangkok",
+  "Asia/Shanghai",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+  "Pacific/Auckland",
+];
+
+function deviceZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch {
+    return "";
+  }
+}
+
+function cityOf(zone: string): string {
+  return (zone.split("/").slice(1).join(" / ") || zone).replace(/_/g, " ");
+}
+
+/**
+ * The time zone that decides when the user's day starts. A short list (their zone, this
+ * device's, one city per common offset); the full list of every zone only on request.
+ */
 export function TimezoneForm({ current }: { current: string }) {
   const queryClient = useQueryClient();
   const { t } = useI18n();
   const [value, setValue] = useState(current);
-  const groups = useMemo(() => groupedZones(current), [current]);
+  const [all, setAll] = useState(false);
+  const device = useMemo(() => deviceZone(), []);
+  const groups = useMemo(() => (all ? groupedZones(current) : []), [all, current]);
+  const short = useMemo(() => {
+    const zones = Array.from(new Set([current, device, ...COMMON_ZONES].filter(Boolean)));
+    return zones.map((zone) => ({ zone, label: `${cityOf(zone)}${offsetLabel(zone) ? ` (${offsetLabel(zone)})` : ""}` }));
+  }, [current, device]);
   const save = useMutation({
     mutationFn: (timezone: string) => auth.updateMe({ timezone }),
     onSuccess: (user) => {
@@ -199,17 +287,34 @@ export function TimezoneForm({ current }: { current: string }) {
       <label>
         {t("settings.timezone")}
         <select value={value} onChange={(e) => setValue(e.target.value)}>
-          {groups.map(([region, list]) => (
-            <optgroup key={region} label={region}>
-              {list.map(({ zone, label }) => (
+          {all
+            ? groups.map(([region, list]) => (
+                <optgroup key={region} label={region}>
+                  {list.map(({ zone, label }) => (
+                    <option key={zone} value={zone}>
+                      {label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))
+            : short.map(({ zone, label }) => (
                 <option key={zone} value={zone}>
                   {label}
+                  {zone === device ? ` · ${t("settings.tzDevice")}` : ""}
                 </option>
               ))}
-            </optgroup>
-          ))}
         </select>
       </label>
+      {device && device !== value && (
+        <button type="button" className="link" onClick={() => setValue(device)}>
+          {t("settings.tzUseDevice", { zone: cityOf(device) })}
+        </button>
+      )}
+      {!all && (
+        <button type="button" className="link" onClick={() => setAll(true)}>
+          {t("settings.tzAll")}
+        </button>
+      )}
       <ErrorBanner error={save.error} />
       <button type="submit" disabled={save.isPending || !value || value === current}>
         {t("common.save")}

@@ -1,34 +1,41 @@
-"""The community: leaderboards, profiles and following (Duolingo-style friends).
+"""The community: leaderboards, profiles, friends and blocks (docs/COMMUNITY.md).
 
 Everything here is opt-in: a user who hasn't turned on `community_visible` appears on no
-leaderboard, can't be found or followed, and has no profile page. Rankings come from the XP
-ledger (`xp_awards`), the same source as the dashboard's XP, over UTC calendar windows so all
-learners are compared on the same clock: day (since 00:00 UTC), week (since Monday), month
-(since the 1st), or all time.
+leaderboard, can't be found or asked to be a friend, and has no profile page. Friendship is
+mutual: one person asks, the other accepts or declines (the old one-way "follow" is gone).
+
+Rankings come from the XP ledger (`xp_awards`), the same source as the dashboard's XP, over
+UTC calendar windows so all learners are compared on the same clock: day (since 00:00 UTC),
+week (since Monday), month (since the 1st), or all time.
 """
 
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, delete, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, InvalidRequestError, NotFoundError
 from app.db.types import utc_now
-from app.models.community import Follow
+from app.models.community import ACCEPTED, PENDING, Block, Friendship, pair_key
 from app.models.course import Course
 from app.models.marketplace import MarketplaceListing
 from app.models.rewards import XpAward
 from app.models.user import User
 from app.schemas.community import (
+    BlockedPerson,
     CourseLeaderboard,
+    FriendRequests,
     Leaderboard,
     LeaderboardEntry,
     Period,
     Person,
     Profile,
+    Relation,
     Scope,
 )
+from app.services import notifications
 from app.services.courses.service import get_owned_course
 from app.services.dashboard.service import current_streak
 from app.services.rewards.service import local_day
@@ -54,12 +61,64 @@ def _name(user: User) -> str:
     return user.display_name or ANONYMOUS
 
 
-def _following_ids(db: Session, user_id: uuid.UUID) -> set[uuid.UUID]:
-    return set(db.scalars(select(Follow.followee_id).where(Follow.follower_id == user_id)))
+def _relations(db: Session, user_id: uuid.UUID) -> dict[uuid.UUID, Relation]:
+    """Everyone the user has a friendship or a pending request with."""
+    rows = db.execute(
+        select(Friendship.requester_id, Friendship.addressee_id, Friendship.status).where(
+            or_(Friendship.requester_id == user_id, Friendship.addressee_id == user_id)
+        )
+    ).all()
+    result: dict[uuid.UUID, Relation] = {}
+    for requester_id, addressee_id, status in rows:
+        mine = requester_id == user_id
+        other = addressee_id if mine else requester_id
+        if status == ACCEPTED:
+            result[other] = Relation.FRIENDS
+        else:
+            result[other] = Relation.REQUEST_SENT if mine else Relation.REQUEST_RECEIVED
+    return result
 
 
-def _followers_ids(db: Session, user_id: uuid.UUID) -> set[uuid.UUID]:
-    return set(db.scalars(select(Follow.follower_id).where(Follow.followee_id == user_id)))
+def friend_ids(db: Session, user_id: uuid.UUID) -> set[uuid.UUID]:
+    return {
+        other for other, relation in _relations(db, user_id).items() if relation is Relation.FRIENDS
+    }
+
+
+def are_friends(db: Session, a: uuid.UUID, b: uuid.UUID) -> bool:
+    return (
+        db.scalar(
+            select(Friendship.id).where(
+                Friendship.pair_key == pair_key(a, b), Friendship.status == ACCEPTED
+            )
+        )
+        is not None
+    )
+
+
+def blocked_between(db: Session, a: uuid.UUID, b: uuid.UUID) -> bool:
+    """Either blocked the other."""
+    return (
+        db.scalar(
+            select(Block.id).where(
+                or_(
+                    and_(Block.blocker_id == a, Block.blocked_id == b),
+                    and_(Block.blocker_id == b, Block.blocked_id == a),
+                )
+            )
+        )
+        is not None
+    )
+
+
+def _hidden_from(db: Session, user_id: uuid.UUID) -> set[uuid.UUID]:
+    """People the user blocked or who blocked them: neither finds the other."""
+    rows = db.execute(
+        select(Block.blocker_id, Block.blocked_id).where(
+            or_(Block.blocker_id == user_id, Block.blocked_id == user_id)
+        )
+    ).all()
+    return {blocked if blocker == user_id else blocker for blocker, blocked in rows}
 
 
 # --- Settings ---
@@ -98,9 +157,10 @@ def _ranked(
         stmt = stmt.where(XpAward.awarded_at >= since)
     if course_ids is not None:
         stmt = stmt.where(XpAward.course_id.in_(course_ids))
-    following = _following_ids(db, viewer.id)
+    relations = _relations(db, viewer.id)
     if scope is Scope.FRIENDS:
-        stmt = stmt.where(User.id.in_(following | {viewer.id}))
+        friends = {u for u, r in relations.items() if r is Relation.FRIENDS}
+        stmt = stmt.where(User.id.in_(friends | {viewer.id}))
     rows = db.execute(stmt.order_by(xp.desc(), User.created_at, User.id)).all()
 
     entries: list[LeaderboardEntry] = []
@@ -116,7 +176,7 @@ def _ranked(
                 name=display_name or ANONYMOUS,
                 xp=total,
                 is_me=user_id == viewer.id,
-                following=user_id in following,
+                relation=relations.get(user_id, Relation.NONE),
             )
         )
     me = next((e for e in entries if e.is_me), None)
@@ -164,7 +224,7 @@ def course_leaderboard(
     return CourseLeaderboard(**board.model_dump(), participants=int(owners or 1))
 
 
-# --- Profiles and following ---
+# --- Profiles ---
 
 
 def _visible_user(db: Session, viewer: User, user_id: uuid.UUID) -> User:
@@ -175,8 +235,17 @@ def _visible_user(db: Session, viewer: User, user_id: uuid.UUID) -> User:
     return user
 
 
+def _block_of(db: Session, blocker_id: uuid.UUID, blocked_id: uuid.UUID) -> Block | None:
+    return db.scalar(
+        select(Block).where(Block.blocker_id == blocker_id, Block.blocked_id == blocked_id)
+    )
+
+
 def profile(db: Session, viewer: User, user_id: uuid.UUID) -> Profile:
     user = _visible_user(db, viewer, user_id)
+    # Someone who blocked the viewer has no page for them.
+    if user.id != viewer.id and _block_of(db, user.id, viewer.id) is not None:
+        raise NotFoundError("Profile not found")
     now = utc_now()
     xp_total = db.scalar(
         select(func.coalesce(func.sum(XpAward.xp), 0)).where(XpAward.user_id == user.id)
@@ -187,7 +256,7 @@ def profile(db: Session, viewer: User, user_id: uuid.UUID) -> Profile:
             XpAward.user_id == user.id, XpAward.awarded_at >= week
         )
     )
-    followers, following = _followers_ids(db, user.id), _following_ids(db, user.id)
+    friends = friend_ids(db, user.id)
     return Profile(
         user_id=user.id,
         name=_name(user),
@@ -195,11 +264,10 @@ def profile(db: Session, viewer: User, user_id: uuid.UUID) -> Profile:
         xp_total=int(xp_total or 0),
         xp_week=int(xp_week or 0),
         streak=current_streak(db, user.id, local_day(user.timezone, now)),
-        followers=len(followers & _visible_ids(db, followers)),
-        following=len(following & _visible_ids(db, following)),
+        friends=len(_visible_ids(db, friends)),
         is_me=user.id == viewer.id,
-        i_follow=user.id in _following_ids(db, viewer.id),
-        follows_me=viewer.id in following,
+        relation=_relations(db, viewer.id).get(user.id, Relation.NONE),
+        blocked=_block_of(db, viewer.id, user.id) is not None,
     )
 
 
@@ -211,29 +279,110 @@ def _visible_ids(db: Session, ids: set[uuid.UUID]) -> set[uuid.UUID]:
     )
 
 
-def follow(db: Session, viewer: User, user_id: uuid.UUID) -> Profile:
+# --- Friends: ask, accept, decline, cancel, remove ---
+
+
+def _friendship(db: Session, a: uuid.UUID, b: uuid.UUID) -> Friendship | None:
+    return db.scalar(select(Friendship).where(Friendship.pair_key == pair_key(a, b)))
+
+
+def befriend(db: Session, viewer: User, user_id: uuid.UUID) -> Profile:
+    """Sends a friend request; when the other person had already asked, accepts theirs.
+    Asking twice, or asking a friend, changes nothing."""
     if user_id == viewer.id:
-        raise ConflictError("You can't follow yourself.", details={"reason": "self_follow"})
-    _visible_user(db, viewer, user_id)
-    exists = db.scalar(
-        select(Follow.id).where(Follow.follower_id == viewer.id, Follow.followee_id == user_id)
-    )
-    if exists is None:
-        db.add(Follow(follower_id=viewer.id, followee_id=user_id))
+        raise ConflictError("You can't add yourself.", details={"reason": "self_friend"})
+    if not viewer.community_visible:
+        raise ConflictError(
+            "Join the community first: people need to see who is asking.",
+            details={"reason": "not_visible"},
+        )
+    other = _visible_user(db, viewer, user_id)
+    if blocked_between(db, viewer.id, other.id):
+        # The same answer whoever blocked whom: a block is never revealed.
+        raise NotFoundError("Profile not found")
+    row = _friendship(db, viewer.id, other.id)
+    if row is None:
+        db.add(
+            Friendship(
+                pair_key=pair_key(viewer.id, other.id),
+                requester_id=viewer.id,
+                addressee_id=other.id,
+            )
+        )
+        notifications.notify(
+            db, other.id, "friend_request", actor_id=viewer.id, link="/community/friends"
+        )
+        try:
+            db.commit()
+        except IntegrityError:
+            # The two asked each other at the same moment: the other request exists now.
+            db.rollback()
+            return befriend(db, viewer, user_id)
+    elif row.status == PENDING and row.addressee_id == viewer.id:
+        row.status = ACCEPTED
+        row.responded_at = utc_now()
+        notifications.withdraw(db, viewer.id, "friend_request", other.id)
+        notifications.notify(
+            db,
+            other.id,
+            "friend_accepted",
+            actor_id=viewer.id,
+            link=f"/community/users/{viewer.id}",
+        )
         db.commit()
     return profile(db, viewer, user_id)
 
 
-def unfollow(db: Session, viewer: User, user_id: uuid.UUID) -> None:
-    row = db.scalar(
-        select(Follow).where(Follow.follower_id == viewer.id, Follow.followee_id == user_id)
-    )
+def unfriend(db: Session, viewer: User, user_id: uuid.UUID) -> None:
+    """Whatever there is between the two goes: a request the viewer sent (cancel), one they
+    received (decline) or the friendship (remove). The other person isn't notified."""
+    row = _friendship(db, viewer.id, user_id)
+    if row is None:
+        return
+    if row.status == PENDING:
+        # The request's notification goes with it, whoever it was for.
+        notifications.withdraw(db, row.addressee_id, "friend_request", row.requester_id)
+    db.delete(row)
+    db.commit()
+
+
+def block(db: Session, viewer: User, user_id: uuid.UUID) -> None:
+    """Ends any friendship or request and stops requests and messages both ways."""
+    if user_id == viewer.id:
+        raise ConflictError("You can't block yourself.", details={"reason": "self_block"})
+    if db.get(User, user_id) is None:
+        raise NotFoundError("Profile not found")
+    row = _friendship(db, viewer.id, user_id)
     if row is not None:
+        if row.status == PENDING:
+            notifications.withdraw(db, row.addressee_id, "friend_request", row.requester_id)
         db.delete(row)
-        db.commit()
+    if _block_of(db, viewer.id, user_id) is None:
+        db.add(Block(blocker_id=viewer.id, blocked_id=user_id))
+    db.commit()
 
 
-def _people(db: Session, viewer: User, users: list[User]) -> list[Person]:
+def unblock(db: Session, viewer: User, user_id: uuid.UUID) -> None:
+    db.execute(delete(Block).where(Block.blocker_id == viewer.id, Block.blocked_id == user_id))
+    db.commit()
+
+
+def blocked(db: Session, viewer: User) -> list[BlockedPerson]:
+    rows = db.execute(
+        select(User.id, User.display_name)
+        .join(Block, Block.blocked_id == User.id)
+        .where(Block.blocker_id == viewer.id)
+        .order_by(User.display_name)
+    ).all()
+    return [BlockedPerson(user_id=row[0], name=row[1] or ANONYMOUS) for row in rows]
+
+
+def _people(
+    db: Session,
+    viewer: User,
+    users: list[User],
+    requested_at: dict[uuid.UUID, datetime] | None = None,
+) -> list[Person]:
     if not users:
         return []
     ids = [u.id for u in users]
@@ -256,7 +405,7 @@ def _people(db: Session, viewer: User, users: list[User]) -> list[Person]:
         .tuples()
         .all()
     )
-    mine, theirs = _following_ids(db, viewer.id), _followers_ids(db, viewer.id)
+    relations = _relations(db, viewer.id)
     now = utc_now()
     return [
         Person(
@@ -265,46 +414,85 @@ def _people(db: Session, viewer: User, users: list[User]) -> list[Person]:
             xp_today=int(xp_today.get(u.id, 0)),
             streak=current_streak(db, u.id, local_day(u.timezone, now)),
             last_active=last.get(u.id),
-            i_follow=u.id in mine,
-            follows_me=u.id in theirs,
+            relation=relations.get(u.id, Relation.NONE),
+            requested_at=(requested_at or {}).get(u.id),
         )
         for u in users
     ]
 
 
-def following(db: Session, viewer: User) -> list[Person]:
-    return _listed(db, viewer, _following_ids(db, viewer.id))
+def friends(db: Session, viewer: User) -> list[Person]:
+    return _listed(db, viewer, friend_ids(db, viewer.id))
 
 
-def followers(db: Session, viewer: User) -> list[Person]:
-    return _listed(db, viewer, _followers_ids(db, viewer.id))
+def friend_requests(db: Session, viewer: User) -> FriendRequests:
+    rows = db.execute(
+        select(Friendship.requester_id, Friendship.addressee_id, Friendship.created_at).where(
+            Friendship.status == PENDING,
+            or_(Friendship.requester_id == viewer.id, Friendship.addressee_id == viewer.id),
+        )
+    ).all()
+    incoming = {r[0]: r[2] for r in rows if r[1] == viewer.id}
+    outgoing = {r[1]: r[2] for r in rows if r[0] == viewer.id}
+    return FriendRequests(
+        incoming=_listed(db, viewer, set(incoming), incoming),
+        outgoing=_listed(db, viewer, set(outgoing), outgoing),
+    )
 
 
-def _listed(db: Session, viewer: User, ids: set[uuid.UUID]) -> list[Person]:
+def pending_requests(db: Session, user_id: uuid.UUID) -> int:
+    """Requests waiting for the user's answer, from people still visible."""
+    return int(
+        db.scalar(
+            select(func.count())
+            .select_from(Friendship)
+            .join(User, User.id == Friendship.requester_id)
+            .where(
+                Friendship.addressee_id == user_id,
+                Friendship.status == PENDING,
+                User.community_visible.is_(True),
+            )
+        )
+        or 0
+    )
+
+
+def _listed(
+    db: Session,
+    viewer: User,
+    ids: set[uuid.UUID],
+    requested_at: dict[uuid.UUID, datetime] | None = None,
+) -> list[Person]:
     if not ids:
         return []
     users = db.scalars(
         select(User)
         .where(User.id.in_(ids), User.community_visible.is_(True))
-        .order_by(User.display_name)
+        .order_by(func.lower(User.display_name))
     ).all()
-    # Friends first (they follow back), then by recent activity in the UI.
-    return _people(db, viewer, list(users))
+    return _people(db, viewer, list(users), requested_at)
 
 
 def search(db: Session, viewer: User, query: str) -> list[Person]:
+    """By part of the display name, or by the exact username (never by email)."""
     needle = " ".join(query.split()).lower()
     if len(needle) < 2:
         raise InvalidRequestError("Type at least 2 letters of a name.")
     escaped = needle.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    users = db.scalars(
+    stmt = (
         select(User)
         .where(
             User.community_visible.is_(True),
             User.id != viewer.id,
-            or_(func.lower(User.display_name).like(f"%{escaped}%", escape="\\")),
+            or_(
+                func.lower(User.display_name).like(f"%{escaped}%", escape="\\"),
+                func.lower(User.username) == needle.removeprefix("@"),
+            ),
         )
-        .order_by(User.display_name)
+        .order_by(func.lower(User.display_name))
         .limit(SEARCH_LIMIT)
-    ).all()
-    return _people(db, viewer, list(users))
+    )
+    hidden = _hidden_from(db, viewer.id)
+    if hidden:
+        stmt = stmt.where(User.id.notin_(hidden))
+    return _people(db, viewer, list(db.scalars(stmt).all()))

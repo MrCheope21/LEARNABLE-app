@@ -76,8 +76,8 @@ class PotentialXp(BaseModel):
     that isn't due, or an item past its three XP-eligible consolidation rounds."""
 
     eligible: bool
-    # The item's next success ordinal (n in min(10n, 150)).
-    ordinal: int
+    # The item's level now: a correct answer earns 10 * (level + 1).
+    level: int
     xp: int
     xp_with_hint: int
 
@@ -219,6 +219,8 @@ class XpResult(BaseModel):
     reason: XpReason
     correct: bool
     ordinal: int | None
+    # The item's level when it was asked (null on awards from before the level rule).
+    level: int | None
     base_xp: int
     hint_used: bool
     xp: int

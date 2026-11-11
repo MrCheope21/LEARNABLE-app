@@ -17,7 +17,7 @@ Before getting access, a listing shows its presentation and size only (schemas/m
 import uuid
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, InvalidRequestError, NotFoundError
@@ -25,7 +25,12 @@ from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, CourseSettings, Topic
 from app.models.enums import ItemGenerationStatus, LearningItemRole, QuestionType
 from app.models.learning import LearningItem, QuestionFormulation
-from app.models.marketplace import MarketplaceAcquisition, MarketplaceListing
+from app.models.marketplace import (
+    MarketplaceAcquisition,
+    MarketplaceListing,
+    MarketplaceReview,
+    MarketplaceUpdate,
+)
 from app.models.user import User
 from app.schemas.learning import LearningItemCreate, QuestionCreate
 from app.schemas.marketplace import (
@@ -36,13 +41,18 @@ from app.schemas.marketplace import (
     Level,
     ListingDetail,
     ListingInfo,
+    ListingPrice,
     ListingPublish,
+    ListingReview,
+    ListingReviews,
     ListingSize,
     ListingSort,
     ListingSummary,
     MyListing,
+    ReviewWrite,
+    UpdateRead,
 )
-from app.services import drawings
+from app.services import drawings, notifications, payments
 from app.services.courses.service import get_owned_course
 from app.services.learning.service import new_item
 from app.services.managed_courses import ensure_editable, syncing
@@ -65,11 +75,16 @@ def publish(
     user_id: uuid.UUID,
     course_id: uuid.UUID,
     payload: ListingPublish,
+    gateway: payments.PaymentGateway | None = None,
 ) -> MyListing:
-    """Publishes the course, or republishes it as a new version: everyone with access gets it."""
+    """Publishes the course, or republishes it as a new version: everyone with access gets it
+    and is told, with the author's note about what changed when there is one."""
     course = get_owned_course(db, user_id, course_id)
     # A course from the marketplace is someone else's work.
     ensure_editable(course)
+    author = db.get(User, user_id)
+    if author is not None:
+        payments.check_price(author, payload.price_cents, gateway)
     item_count = db.scalar(
         select(func.count()).select_from(LearningItem).where(LearningItem.course_id == course.id)
     )
@@ -93,6 +108,8 @@ def publish(
     listing.item_count = item_count
     db.flush()
     _sync_all(db, storage, listing)
+    if old_version >= 1:
+        _tell(db, listing, "course_update", payload.update_note, version=listing.version)
     db.commit()
     # The previous version's drawings, now that every course with access has the new ones.
     for key in old_drawings:
@@ -102,13 +119,21 @@ def publish(
 
 
 def save_info(
-    db: Session, user_id: uuid.UUID, course_id: uuid.UUID, payload: ListingInfo
+    db: Session,
+    user_id: uuid.UUID,
+    course_id: uuid.UUID,
+    payload: ListingInfo,
+    gateway: payments.PaymentGateway | None = None,
 ) -> MyListing:
     """Saves the course's sales page. Before publishing it's a draft nobody else sees; once
-    published, the new text shows at once (no new version: the content doesn't change)."""
+    published, the new text and price show at once (no new version: the content doesn't
+    change, and whoever has the course keeps it)."""
     course = get_owned_course(db, user_id, course_id)
     ensure_editable(course)
     listing = _listing_of(db, course)
+    author = db.get(User, user_id)
+    if author is not None and (listing.status == PUBLISHED or gateway is None):
+        payments.check_price(author, payload.price_cents, gateway)
     _set_info(listing, payload)
     if listing.status == DRAFT:
         listing.language = course.language
@@ -154,6 +179,95 @@ def _set_info(listing: MarketplaceListing, info: ListingInfo) -> None:
     listing.level = info.level.value
     listing.category = info.category.value
     listing.tags = list(dict.fromkeys(t.strip() for t in info.tags if t.strip()))
+    listing.price_cents = info.price_cents
+
+
+# --- Telling the people who have the course ---
+
+
+def _tell(
+    db: Session,
+    listing: MarketplaceListing,
+    kind: str,
+    note: str,
+    *,
+    version: int | None = None,
+) -> int:
+    """A notification to everyone with access; a note is also kept as the listing's "What's
+    new". Returns how many people were told. The caller commits."""
+    note = note.strip()
+    user_ids = list(
+        db.scalars(
+            select(MarketplaceAcquisition.user_id).where(
+                MarketplaceAcquisition.listing_id == listing.id
+            )
+        )
+    )
+    data: dict[str, Any] = {"listing_id": str(listing.id), "title": listing.title}
+    if kind == "course_update":
+        data |= {"version": version, "note": note[:300]}
+    else:
+        data |= {"message": note[:300]}
+    for user_id in user_ids:
+        notifications.notify(
+            db,
+            user_id,
+            kind,
+            actor_id=listing.author_id,
+            data=data,
+            link=f"/marketplace/{listing.id}",
+        )
+    if note:
+        db.add(
+            MarketplaceUpdate(
+                listing_id=listing.id, version=version, note=note, recipients=len(user_ids)
+            )
+        )
+    return len(user_ids)
+
+
+def announce(db: Session, user_id: uuid.UUID, course_id: uuid.UUID, message: str) -> int:
+    """The author writes to everyone who has the course, between versions."""
+    course = get_owned_course(db, user_id, course_id)
+    listing = db.scalar(
+        select(MarketplaceListing).where(MarketplaceListing.source_course_id == course.id)
+    )
+    if listing is None or listing.status == DRAFT:
+        raise ConflictError("This course isn't published.", details={"reason": "not_published"})
+    told = _tell(db, listing, "course_announcement", message)
+    db.commit()
+    return told
+
+
+def update_recipients(db: Session, listing_id: uuid.UUID) -> list[tuple[str, str]]:
+    """(email, language) of the people with access who take emails about their courses."""
+    rows = db.execute(
+        select(User.email, User.language)
+        .join(MarketplaceAcquisition, MarketplaceAcquisition.user_id == User.id)
+        .where(
+            MarketplaceAcquisition.listing_id == listing_id,
+            User.email_updates.is_(True),
+            User.is_active.is_(True),
+        )
+    ).all()
+    return [(row[0], row[1]) for row in rows]
+
+
+def update_email(title: str, note: str, link: str, language: str) -> tuple[str, str]:
+    """The email about a new version or an announcement, in Italian or English."""
+    if language == "it":
+        return (
+            f"LEARNABLE: novità sul corso «{title}»",
+            f"L'autore del corso «{title}» ha scritto a chi ce l'ha:\n\n{note}\n\n"
+            f"Apri il corso: {link}\n\n"
+            "Non vuoi queste email? Impostazioni → Notifiche.\n",
+        )
+    return (
+        f"LEARNABLE: news about the course “{title}”",
+        f"The author of “{title}” wrote to everyone who has it:\n\n{note}\n\n"
+        f"Open the course: {link}\n\n"
+        "Don't want these emails? Settings → Notifications.\n",
+    )
 
 
 def unpublish(db: Session, user_id: uuid.UUID, listing_id: uuid.UUID) -> MyListing:
@@ -293,6 +407,7 @@ def browse(
     language: str | None = None,
     size: ListingSize | None = None,
     level: Level | None = None,
+    price: ListingPrice | None = None,
     sort: ListingSort = ListingSort.POPULAR,
     limit: int = 50,
 ) -> list[ListingSummary]:
@@ -311,6 +426,10 @@ def browse(
         stmt = stmt.where(MarketplaceListing.language == language)
     if level is not None:
         stmt = stmt.where(MarketplaceListing.level == level.value)
+    if price == "free":
+        stmt = stmt.where(MarketplaceListing.price_cents == 0)
+    elif price == "paid":
+        stmt = stmt.where(MarketplaceListing.price_cents > 0)
     if size is not None:
         low, high = SIZE_BOUNDS[size]
         stmt = stmt.where(MarketplaceListing.item_count >= low)
@@ -322,6 +441,14 @@ def browse(
             MarketplaceListing.published_at.desc(),
         ),
         ListingSort.NEWEST: (MarketplaceListing.published_at.desc(),),
+        # Mean stars, courses without reviews last; more reviews break ties.
+        ListingSort.BEST_RATED: (
+            (MarketplaceListing.rating_sum * 1.0 / func.nullif(MarketplaceListing.rating_count, 0))
+            .desc()
+            .nulls_last(),
+            MarketplaceListing.rating_count.desc(),
+            MarketplaceListing.published_at.desc(),
+        ),
         ListingSort.LARGEST: (
             MarketplaceListing.item_count.desc(),
             MarketplaceListing.published_at.desc(),
@@ -332,10 +459,22 @@ def browse(
     return [_summary(db, listing, courses.get(listing.id)) for listing in listings]
 
 
-def detail(db: Session, user_id: uuid.UUID, listing_id: uuid.UUID) -> ListingDetail:
+def detail(
+    db: Session,
+    user_id: uuid.UUID,
+    listing_id: uuid.UUID,
+    gateway: payments.PaymentGateway | None = None,
+) -> ListingDetail:
     """The presentation and size of a listing: chapter titles and question counts, no content."""
     listing = _visible_listing(db, user_id, listing_id)
     acquisition = _acquisition(db, user_id, listing.id)
+    seller = db.get(User, listing.author_id)
+    updates = db.scalars(
+        select(MarketplaceUpdate)
+        .where(MarketplaceUpdate.listing_id == listing.id)
+        .order_by(MarketplaceUpdate.created_at.desc())
+        .limit(10)
+    ).all()
     return ListingDetail(
         **_summary(db, listing, acquisition.course_id if acquisition else None).model_dump(),
         chapters=[
@@ -347,6 +486,17 @@ def detail(db: Session, user_id: uuid.UUID, listing_id: uuid.UUID) -> ListingDet
         ],
         is_mine=listing.author_id == user_id,
         has_access=acquisition is not None,
+        can_buy=(
+            listing.price_cents > 0
+            and listing.status == PUBLISHED
+            and gateway is not None
+            and seller is not None
+            and seller.payout_ready
+        ),
+        updates=[
+            UpdateRead(id=u.id, version=u.version, note=u.note, created_at=u.created_at)
+            for u in updates
+        ],
     )
 
 
@@ -395,8 +545,9 @@ def _courses_with_access(
 def acquire(
     db: Session, storage: DocumentStorage, user_id: uuid.UUID, listing_id: uuid.UUID
 ) -> uuid.UUID:
-    """Adds the course to the user's courses, giving them access for good (free listings only,
-    for now). With access already given, adds it back if they removed it."""
+    """Adds the course to the user's courses, giving them access for good. A paid listing
+    must be bought first (services/payments.py): this only gives free access, or adds back a
+    course whose access was already given."""
     listing = _visible_listing(db, user_id, listing_id)
     if listing.author_id == user_id:
         raise ConflictError("This is your own course.", details={"reason": "own_listing"})
@@ -411,13 +562,31 @@ def acquire(
             raise NotFoundError("Listing not found")
         if listing.price_cents > 0:
             raise ConflictError(
-                "Paid courses aren't available yet.", details={"reason": "payments_unavailable"}
+                "This course must be bought first.", details={"reason": "payment_required"}
             )
+    course_id = grant(db, storage, user_id, listing, price_cents=0)
+    db.commit()
+    return course_id
+
+
+def grant(
+    db: Session,
+    storage: DocumentStorage,
+    user_id: uuid.UUID,
+    listing: MarketplaceListing,
+    *,
+    price_cents: int,
+) -> uuid.UUID:
+    """Gives access (once) and puts the course in the user's courses. The caller commits."""
+    acquisition = _acquisition(db, user_id, listing.id)
+    if acquisition is not None and acquisition.course_id is not None:
+        return acquisition.course_id
+    if acquisition is None:
         acquisition = MarketplaceAcquisition(
             listing_id=listing.id,
             user_id=user_id,
             version=listing.version,
-            price_cents=listing.price_cents,
+            price_cents=price_cents,
         )
         db.add(acquisition)
         listing.acquisition_count += 1
@@ -434,8 +603,31 @@ def acquire(
     db.flush()
     _sync(db, storage, course, listing)
     acquisition.course_id = course.id
-    db.commit()
+    db.flush()
     return course.id
+
+
+def revoke(db: Session, user_id: uuid.UUID, listing: MarketplaceListing) -> list[str]:
+    """Takes access back after a refund: the course leaves the buyer's courses with their study
+    of it, and their review goes. Returns the storage keys to delete. The caller commits."""
+    acquisition = _acquisition(db, user_id, listing.id)
+    if acquisition is None:
+        return []
+    keys: list[str] = []
+    course = db.get(Course, acquisition.course_id) if acquisition.course_id else None
+    if course is not None:
+        keys = drawings.course_drawing_keys(db, course.id)
+        with syncing(db):
+            db.delete(course)
+            db.flush()
+    review = _review_of(db, user_id, listing.id)
+    if review is not None:
+        listing.rating_count -= 1
+        listing.rating_sum -= review.rating
+        db.delete(review)
+    db.delete(acquisition)
+    listing.acquisition_count = max(0, listing.acquisition_count - 1)
+    return keys
 
 
 def courses_with_access(db: Session, listing_id: uuid.UUID) -> list[uuid.UUID]:
@@ -641,6 +833,8 @@ def _summary(
         chapter_count=listing.chapter_count,
         item_count=listing.item_count,
         acquisition_count=listing.acquisition_count,
+        rating_count=listing.rating_count,
+        rating_average=_average(listing),
         published_at=listing.published_at,
         updated_at=listing.updated_at,
         status=listing.status,
@@ -652,3 +846,166 @@ def _mine(db: Session, listing: MarketplaceListing) -> MyListing:
     return MyListing(
         **_summary(db, listing, None).model_dump(), source_course_id=listing.source_course_id
     )
+
+
+# --- ListingReviews: stars and a comment from people who have the course ---
+
+REVIEW_LIMIT = 100
+
+
+def _average(listing: MarketplaceListing) -> float | None:
+    if listing.rating_count <= 0:
+        return None
+    return round(listing.rating_sum / listing.rating_count, 1)
+
+
+def _review_of(db: Session, user_id: uuid.UUID, listing_id: uuid.UUID) -> MarketplaceReview | None:
+    return db.scalar(
+        select(MarketplaceReview).where(
+            MarketplaceReview.listing_id == listing_id, MarketplaceReview.user_id == user_id
+        )
+    )
+
+
+def _review_read(
+    review: MarketplaceReview, name: str | None, viewer_id: uuid.UUID
+) -> ListingReview:
+    return ListingReview(
+        id=review.id,
+        author=name or "A LEARNABLE user",
+        rating=review.rating,
+        comment=review.comment,
+        created_at=review.created_at,
+        updated_at=review.updated_at,
+        is_mine=review.user_id == viewer_id,
+        reply=review.reply,
+        replied_at=review.replied_at,
+    )
+
+
+def reviews(db: Session, user_id: uuid.UUID, listing_id: uuid.UUID) -> ListingReviews:
+    listing = _visible_listing(db, user_id, listing_id)
+    rows = db.execute(
+        select(MarketplaceReview, User.display_name)
+        .join(User, User.id == MarketplaceReview.user_id)
+        .where(MarketplaceReview.listing_id == listing.id)
+        .order_by(MarketplaceReview.updated_at.desc())
+        .limit(REVIEW_LIMIT)
+    ).all()
+    counts = dict(
+        db.execute(
+            select(MarketplaceReview.rating, func.count())
+            .where(MarketplaceReview.listing_id == listing.id)
+            .group_by(MarketplaceReview.rating)
+        )
+        .tuples()
+        .all()
+    )
+    items = [_review_read(review, name, user_id) for review, name in rows]
+    mine = _review_of(db, user_id, listing.id)
+    me = db.get(User, user_id)
+    return ListingReviews(
+        count=listing.rating_count,
+        average=_average(listing),
+        distribution=[int(counts.get(stars, 0)) for stars in range(1, 6)],
+        mine=_review_read(mine, me.display_name if me else None, user_id) if mine else None,
+        can_review=(
+            listing.author_id != user_id and _acquisition(db, user_id, listing.id) is not None
+        ),
+        items=items,
+    )
+
+
+def write_review(
+    db: Session, user_id: uuid.UUID, listing_id: uuid.UUID, payload: ReviewWrite
+) -> ListingReviews:
+    """Writes or edits the viewer's review. Only someone who has the course can review it."""
+    listing = _visible_listing(db, user_id, listing_id)
+    if listing.author_id == user_id:
+        raise ConflictError("You can't review your own course.", details={"reason": "own_listing"})
+    if _acquisition(db, user_id, listing.id) is None:
+        raise ConflictError(
+            "Only people who have this course can review it.", details={"reason": "no_access"}
+        )
+    review = _review_of(db, user_id, listing.id)
+    if review is None:
+        review = MarketplaceReview(
+            listing_id=listing.id,
+            user_id=user_id,
+            rating=payload.rating,
+            comment=payload.comment,
+            version=listing.version,
+        )
+        db.add(review)
+        listing.rating_count += 1
+        listing.rating_sum += payload.rating
+        notifications.notify(
+            db,
+            listing.author_id,
+            "course_review",
+            actor_id=user_id,
+            data={"listing_id": str(listing.id), "title": listing.title, "rating": payload.rating},
+            link=f"/marketplace/{listing.id}",
+        )
+    else:
+        listing.rating_sum += payload.rating - review.rating
+        review.rating = payload.rating
+        review.comment = payload.comment
+        review.version = listing.version
+        review.updated_at = utc_now()
+    db.commit()
+    return reviews(db, user_id, listing_id)
+
+
+def delete_review(db: Session, user_id: uuid.UUID, listing_id: uuid.UUID) -> None:
+    review = _review_of(db, user_id, listing_id)
+    if review is not None:
+        _remove_review(db, review)
+        db.commit()
+
+
+def _remove_review(db: Session, review: MarketplaceReview) -> None:
+    listing = db.get(MarketplaceListing, review.listing_id)
+    if listing is not None:
+        listing.rating_count = max(0, listing.rating_count - 1)
+        listing.rating_sum = max(0, listing.rating_sum - review.rating)
+    db.delete(review)
+
+
+def reply_to_review(db: Session, user_id: uuid.UUID, review_id: uuid.UUID, reply: str) -> None:
+    """The course's author answers a review (an empty text removes the answer)."""
+    review = db.get(MarketplaceReview, review_id)
+    listing = db.get(MarketplaceListing, review.listing_id) if review else None
+    if review is None or listing is None or listing.author_id != user_id:
+        raise NotFoundError("Review not found")
+    first = not review.reply and bool(reply)
+    review.reply = reply
+    review.replied_at = utc_now() if reply else None
+    if first:
+        notifications.notify(
+            db,
+            review.user_id,
+            "review_reply",
+            actor_id=user_id,
+            data={"listing_id": str(listing.id), "title": listing.title},
+            link=f"/marketplace/{listing.id}",
+        )
+    db.commit()
+
+
+def moderate_review(db: Session, review_id: uuid.UUID) -> None:
+    """An administrator removes a review (abuse, spam)."""
+    review = db.get(MarketplaceReview, review_id)
+    if review is None:
+        raise NotFoundError("Review not found")
+    _remove_review(db, review)
+    db.commit()
+
+
+def delete_reviews_of(db: Session, user_id: uuid.UUID) -> None:
+    """Before an account is deleted: its reviews leave the listings' averages too."""
+    for review in db.scalars(
+        select(MarketplaceReview).where(MarketplaceReview.user_id == user_id)
+    ).all():
+        _remove_review(db, review)
+    db.execute(delete(MarketplaceReview).where(MarketplaceReview.user_id == user_id))

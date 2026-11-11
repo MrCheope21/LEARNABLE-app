@@ -120,10 +120,10 @@ export function StudyPage() {
   return (
     <div className="study">
       <header className="study-header">
-        <div>
-          <Link to="/" className="home-link" aria-label={t("nav.home")}>
-            <BrandLogo form="mark" height={28} />
-          </Link>
+        <Link to="/" className="home-link study-home" aria-label={t("nav.home")}>
+          <BrandLogo form="mark" height={26} />
+        </Link>
+        <div className="study-where">
           <ol className="breadcrumb" aria-label={t("breadcrumb.aria")}>
             <li>
               <Link to={`/courses/${courseId}`}>{course.data?.title ?? t("course.fallback")}</Link>
@@ -134,34 +134,39 @@ export function StudyPage() {
               </li>
             )}
           </ol>
-          <span className="eyebrow">{t(`study.intent.${intent}` as MessageKey)}</span>
-          {card?.round && card.rounds_total ? (
-            <span className="round-badge">
-              {t("study.round", { n: card.round, total: card.rounds_total })}
-            </span>
-          ) : null}
-          {position !== null && s.session && (
-            <span className="counter" aria-label={t("study.progressAria")}>
-              {t("study.progress", { n: position, total: s.session.total })}
-            </span>
-          )}
+          <div className="study-meta">
+            <span className="eyebrow">{t(`study.intent.${intent}` as MessageKey)}</span>
+            {card?.round && card.rounds_total ? (
+              <span className="round-badge">{t("study.round", { n: card.round, total: card.rounds_total })}</span>
+            ) : null}
+            {s.session && !s.session.affects_schedule && <span className="pill">{t("study.ownReview")}</span>}
+          </div>
+        </div>
+        <div className="study-tools">
           {s.session && s.session.xp_earned > 0 && (
             <span className="xp-chip" aria-label={t("study.xpSessionAria", { n: s.session.xp_earned })}>
               <XpIcon /> {t("community.xp", { n: s.session.xp_earned })}
             </span>
           )}
-          {s.session && !s.session.affects_schedule && (
-            <span className="pill">{t("study.ownReview")}</span>
-          )}
           {s.session && !consolidating && s.session.total > 1 && s.session.position < s.session.total && (
             <button type="button" className="queue-toggle" aria-pressed={queueOpen} onClick={openQueue}>
-              <Icon name="list" size={16} /> {t("queue.open", { n: s.session.total - s.session.position + (s.phase.kind === "result" ? 0 : 0) })}
+              <Icon name="list" size={16} /> <span>{t("queue.open", { n: s.session.total - s.session.position })}</span>
             </button>
           )}
+          <button type="button" className="study-end" onClick={() => void close()}>
+            {consolidating ? t("study.leaveResume") : t("study.end")}
+          </button>
         </div>
-        <button type="button" onClick={() => void close()}>
-          {consolidating ? t("study.leaveResume") : t("study.end")}
-        </button>
+        {position !== null && s.session && (
+          <div className="study-progress">
+            <span className="study-progress-track" aria-hidden="true">
+              <span style={{ width: `${(Math.min(s.session.position, s.session.total) / s.session.total) * 100}%` }} />
+            </span>
+            <span className="counter" aria-label={t("study.progressAria")}>
+              {t("study.progress", { n: position, total: s.session.total })}
+            </span>
+          </div>
+        )}
       </header>
 
       <div className={source || conceptPanel || queueOpen ? "study-body with-panel" : "study-body"}>
@@ -335,72 +340,77 @@ function Answer({
     }
   };
 
+  const drawing = card.answer_format === "DRAWING";
   return (
-    <article className="card">
-      <div className="title-row card-top">
+    <article className="card answer-card">
+      <div className="answer-top">
         <span className="eyebrow">{card.concept_title}</span>
-        <HelpTip text="help.study" topic={t("study.answering")} guide="answer" />
+        <span className="answer-top-right">
+          <PotentialXp card={card} />
+          <HelpTip text="help.study" topic={t("study.answering")} guide="answer" />
+        </span>
       </div>
       <h2 className="question">{card.question.text}</h2>
-      <PotentialXp card={card} />
-      <StudyConceptButton card={card} s={s} disabled={submitting} openConcept={openConcept} />
-      <HintBox card={card} s={s} disabled={submitting} />
-      {card.answer_format === "DRAWING" && (
+      <HintBox card={card} s={s} disabled={submitting} revealedOnly />
+      {drawing && (
         <>
           <p className="hint">{t("study.drawHint")}</p>
           <DrawingPad key={card.question.id} onChange={s.setDrawing} disabled={submitting} />
         </>
       )}
-      <label className={card.answer_format === "DRAWING" ? "drawing-note-label" : "sr-only"} htmlFor="answer">
-        {card.answer_format === "DRAWING" ? t("study.note") : t("study.yourAnswer")}
-      </label>
-      <textarea
-        id="answer"
-        ref={editor}
-        value={s.draft}
-        onChange={(e) => s.setDraft(e.target.value)}
-        onKeyDown={onKeyDown}
-        disabled={submitting}
-        rows={card.answer_format === "DRAWING" ? 2 : 9}
-        className={card.answer_format === "DRAWING" ? "drawing-note" : undefined}
-        placeholder={card.answer_format === "DRAWING" ? t("study.notePlaceholder") : t("study.answerPlaceholder")}
-      />
-      {dictation.listening && dictation.interim && (
-        <p className="interim" aria-live="polite">
-          {dictation.interim}
-        </p>
-      )}
+      <div className={dictation.listening ? "composer listening" : "composer"}>
+        <label className={drawing ? "drawing-note-label" : "sr-only"} htmlFor="answer">
+          {drawing ? t("study.note") : t("study.yourAnswer")}
+        </label>
+        <textarea
+          id="answer"
+          ref={editor}
+          value={s.draft}
+          onChange={(e) => s.setDraft(e.target.value)}
+          onKeyDown={onKeyDown}
+          disabled={submitting}
+          rows={drawing ? 2 : 7}
+          className={drawing ? "drawing-note" : undefined}
+          placeholder={drawing ? t("study.notePlaceholder") : t("study.answerPlaceholder")}
+        />
+        {dictation.listening && dictation.interim && (
+          <p className="interim" aria-live="polite">
+            {dictation.interim}
+          </p>
+        )}
+        <div className="composer-bar">
+          {dictation.supported && !drawing ? (
+            <button
+              type="button"
+              className={dictation.listening ? "mic listening" : "mic"}
+              aria-pressed={dictation.listening}
+              disabled={submitting}
+              title={t("study.dictationOn")}
+              onClick={dictation.listening ? dictation.stop : dictation.start}
+            >
+              {dictation.listening ? t("study.stopListening") : t("study.speak")}
+            </button>
+          ) : (
+            <span />
+          )}
+          <button type="button" className="primary composer-submit" disabled={!s.canSubmit || submitting} onClick={() => void s.submit()}>
+            {submitting ? t("study.evaluating") : t("study.submit")} <kbd>Ctrl/⌘ Enter</kbd>
+          </button>
+        </div>
+      </div>
       {dictation.error && (
         <p className="banner warning" role="status">
           {dictation.error}
         </p>
       )}
-      <div className="actions">
-        {dictation.supported && card.answer_format !== "DRAWING" && (
-          <button
-            type="button"
-            className={dictation.listening ? "mic listening" : "mic"}
-            aria-pressed={dictation.listening}
-            disabled={submitting}
-            onClick={dictation.listening ? dictation.stop : dictation.start}
-          >
-            {dictation.listening ? t("study.stopListening") : t("study.speak")}
-          </button>
-        )}
-        <button type="button" className="primary" disabled={!s.canSubmit || submitting} onClick={() => void s.submit()}>
-          {submitting ? t("study.evaluating") : t("study.submit")} <kbd>Ctrl/⌘ Enter</kbd>
-        </button>
-        <button type="button" className="link" disabled={submitting || s.working} onClick={() => void s.skip()}>
-          {t("study.skip")}
+      <div className="answer-help" role="group" aria-label={t("study.helpGroup")}>
+        <HintBox card={card} s={s} disabled={submitting} askOnly />
+        <StudyConceptButton card={card} s={s} disabled={submitting} openConcept={openConcept} />
+        <button type="button" className="help-chip" disabled={submitting || s.working} onClick={() => void s.skip()}>
+          <Icon name="skip" size={18} /> {t("study.skip")}
         </button>
       </div>
-      {card.answer_format !== "DRAWING" && (
-        <p className="hint">
-          {dictation.supported
-            ? t("study.dictationOn")
-            : t("study.dictationOff")}
-        </p>
-      )}
+      {!drawing && !dictation.supported && <p className="hint">{t("study.dictationOff")}</p>}
     </article>
   );
 }
@@ -462,15 +472,33 @@ function Result({
       ? t("study.gradeYourself")
       : t("study.yourGrade");
 
+  const tone = outcome ? outcome.toLowerCase() : repeating ? "good" : "pending";
+  const shown = result.second_opinion ?? evaluation;
   return (
     <article className="card result">
-      <span className="eyebrow">{card.concept_title}</span>
-      <h2 className="question">{card.question.text}</h2>
-      <p className="study-concept-row">
-        <button type="button" className="study-concept" onClick={() => openConcept(card.concept_id)}>
-          <Icon name="book" size={18} /> {t("study.studyConcept")}
-        </button>
-      </p>
+      {/* 1. The verdict: what happened, what it earned, when it comes back. */}
+      <header className={`verdict verdict-${tone}`}>
+        <div className="outcome" aria-live="polite">
+          {outcome ? (
+            <>
+              <span className={`outcome-badge outcome-${outcome.toLowerCase()}`}>{outcomeLabel[outcome]}</span>
+              {result.override_outcome && <span className="hint">{t("study.gradedByYou")}</span>}
+            </>
+          ) : repeating ? (
+            <span className="outcome-badge outcome-good">{t("study.repeat.badge")}</span>
+          ) : (
+            <span className="outcome-badge">{t("study.needsGrade")}</span>
+          )}
+        </div>
+        <Award result={result} />
+        <ScheduleNote result={result} />
+      </header>
+
+      {/* 2. The question and what was answered. */}
+      <div className="result-question">
+        <span className="eyebrow">{card.concept_title}</span>
+        <h2 className="question">{card.question.text}</h2>
+      </div>
       {result.has_drawing ? (
         <section className="drawing-compare" aria-label={t("study.drawingCompare")}>
           <figure>
@@ -497,22 +525,8 @@ function Result({
         </section>
       )}
 
-      <header className="outcome" aria-live="polite">
-        {outcome ? (
-          <>
-            <span className={`outcome-badge outcome-${outcome.toLowerCase()}`}>{outcomeLabel[outcome]}</span>
-            {result.override_outcome && <span className="hint">{t("study.gradedByYou")}</span>}
-          </>
-        ) : repeating ? (
-          <span className="outcome-badge outcome-good">{t("study.repeat.badge")}</span>
-        ) : (
-          <span className="outcome-badge">{t("study.needsGrade")}</span>
-        )}
-      </header>
-
-      <Award result={result} />
-
-      {(result.second_opinion ?? evaluation) && (
+      {/* 3. Why: the evaluation. */}
+      {shown && (
         <section className="evaluation" aria-label={t("study.evaluation")}>
           {result.second_opinion && (
             <div className="revision-banner" role="status">
@@ -522,7 +536,7 @@ function Result({
               {result.second_opinion.user_argument && <blockquote>“{result.second_opinion.user_argument}”</blockquote>}
             </div>
           )}
-          <EvaluationView evaluation={(result.second_opinion ?? evaluation)!} previous={result.second_opinion ? evaluation ?? undefined : undefined} />
+          <EvaluationView evaluation={shown} previous={result.second_opinion ? evaluation ?? undefined : undefined} />
           {result.second_opinion && evaluation && (
             <details className="original-evaluation">
               <summary>{t("study.originalEval")}</summary>
@@ -538,7 +552,7 @@ function Result({
         </section>
       )}
 
-
+      {/* 4. The reference answer: open when it's needed, a tap away otherwise. */}
       <details className="reference" open={!outcome || outcome === "AGAIN" || repeating}>
         <summary>{t("study.referenceSummary")}</summary>
         <p className="reading">{result.reference.expected_knowledge}</p>
@@ -548,8 +562,7 @@ function Result({
         <Sources sources={result.reference.sources} openSource={openSource} />
       </details>
 
-      <ScheduleNote result={result} />
-
+      {/* 5. What to do now. */}
       {repeating && !disputing && (
         <section className="repeat-panel" aria-labelledby="repeat-title">
           <h3 id="repeat-title">{t("study.repeat.title")}</h3>
@@ -607,22 +620,26 @@ function Result({
                 {t("study.skipNow")}
               </button>
             )}
+            <button type="button" className="study-concept" onClick={() => openConcept(card.concept_id)}>
+              <Icon name="book" size={18} /> {t("study.studyConcept")}
+            </button>
           </div>
         </section>
-      ) : repeating ? null : (
-        <div className="actions">
-          <button
-            ref={continueButton}
-            type="button"
-            className="primary"
-            disabled={s.working}
-            onClick={() => void s.loadNext()}
-          >
-            {t("common.continue")} <kbd>Enter</kbd>
+      ) : (
+        <div className="result-bar">
+          {!repeating && (
+            <button ref={continueButton} type="button" className="primary result-continue" disabled={s.working} onClick={() => void s.loadNext()}>
+              {t("common.continue")} <kbd>Enter</kbd>
+            </button>
+          )}
+          <button type="button" className="study-concept" onClick={() => openConcept(card.concept_id)}>
+            <Icon name="book" size={18} /> {t("study.studyConcept")}
           </button>
-          <button type="button" className="link" disabled={s.working} onClick={() => setDisputing(true)}>
-            {t("study.disagree")}
-          </button>
+          {!repeating && (
+            <button type="button" className="link" disabled={s.working} onClick={() => setDisputing(true)}>
+              {t("study.disagree")}
+            </button>
+          )}
         </div>
       )}
     </article>
@@ -740,16 +757,21 @@ function PotentialXp({ card }: { card: Card }) {
   const potential = card.potential_xp;
   if (!potential) return null;
   if (!potential.eligible) {
-    return <p className="potential">{t("study.noXp")}</p>;
+    return (
+      <span className="potential muted" title={t("study.noXp")}>
+        {t("study.noXpShort")}
+        <span className="sr-only"> {t("study.noXp")}</span>
+      </span>
+    );
   }
   const revealed = card.hint?.revealed ?? false;
   return (
-    <p className="potential">
+    <span className="potential" title={t("study.levelXp", { level: potential.level })}>
       <span className="xp-chip">
         <XpIcon /> {t("study.correctXp", { n: revealed ? potential.xp_with_hint : potential.xp })}
       </span>
-      {revealed && <span>{t("study.halfXp")}</span>}
-    </p>
+      {revealed && <span className="hint">{t("study.halfXp")}</span>}
+    </span>
   );
 }
 
@@ -757,12 +779,13 @@ function PotentialXp({ card }: { card: Card }) {
  * "Need a nudge?": the cost (half XP) is stated first, then the hint shows how many points the
  * answer has to cover and a key term from each. The server records the reveal.
  */
-function HintBox({ card, s, disabled }: { card: Card; s: Session; disabled: boolean }) {
+function HintBox({ card, s, disabled, revealedOnly = false, askOnly = false }: { card: Card; s: Session; disabled: boolean; revealedOnly?: boolean; askOnly?: boolean }) {
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const hint = card.hint;
   if (!hint) return null;
   if (hint.revealed) {
+    if (askOnly) return null;
     const terms = hint.terms ?? [];
     return (
       <div className="hint-card hint-reveal" role="note" aria-label={t("study.hintLabel")}>
@@ -787,14 +810,12 @@ function HintBox({ card, s, disabled }: { card: Card; s: Session; disabled: bool
       </div>
     );
   }
-  if (!hint.available) return null;
+  if (!hint.available || revealedOnly) return null;
   if (!confirming) {
     return (
-      <div>
-        <button type="button" className="hint-ask" disabled={disabled} onClick={() => setConfirming(true)}>
-          <Icon name="bulb" size={18} /> {t("study.showHint")}
-        </button>
-      </div>
+      <button type="button" className="help-chip hint-ask" disabled={disabled} onClick={() => setConfirming(true)}>
+        <Icon name="bulb" size={18} /> {t("study.showHint")}
+      </button>
     );
   }
   return (
@@ -846,10 +867,8 @@ function Award({ result }: { result: AnswerView }) {
       <span className="xp-chip">
         <XpIcon /> {parts.join(" \u00b7 ")}
       </span>
-      {xp.ordinal !== null && (
-        <span className="hint">
-          {xp.hint_used ? t("study.ordinalHalf", { n: xp.ordinal, base: xp.base_xp }) : t("study.ordinal", { n: xp.ordinal })}
-        </span>
+      {xp.level !== null && xp.level !== undefined && (
+        <span className="hint">{xp.hint_used ? t("study.levelXpHalf", { level: xp.level, base: xp.base_xp }) : t("study.levelXp", { level: xp.level })}</span>
       )}
     </p>
   );
@@ -928,7 +947,7 @@ function StudyConceptButton({
   const costsXp = Boolean(card.hint?.available && !card.hint.revealed && card.potential_xp?.eligible);
   if (confirming) {
     return (
-      <div className="hint-box" role="note">
+      <div className="hint-confirm hint-reveal" role="note">
         <p>{t("study.conceptCosts")}</p>
         <div className="actions" style={{ marginTop: 0 }}>
           <button
@@ -950,16 +969,9 @@ function StudyConceptButton({
     );
   }
   return (
-    <div>
-      <button
-        type="button"
-        className="link"
-        disabled={disabled}
-        onClick={() => (costsXp ? setConfirming(true) : openConcept(card.concept_id))}
-      >
-        <Icon name="book" size={18} /> {t("study.dontRemember")}
-      </button>
-    </div>
+    <button type="button" className="help-chip" disabled={disabled} onClick={() => (costsXp ? setConfirming(true) : openConcept(card.concept_id))}>
+      <Icon name="book" size={18} /> {t("study.dontRemember")}
+    </button>
   );
 }
 

@@ -89,8 +89,10 @@ class UserRead(BaseModel):
     daily_goal: int
     language: Language
     display_name: str | None
-    # Opted in to the community (leaderboards, profile, following).
+    # Opted in to the community (leaderboards, profile, friends, messages).
     community_visible: bool
+    # Takes emails about updates to the courses they have.
+    email_updates: bool
 
 
 class UserPreferencesUpdate(_AuthInput):
@@ -102,6 +104,7 @@ class UserPreferencesUpdate(_AuthInput):
     # An empty string clears it.
     username: Annotated[str, BeforeValidator(_strip), Field(max_length=30)] | None = None
     community_visible: bool | None = None
+    email_updates: bool | None = None
 
 
 class PasswordResetRequest(_AuthInput):

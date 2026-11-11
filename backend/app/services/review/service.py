@@ -250,7 +250,7 @@ def next_card(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> Session
             rounds_total=rounds_total,
             potential_xp=PotentialXp(
                 eligible=potential.eligible,
-                ordinal=potential.ordinal,
+                level=potential.level,
                 xp=potential.xp,
                 xp_with_hint=potential.xp_with_hint,
             ),
@@ -932,6 +932,7 @@ def _apply_outcome(
     now = utc_now()
     answer.finalized_at = now
     state_before, due_before = item.review_state.state, item.review_state.due_at
+    level_before = item.review_state.level
     transition = None
     if session.affects_schedule and _moves_schedule(db, session, item, outcome):
         transition = _schedule(db, item, answer, outcome, session.intent)
@@ -951,6 +952,7 @@ def _apply_outcome(
             occasion=occasion,
             classification=classification,
             at=now,
+            level=level_before,
             self_grade=outcome if classification is None else None,
         )
     current = current_item(db, session)
@@ -1238,6 +1240,7 @@ def _xp_result(db: Session, answer: Answer) -> XpResult | None:
         reason=award.reason,
         correct=award.correct,
         ordinal=award.ordinal,
+        level=award.level,
         base_xp=award.base_xp,
         hint_used=award.hint_used,
         xp=award.xp,

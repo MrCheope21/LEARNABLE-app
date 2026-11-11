@@ -31,7 +31,7 @@ from app.schemas.admin import (
     InvitationRead,
     TemporaryPassword,
 )
-from app.services import accounts, invitations, quota
+from app.services import accounts, invitations, marketplace, quota
 from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -161,6 +161,12 @@ def reset_password(user_id: uuid.UUID, db: Session = DB) -> TemporaryPassword:
     passwords.set_password(db, user, password)
     db.commit()
     return TemporaryPassword(password=password)
+
+
+@router.delete("/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_review(review_id: uuid.UUID, db: Session = DB) -> None:
+    """Moderation: removes a marketplace review (abuse, spam)."""
+    marketplace.moderate_review(db, review_id)
 
 
 @router.get("/invitations", response_model=list[InvitationRead])

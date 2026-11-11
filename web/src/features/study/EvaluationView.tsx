@@ -110,8 +110,11 @@ export function EvaluationView({ evaluation, previous }: { evaluation: Evaluatio
       {evaluation.context_sufficient === false && (
         <p className="banner warning">{t("eval.insufficient")}</p>
       )}
-      <ScoreBreakdown evaluation={evaluation} previous={previous?.status === "COMPLETED" ? previous : undefined} />
       <PointChecklist evaluation={evaluation} />
+      <details className="score-details">
+        <summary>{t("eval.scoreBreakdown")}</summary>
+        <ScoreBreakdown evaluation={evaluation} previous={previous?.status === "COMPLETED" ? previous : undefined} />
+      </details>
     </div>
   );
 }

@@ -6,7 +6,10 @@ import { useI18n } from "../i18n";
 import { useLabels } from "./useLabels";
 import { ErrorBanner } from "./QueryState";
 
-/** "Essential" / "Important" / "Extra" next to a question. */
+/** From 1 Essential to 5 In depth (optional): the levels a question can have. */
+export const PRIORITIES = [1, 2, 3, 4, 5] as const;
+
+/** "Essential" … "In depth" next to a question. */
 export function PriorityBadge({ priority }: { priority: number }) {
   const { priorityLabel } = useLabels();
   return <span className={`pill priority priority-${priority}`}>{priorityLabel[priority] ?? priorityLabel[2]}</span>;
@@ -27,7 +30,7 @@ export function PrioritySelect({ item, onSaved }: { item: Schemas["LearningItemR
     <div className="priority-select">
       <label htmlFor={id}>{author != null ? t("priority.yours") : t("priority.label")}</label>
       <select id={id} value={item.priority} disabled={save.isPending} onChange={(e) => save.mutate(Number(e.target.value))}>
-        {[1, 2, 3].map((p) => (
+        {PRIORITIES.map((p) => (
           <option key={p} value={p}>
             {priorityLabel[p]}
           </option>

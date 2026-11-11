@@ -418,7 +418,7 @@ topic_id, concept_ids, total, position, xp_earned, started_at, ended_at`.
 **`GET /next`** → `{session, done, card}`. `card`: `learning_item_id, concept_id,
 concept_title, question {id, question_type, text}, introduction (LEARN only: title,
 objective, expected_knowledge, essential_points, sources), pending_answer_id, round,
-rounds_total (CONSOLIDATION: "Round 2 of 3"), potential_xp {eligible, ordinal, xp,
+rounds_total (CONSOLIDATION: "Round 2 of 3"), potential_xp {eligible, level, xp,
 xp_with_hint}, hint {available, revealed, text}`. The same card comes back until it has an
 outcome or is skipped. Wording rotates across sessions (least asked formulation first).
 
@@ -463,7 +463,7 @@ resolver_version, override_outcome, final_outcome, needs_self_grade, schedule, r
 session, consolidation_round, hint_used, xp`.
 
 - `xp` (null when the attempt isn't XP-eligible or has no outcome yet): `reason (INITIAL |
-  SCHEDULED_REVIEW), correct, ordinal, base_xp, hint_used, xp`. Decided once, when the answer is
+  SCHEDULED_REVIEW), correct, ordinal, level, base_xp, hint_used, xp`. Decided once, when the answer is
   first finalized, from the AI classification and the resolver's outcome; a self-grade or a
   later override never creates or removes XP (docs/XP_AND_ACTIVITY.md).
 

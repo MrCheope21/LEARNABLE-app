@@ -90,27 +90,60 @@ function BoardRow({ entry, queryKeys }: { entry: Entry; queryKeys: readonly (rea
         <PersonLink entry={entry} />
       </span>
       <span className="board-xp">{t("community.xp", { n: entry.xp.toLocaleString() })}</span>
-      {!entry.is_me && <FollowButton userId={entry.user_id} following={entry.following} refresh={queryKeys} />}
+      {!entry.is_me && <FriendButton userId={entry.user_id} relation={entry.relation} refresh={queryKeys} compact />}
     </li>
   );
 }
 
-/** Follow / Following, refreshing whatever lists show the change. */
-export function FollowButton({ userId, following, refresh }: { userId: string; following: boolean; refresh: readonly (readonly unknown[])[] }) {
+type Relation = Schemas["Relation"];
+
+/**
+ * What you can do about someone, by what they are to you: add them, cancel your request, accept
+ * or decline theirs, or remove a friend (asked twice: it can't be undone silently).
+ */
+export function FriendButton({ userId, relation, refresh = [], compact = false }: { userId: string; relation: Relation; refresh?: readonly (readonly unknown[])[]; compact?: boolean }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const toggle = useMutation({
-    mutationFn: () => (following ? community.unfollow(userId) : community.follow(userId)),
-    onSuccess: () => {
-      for (const key of [...refresh, ["community"]]) void queryClient.invalidateQueries({ queryKey: key });
-    },
-  });
+  const done = () => {
+    for (const key of [...refresh, ["community"], ["inbox"], ["notifications"]]) void queryClient.invalidateQueries({ queryKey: key });
+  };
+  const add = useMutation({ mutationFn: () => community.befriend(userId), onSuccess: done });
+  const remove = useMutation({ mutationFn: () => community.unfriend(userId), onSuccess: done });
+  const busy = add.isPending || remove.isPending;
+  const confirmRemove = () => {
+    if (window.confirm(t("friends.removeConfirm"))) remove.mutate();
+  };
   return (
-    <>
-      <button type="button" className={following ? undefined : "primary"} aria-pressed={following} disabled={toggle.isPending} onClick={() => toggle.mutate()}>
-        {following ? t("community.following") : t("community.follow")}
-      </button>
-      <ErrorBanner error={toggle.error} />
-    </>
+    <span className="friend-actions">
+      {relation === "none" && (
+        <button type="button" className="primary" disabled={busy} onClick={() => add.mutate()}>
+          {t("friends.add")}
+        </button>
+      )}
+      {relation === "request_sent" && (
+        <button type="button" disabled={busy} onClick={() => remove.mutate()} title={t("friends.cancelHint")}>
+          {t("friends.cancel")}
+        </button>
+      )}
+      {relation === "request_received" && (
+        <>
+          <button type="button" className="primary" disabled={busy} onClick={() => add.mutate()}>
+            {t("friends.accept")}
+          </button>
+          <button type="button" disabled={busy} onClick={() => remove.mutate()}>
+            {t("friends.decline")}
+          </button>
+        </>
+      )}
+      {relation === "friends" &&
+        (compact ? (
+          <span className="pill friend-pill">{t("community.friend")}</span>
+        ) : (
+          <button type="button" className="link danger" disabled={busy} onClick={confirmRemove}>
+            {t("friends.remove")}
+          </button>
+        ))}
+      <ErrorBanner error={add.error ?? remove.error} />
+    </span>
   );
 }

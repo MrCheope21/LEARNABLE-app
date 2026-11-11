@@ -37,6 +37,11 @@ class ListingSort(StrEnum):
     POPULAR = "popular"
     NEWEST = "newest"
     LARGEST = "largest"
+    BEST_RATED = "best_rated"
+
+
+# Browse filter: free courses only, or paid ones only.
+ListingPrice = Literal["free", "paid"]
 
 
 # By number of questions.
@@ -74,12 +79,119 @@ class ListingInfo(InputModel):
     level: Level = Level.ALL
     category: Category
     tags: list[Tag] = Field(default_factory=list, max_length=8)
+    # In cents of a euro; 0 is free. A price needs payments set up (GET /payments/payout).
+    # People who already have the course keep it whatever the price becomes.
+    price_cents: Annotated[int, Field(ge=0, le=1_000_000)] = 0
 
 
 class ListingPublish(ListingInfo):
     # The author confirms the content is theirs to share (their own questions and answers, or
     # material they have the rights to). Required.
     rights_confirmed: Literal[True]
+    # On a republish: what changed and what it means for who has the course. Everyone with
+    # access is told (a notification, and an email unless they turned it off).
+    update_note: Annotated[str, Field(max_length=2000)] = ""
+
+
+class Announcement(InputModel):
+    """A message from the author to everyone who has the course, without a new version."""
+
+    message: Annotated[str, Field(min_length=1, max_length=2000)]
+
+
+class UpdateRead(BaseModel):
+    id: UUID
+    # Null for an announcement between versions.
+    version: int | None
+    note: str
+    created_at: UTCTimestamp
+
+
+class Announced(BaseModel):
+    recipients: int
+
+
+class ReviewWrite(InputModel):
+    rating: Annotated[int, Field(ge=1, le=5)]
+    comment: Annotated[str, Field(max_length=2000)] = ""
+
+
+class ReviewReply(InputModel):
+    # Empty removes the reply.
+    reply: Annotated[str, Field(max_length=2000)]
+
+
+class ListingReview(BaseModel):
+    id: UUID
+    author: str
+    rating: int
+    comment: str
+    created_at: UTCTimestamp
+    updated_at: UTCTimestamp
+    is_mine: bool
+    # The course author's answer.
+    reply: str
+    replied_at: UTCTimestamp | None
+
+
+class ListingReviews(BaseModel):
+    count: int
+    # Null with no reviews.
+    average: float | None
+    # How many reviews gave 1, 2, 3, 4 and 5 stars.
+    distribution: list[int]
+    # The viewer's own review, when they wrote one.
+    mine: ListingReview | None
+    # The viewer has the course and isn't its author.
+    can_review: bool
+    items: list[ListingReview]
+
+
+class PayoutStatus(BaseModel):
+    """Whether the viewer can sell paid courses."""
+
+    # Payments are set up on this server.
+    enabled: bool
+    # The viewer started setting up their account with the payment provider.
+    account: bool
+    # ... and it can take payments.
+    ready: bool
+    fee_percent: int
+    price_min_cents: int
+    price_max_cents: int
+
+
+class Redirect(BaseModel):
+    """An address on the payment provider's site to send the browser to."""
+
+    url: str
+
+
+class OrderStatus(BaseModel):
+    # PENDING, PAID, EXPIRED or REFUNDED.
+    status: str
+    # The course in the buyer's account, once paid.
+    course_id: UUID | None
+
+
+class Sale(BaseModel):
+    id: UUID
+    listing_id: UUID
+    title: str
+    amount_cents: int
+    # After the platform's fee (the payment provider's own fee is on their statement).
+    net_cents: int
+    currency: str
+    paid_at: UTCTimestamp
+    refunded: bool
+
+
+class Sales(BaseModel):
+    count: int
+    gross_cents: int
+    net_cents: int
+    currency: str
+    items: list[Sale]
 
 
 class ListingSummary(BaseModel):
@@ -100,6 +212,9 @@ class ListingSummary(BaseModel):
     chapter_count: int
     item_count: int
     acquisition_count: int
+    rating_count: int
+    # Mean of the reviews' stars, one decimal; null with no reviews.
+    rating_average: float | None
     # Null while a draft that was never published.
     published_at: UTCTimestamp | None
     updated_at: UTCTimestamp
@@ -119,6 +234,10 @@ class ListingDetail(ListingSummary):
     is_mine: bool
     # The viewer got access earlier (the course may since have been removed from their courses).
     has_access: bool
+    # A paid course can be bought now (payments are on and the author can take them).
+    can_buy: bool
+    # What the author said about new versions and announcements, newest first.
+    updates: list[UpdateRead]
 
 
 class MyListing(ListingSummary):

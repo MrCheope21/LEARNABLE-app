@@ -71,7 +71,8 @@ class LearningItem(Base):
     # TEXT: answered in words. DRAWING: answered by drawing, compared with the reference drawing
     # stored under drawings.reference_key(item); its media type is kept here.
     answer_format: Mapped[str] = mapped_column(String(16), default="TEXT", server_default="TEXT")
-    # 1 Essential, 2 Important, 3 Extra: set by the user (enums.default_priority when generated).
+    # 1 Essential, 2 Important, 3 Useful, 4 Accessory, 5 In depth: set by the user
+    # (enums.default_priority when generated).
     priority: Mapped[int] = mapped_column(Integer, default=2, server_default="2")
     # Marketplace courses: the id of the author's item this one mirrors (sync key), and the
     # author's priority. `priority` is then the acquirer's own, starting from the author's.

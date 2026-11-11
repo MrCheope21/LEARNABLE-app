@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.errors import NotFoundError
 from app.models.course import Course
 from app.models.user import User
+from app.services import marketplace
 from app.services.courses import service as courses
 from app.services.documents.service import delete_course_files
 from app.storage.documents import DocumentStorage
@@ -29,11 +30,13 @@ def set_active(db: Session, user_id: uuid.UUID, active: bool) -> User:
 
 def delete_account(db: Session, storage: DocumentStorage, user_id: uuid.UUID) -> None:
     """Deletes the account and all its data: courses (with their uploaded files and drawings),
-    answers, XP, follows, marketplace pages. Rows cascade; files are removed explicitly."""
+    answers, XP, friendships, messages, reviews, marketplace pages. Rows cascade; files are
+    removed explicitly."""
     user = db.get(User, user_id)
     if user is None:
         raise NotFoundError("Account not found")
     for course_id in db.scalars(select(Course.id).where(Course.user_id == user_id)).all():
         delete_course_files(storage, courses.delete_course(db, user_id, course_id))
+    marketplace.delete_reviews_of(db, user_id)
     db.delete(user)
     db.commit()

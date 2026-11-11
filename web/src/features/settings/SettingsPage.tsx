@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
 import type { Schemas } from "../../api/client";
-import { auth } from "../../api/endpoints";
+import { auth, community } from "../../api/endpoints";
 import { dashboardKey, meKey, TimezoneForm } from "../../app/AppShell";
 import { useAuth } from "../../auth/AuthContext";
 import { ChangePasswordForm } from "../../auth/PasswordPages";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { Icon } from "../../components/Icon";
+import { isStandalone, platform, useInstallPrompt } from "../../pwa";
 import { getTheme, setTheme, type Theme } from "../../theme";
 import { LANGUAGES, useI18n, type Language } from "../../i18n";
 
@@ -18,6 +19,8 @@ const SECTIONS = [
   { id: "settings-language-section", label: "settings.language" },
   { id: "settings-appearance-section", label: "settings.appearance" },
   { id: "settings-study-section", label: "settings.study" },
+  { id: "settings-notifications-section", label: "settings.notifications" },
+  { id: "settings-app-section", label: "settings.app" },
   { id: "settings-security-section", label: "settings.security" },
 ] as const;
 
@@ -51,6 +54,8 @@ export function SettingsPage() {
               <p className="hint">{t("settings.timezoneHint")}</p>
               <DailyGoalForm current={user.daily_goal} />
             </section>
+            <NotificationsSection user={user} />
+            <InstallSection />
             <SecuritySection />
           </>
         )}
@@ -91,7 +96,95 @@ function CommunitySection({ user }: { user: User }) {
       <p className="hint">{t("settings.communityHint")}</p>
       {!user.display_name && <p className="hint">{t("community.needName")}</p>}
       <ErrorBanner error={save.error} />
+      <BlockedPeople />
     </section>
+  );
+}
+
+/** Email about the courses you have; the in-app notifications are always there. */
+function NotificationsSection({ user }: { user: User }) {
+  const { t } = useI18n();
+  const save = useSaveProfile();
+  const id = useId();
+  return (
+    <section className="card settings-section" id="settings-notifications-section" aria-labelledby="settings-notifications">
+      <h2 id="settings-notifications">{t("settings.notifications")}</h2>
+      <label className="toggle" htmlFor={id}>
+        <input id={id} type="checkbox" checked={user.email_updates} disabled={save.isPending} onChange={(e) => save.mutate({ email_updates: e.target.checked })} />
+        {t("settings.emailUpdates")}
+      </label>
+      <p className="hint">{t("settings.emailUpdatesHint")}</p>
+      <ErrorBanner error={save.error} />
+    </section>
+  );
+}
+
+/** LEARNABLE as an app on the phone or computer: one button where the browser allows it,
+ * the three taps to follow on iPhone and iPad, where it doesn't. */
+function InstallSection() {
+  const { t } = useI18n();
+  const { canPrompt, install } = useInstallPrompt();
+  const [device] = useState(platform);
+  const [installed, setInstalled] = useState(isStandalone);
+  return (
+    <section className="card settings-section" id="settings-app-section" aria-labelledby="settings-app">
+      <h2 id="settings-app" className="with-icon">
+        <Icon name="phone" size={20} /> {t("settings.app")}
+      </h2>
+      {installed ? (
+        <p className="banner success">{t("install.done")}</p>
+      ) : (
+        <>
+          <p>{t("install.intro")}</p>
+          {canPrompt && (
+            <button type="button" className="primary" onClick={() => void install().then((ok) => ok && setInstalled(true))}>
+              <Icon name="download" size={18} /> {t("install.button")}
+            </button>
+          )}
+          {device === "ios" && (
+            <ol className="steps">
+              <li>{t("install.ios1")}</li>
+              <li>{t("install.ios2")}</li>
+              <li>{t("install.ios3")}</li>
+            </ol>
+          )}
+          {device === "android" && !canPrompt && (
+            <ol className="steps">
+              <li>{t("install.android1")}</li>
+              <li>{t("install.android2")}</li>
+            </ol>
+          )}
+          {device === "desktop" && !canPrompt && <p className="hint">{t("install.desktop")}</p>}
+        </>
+      )}
+    </section>
+  );
+}
+
+function BlockedPeople() {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const blocked = useQuery({ queryKey: ["community", "blocked"], queryFn: community.blocked });
+  const unblock = useMutation({
+    mutationFn: (userId: string) => community.unblock(userId),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["community"] }),
+  });
+  if (!blocked.data?.length) return null;
+  return (
+    <div className="blocked-people">
+      <h3>{t("settings.blocked")}</h3>
+      <ul>
+        {blocked.data.map((person) => (
+          <li key={person.user_id}>
+            <span>{person.name}</span>
+            <button type="button" disabled={unblock.isPending} onClick={() => unblock.mutate(person.user_id)}>
+              {t("friends.unblock")}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <ErrorBanner error={unblock.error} />
+    </div>
   );
 }
 

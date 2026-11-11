@@ -32,9 +32,9 @@ from app.models.enums import XpReason
 
 
 class ItemSuccessCounter(Base):
-    """How many XP-counted correct answers a Learning Item has had: the n in "the nth correct
-    answer earns min(10n, 150)". Shared by all the item's question formulations; independent of
-    streaks and of the item's memory state."""
+    """How many XP-counted correct answers a Learning Item has had (the award's `ordinal`).
+    Under xp_v1 it set the reward (min(10n, 150)); since xp_v2 the reward follows the item's
+    level and this is only a count. Shared by all the item's question formulations."""
 
     __tablename__ = "item_success_counters"
 
@@ -97,6 +97,9 @@ class XpAward(Base):
     correct: Mapped[bool] = mapped_column(Boolean)
     # The item's success count including this answer; null when it wasn't correct.
     ordinal: Mapped[int | None] = mapped_column(Integer, default=None)
+    # The item's level when it was asked: what the reward is based on since xp_v2. Null on
+    # awards decided under xp_v1 (paid by ordinal).
+    level: Mapped[int | None] = mapped_column(Integer, default=None)
     base_xp: Mapped[int] = mapped_column(Integer, default=0)
     hint_used: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     xp: Mapped[int] = mapped_column(Integer, default=0)

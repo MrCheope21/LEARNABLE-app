@@ -42,14 +42,21 @@ the iOS app. It shows the full answer before recall, so its attempts earn no XP 
 
 ## 2. The XP rule
 
-Per user **and** Learning Item, a counter of XP-counted correct answers (`item_success_counters`,
-shared by all of the item's question formulations):
+The reward follows the Learning Item's **level** (its step on the review ladder) at the moment
+the question was asked:
 
 ```
-base XP of the nth correct answer = min(10 × n, 150)        (10, 20, 30 … 150 from the 15th)
-awarded XP                        = base, halved if a hint was revealed first
-                                                             (5, 10, 15 … 75)
+base XP of a correct answer = 10 × (level + 1)       (level 0 → 10, level 1 → 20 … level 8 → 90)
+awarded XP                  = base, halved if a hint was revealed first
 ```
+
+This is `xp_v2` (owner decision, 2026-11-10). Under `xp_v1` the reward grew with the count of
+correct answers (`min(10 × n, 150)`), so it kept growing even after a failed review had sent the
+item back to level 0. Now a level has one reward: an item that falls back earns what that level
+earns. Awards already given keep their amount; each row records the policy version and, since
+`xp_v2`, the `level` it was decided at. The counter of XP-counted correct answers
+(`item_success_counters`, the award's `ordinal`) is still kept, as a count and for the
+anti-farming rule in §3.
 
 - **Correct** means: the AI classified the answer `CORRECT` *and* the deterministic resolver
   turned it into a success (GOOD or HARD). The client never sends an amount or a correctness

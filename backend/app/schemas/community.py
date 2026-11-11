@@ -2,11 +2,12 @@
 anything about their courses or answers. Only people who opted in appear at all."""
 
 from enum import StrEnum
+from typing import Annotated, Any
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from app.schemas.common import UTCTimestamp
+from app.schemas.common import InputModel, UTCTimestamp
 
 
 class Period(StrEnum):
@@ -21,14 +22,24 @@ class Scope(StrEnum):
     FRIENDS = "friends"
 
 
+class Relation(StrEnum):
+    """What another person is to the viewer."""
+
+    NONE = "none"
+    FRIENDS = "friends"
+    # The viewer asked; they haven't answered.
+    REQUEST_SENT = "request_sent"
+    # They asked; the viewer can accept or decline.
+    REQUEST_RECEIVED = "request_received"
+
+
 class LeaderboardEntry(BaseModel):
     rank: int
     user_id: UUID
     name: str
     xp: int
     is_me: bool
-    # The viewer follows them.
-    following: bool
+    relation: Relation
 
 
 class Leaderboard(BaseModel):
@@ -56,20 +67,96 @@ class Profile(BaseModel):
     xp_total: int
     xp_week: int
     streak: int
-    followers: int
-    following: int
+    friends: int
     is_me: bool
-    i_follow: bool
-    follows_me: bool
+    relation: Relation
+    # The viewer blocked this person (they can still see the page to unblock).
+    blocked: bool
 
 
 class Person(BaseModel):
-    """A listed person: someone you follow, a follower, or a search result."""
+    """A listed person: a friend, someone in a friend request, or a search result."""
 
     user_id: UUID
     name: str
     xp_today: int
     streak: int
     last_active: UTCTimestamp | None
-    i_follow: bool
-    follows_me: bool
+    relation: Relation
+    # When the friend request was sent (requests only).
+    requested_at: UTCTimestamp | None = None
+
+
+class FriendRequests(BaseModel):
+    incoming: list[Person]
+    outgoing: list[Person]
+
+
+class BlockedPerson(BaseModel):
+    user_id: UUID
+    name: str
+
+
+# --- Messages ---
+
+
+class MessageCreate(InputModel):
+    body: Annotated[str, Field(min_length=1, max_length=2000)]
+
+
+class ChatMessage(BaseModel):
+    id: UUID
+    mine: bool
+    body: str
+    created_at: UTCTimestamp
+    read: bool
+
+
+class Conversation(BaseModel):
+    """A chat with one friend, in the list of chats."""
+
+    user_id: UUID
+    name: str
+    last_message: str
+    last_mine: bool
+    last_at: UTCTimestamp
+    unread: int
+    # False when you're no longer friends (or one blocked the other): the history stays
+    # readable, nothing new can be sent.
+    can_send: bool
+
+
+class Thread(BaseModel):
+    user_id: UUID
+    name: str
+    can_send: bool
+    messages: list[ChatMessage]
+    # Older messages exist: ask again with `before` = the first message's id.
+    has_more: bool
+
+
+# --- Notifications ---
+
+
+class NotificationRead(BaseModel):
+    id: UUID
+    kind: str
+    # The display name of who caused it, when it was a person.
+    actor: str | None
+    data: dict[str, Any]
+    link: str
+    created_at: UTCTimestamp
+    read: bool
+
+
+class Notifications(BaseModel):
+    items: list[NotificationRead]
+    unread: int
+
+
+class Inbox(BaseModel):
+    """The counts behind the badges, polled by the app."""
+
+    notifications: int
+    messages: int
+    friend_requests: int

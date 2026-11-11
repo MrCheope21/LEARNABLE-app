@@ -7,7 +7,10 @@ import { CollapseToggle, useCollapsed } from "../../components/Collapsible";
 import { HelpTip } from "../../components/HelpTip";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { dateTime } from "../../components/labels";
+import { Icon } from "../../components/Icon";
+import { PRIORITIES, PriorityBadge } from "../../components/PriorityBadge";
 import { useI18n } from "../../i18n";
+import { bankPrompt } from "./bankPrompt";
 import { outlineKey } from "../curriculum/CourseLayout";
 
 const ACCEPT = ".pdf,.docx,.pptx,.txt,.md,.markdown,image/*";
@@ -113,8 +116,10 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
       <details className="hint format-help">
         <summary>{t("mat.howTo")}</summary>
         <p>{t("mat.howToBody")}</p>
-        <pre>{"# Topic\nDomanda: What is …?\nRisposta: It is …"}</pre>
+        <pre>{"# Topic\nDomanda: What is …?\nRisposta: It is …\nPriorità: 2"}</pre>
         <p>{t("mat.howToBody2")}</p>
+        <PriorityHelp />
+        <ChatbotPrompt />
       </details>
       {pasting && (
         <PasteTextForm
@@ -264,5 +269,69 @@ function PasteTextForm({
         </button>
       </div>
     </form>
+  );
+}
+
+/** The five priorities and how to write one in the file. */
+function PriorityHelp() {
+  const { t } = useI18n();
+  return (
+    <div className="format-prompt">
+      <p>{t("mat.priorityHelp")}</p>
+      <ul className="priority-legend">
+        {PRIORITIES.map((p) => (
+          <li key={p}>
+            <code>{p}</code> <PriorityBadge priority={p} /> {t(`priority.${p}.hint` as "priority.1.hint")}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * A ready prompt for the chatbot the user prefers: paste it with the notes, get back a file in
+ * the import format with a priority on every question. One tap copies it.
+ */
+function ChatbotPrompt() {
+  const { t, language } = useI18n();
+  const [copied, setCopied] = useState(false);
+  const [shown, setShown] = useState(false);
+  const prompt = bankPrompt(language);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopied(true);
+    } catch {
+      // No clipboard access (an old browser, or not allowed): show the text to copy by hand.
+      setShown(true);
+    }
+  };
+  return (
+    <div className="format-prompt">
+      <h3 className="with-icon">
+        <Icon name="chat" size={18} /> {t("mat.promptTitle")}
+      </h3>
+      <p>{t("mat.promptIntro")}</p>
+      <ol className="steps">
+        <li>{t("mat.promptStep1")}</li>
+        <li>{t("mat.promptStep2")}</li>
+        <li>{t("mat.promptStep3")}</li>
+        <li>{t("mat.promptStep4")}</li>
+      </ol>
+      <div className="actions">
+        <button type="button" className="primary" onClick={() => void copy()}>
+          {copied ? t("mat.promptCopied") : t("mat.promptCopy")}
+        </button>
+        <button type="button" className="link" aria-expanded={shown} onClick={() => setShown((v) => !v)}>
+          {shown ? t("mat.promptHide") : t("mat.promptShow")}
+        </button>
+      </div>
+      <span className="sr-only" role="status">
+        {copied ? t("mat.promptCopied") : ""}
+      </span>
+      {shown && <pre tabIndex={0}>{prompt}</pre>}
+      <p className="hint">{t("mat.promptNote")}</p>
+    </div>
   );
 }

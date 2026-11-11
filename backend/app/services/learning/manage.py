@@ -131,7 +131,7 @@ def bulk(
         _set_paused(items, paused=payload.action == "pause")
     elif payload.action == "set_priority":
         if payload.priority is None:
-            raise InvalidRequestError("Choose a priority: 1 Essential, 2 Important or 3 Extra.")
+            raise InvalidRequestError("Choose a priority from 1 (Essential) to 5 (In depth).")
         for item in items:
             item.priority = payload.priority
     elif payload.action == "move":

@@ -11,7 +11,7 @@ const ROLES = ["CORE_TRAINABLE", "SUPPORTING_TRAINABLE", "COMMON_TRAP", "INFORMA
 const CATEGORIES = ["law", "economics_business", "accounting_finance", "medicine_health", "sciences", "mathematics", "engineering", "computer_science", "languages", "humanities", "arts", "professional_exams", "other"] as const;
 const LEVELS = ["all", "beginner", "intermediate", "advanced"] as const;
 const SIZES = ["small", "medium", "large"] as const;
-const SORTS = ["popular", "newest", "largest"] as const;
+const SORTS = ["popular", "best_rated", "newest", "largest"] as const;
 
 /**
  * The names of the server's values (study state, memory state, grades, roles, categories...) in
@@ -40,7 +40,7 @@ export function useLabels() {
       levelLabel: names<Schemas["Level"]>(LEVELS, "level"),
       sizeLabel: names<"small" | "medium" | "large">(SIZES, "size"),
       sortLabel: names<Schemas["ListingSort"]>(SORTS, "sort"),
-      priorityLabel: { 1: t("priority.1"), 2: t("priority.2"), 3: t("priority.3") } as Record<number, string>,
+      priorityLabel: { 1: t("priority.1"), 2: t("priority.2"), 3: t("priority.3"), 4: t("priority.4"), 5: t("priority.5") } as Record<number, string>,
       languageName: (code: string) => (code === "it" || code === "en" ? t(`lang.${code}`) : code),
       pageLabel,
       sourceSummary: (source: Schemas["ProposalSource"]) => {

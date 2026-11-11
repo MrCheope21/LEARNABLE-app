@@ -44,4 +44,10 @@ class User(Base):
     limit_evaluations: Mapped[int | None] = mapped_column(Integer, default=None)
     limit_generations: Mapped[int | None] = mapped_column(Integer, default=None)
     limit_storage_mb: Mapped[int | None] = mapped_column(Integer, default=None)
+    # Email about updates to courses the user has (the in-app notification is always there).
+    email_updates: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    # Selling paid courses: the seller's account at the payment provider, and whether it can
+    # take payments yet (services/payments.py).
+    payout_account_id: Mapped[str | None] = mapped_column(String(255), default=None)
+    payout_ready: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)

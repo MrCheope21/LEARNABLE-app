@@ -368,6 +368,7 @@ export type ListingFilters = {
   language?: string;
   size?: "small" | "medium" | "large";
   level?: Schemas["Level"];
+  price?: "free" | "paid";
   sort?: Schemas["ListingSort"];
 };
 
@@ -389,6 +390,18 @@ export const marketplace = {
     call(
       api.POST("/api/v1/courses/{course_id}/marketplace/publish", { params: { path: { course_id: courseId } }, body }),
     ),
+  announce: (courseId: Id, message: string) =>
+    call(
+      api.POST("/api/v1/courses/{course_id}/marketplace/announce", { params: { path: { course_id: courseId } }, body: { message } }),
+    ),
+  reviews: (listingId: Id) =>
+    call(api.GET("/api/v1/marketplace/listings/{listing_id}/reviews", { params: { path: { listing_id: listingId } } })),
+  writeReview: (listingId: Id, body: Schemas["ReviewWrite"]) =>
+    call(api.PUT("/api/v1/marketplace/listings/{listing_id}/review", { params: { path: { listing_id: listingId } }, body })),
+  deleteReview: (listingId: Id) =>
+    call(api.DELETE("/api/v1/marketplace/listings/{listing_id}/review", { params: { path: { listing_id: listingId } } })),
+  replyToReview: (reviewId: Id, reply: string) =>
+    call(api.PUT("/api/v1/marketplace/reviews/{review_id}/reply", { params: { path: { review_id: reviewId } }, body: { reply } })),
 };
 
 export type Period = Schemas["Period"];
@@ -400,11 +413,39 @@ export const community = {
   courseLeaderboard: (courseId: Id, period: Period, scope: Scope) =>
     call(api.GET("/api/v1/courses/{course_id}/leaderboard", { params: { path: { course_id: courseId }, query: { period, scope } } })),
   people: (q: string) => call(api.GET("/api/v1/community/people", { params: { query: { q } } })),
-  following: () => call(api.GET("/api/v1/community/following")),
-  followers: () => call(api.GET("/api/v1/community/followers")),
+  friends: () => call(api.GET("/api/v1/community/friends")),
+  requests: () => call(api.GET("/api/v1/community/friend-requests")),
+  blocked: () => call(api.GET("/api/v1/community/blocked")),
   profile: (userId: Id) => call(api.GET("/api/v1/community/users/{user_id}", { params: { path: { user_id: userId } } })),
-  follow: (userId: Id) => call(api.PUT("/api/v1/community/users/{user_id}/follow", { params: { path: { user_id: userId } } })),
-  unfollow: (userId: Id) => call(api.DELETE("/api/v1/community/users/{user_id}/follow", { params: { path: { user_id: userId } } })),
+  /** Ask to be friends, or accept their request. */
+  befriend: (userId: Id) => call(api.PUT("/api/v1/community/users/{user_id}/friend", { params: { path: { user_id: userId } } })),
+  /** Cancel a request you sent, decline one you received, or remove a friend. */
+  unfriend: (userId: Id) => call(api.DELETE("/api/v1/community/users/{user_id}/friend", { params: { path: { user_id: userId } } })),
+  block: (userId: Id) => call(api.PUT("/api/v1/community/users/{user_id}/block", { params: { path: { user_id: userId } } })),
+  unblock: (userId: Id) => call(api.DELETE("/api/v1/community/users/{user_id}/block", { params: { path: { user_id: userId } } })),
+};
+
+export const chat = {
+  list: () => call(api.GET("/api/v1/chats")),
+  thread: (userId: Id, before?: Id) =>
+    call(api.GET("/api/v1/chats/{user_id}", { params: { path: { user_id: userId }, query: { before } } })),
+  send: (userId: Id, body: string) =>
+    call(api.POST("/api/v1/chats/{user_id}", { params: { path: { user_id: userId } }, body: { body } })),
+};
+
+export const notifications = {
+  inbox: () => call(api.GET("/api/v1/inbox")),
+  list: () => call(api.GET("/api/v1/notifications")),
+  markRead: (ids?: Id[]) => call(api.POST("/api/v1/notifications/read", { body: { ids } })),
+};
+
+export const payments = {
+  payout: () => call(api.GET("/api/v1/payments/payout")),
+  onboarding: () => call(api.POST("/api/v1/payments/payout/onboarding")),
+  checkout: (listingId: Id) =>
+    call(api.POST("/api/v1/marketplace/listings/{listing_id}/checkout", { params: { path: { listing_id: listingId } } })),
+  order: (orderId: Id) => call(api.GET("/api/v1/marketplace/orders/{order_id}", { params: { path: { order_id: orderId } } })),
+  sales: () => call(api.GET("/api/v1/marketplace/sales")),
 };
 
 export const admin = {
@@ -420,4 +461,5 @@ export const admin = {
   createInvitation: (body: Schemas["InvitationCreate"]) => call(api.POST("/api/v1/admin/invitations", { body })),
   revokeInvitation: (id: Id) =>
     call(api.DELETE("/api/v1/admin/invitations/{invitation_id}", { params: { path: { invitation_id: id } } })),
+  deleteReview: (id: Id) => call(api.DELETE("/api/v1/admin/reviews/{review_id}", { params: { path: { review_id: id } } })),
 };

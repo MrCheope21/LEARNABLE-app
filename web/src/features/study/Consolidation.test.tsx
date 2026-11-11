@@ -26,7 +26,7 @@ const round2: Schemas["SessionCard"] = {
     pending_answer_id: null,
     round: 2,
     rounds_total: 3,
-    potential_xp: { eligible: true, ordinal: 2, xp: 20, xp_with_hint: 10 },
+    potential_xp: { eligible: true, level: 1, xp: 20, xp_with_hint: 10 },
     hint: { available: true, revealed: false, text: null, terms: [] },
   },
 };
@@ -36,7 +36,7 @@ const answered: Schemas["AnswerResult"] = {
   consolidation_round: 2,
   hint_used: true,
   session: { ...session, position: 2, xp_earned: 20 },
-  xp: { reason: "INITIAL", correct: true, ordinal: 2, base_xp: 20, hint_used: true, xp: 10 },
+  xp: { reason: "INITIAL", correct: true, ordinal: 2, level: 1, base_xp: 20, hint_used: true, xp: 10 },
 };
 
 describe("consolidation", () => {

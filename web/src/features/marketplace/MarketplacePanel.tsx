@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import type { Schemas } from "../../api/client";
-import { marketplace } from "../../api/endpoints";
+import { marketplace, payments } from "../../api/endpoints";
 import { ErrorBanner } from "../../components/QueryState";
 import { Icon } from "../../components/Icon";
 import { useLabels } from "../../components/useLabels";
@@ -14,11 +14,11 @@ export const MARKETPLACE_ANCHOR = "#marketplace-page";
 type Info = Schemas["ListingInfo"];
 type MyListing = Schemas["MyListing"];
 
-const EMPTY: Info = { title: "", subtitle: "", description: "", outcomes: [], audience: "", level: "all", category: "other", tags: [] };
+const EMPTY: Info = { title: "", subtitle: "", description: "", outcomes: [], audience: "", level: "all", category: "other", tags: [], price_cents: 0 };
 
 function infoOf(listing: MyListing): Info {
-  const { title, subtitle, description, outcomes, audience, level, category, tags } = listing;
-  return { title, subtitle, description, outcomes, audience, level, category, tags };
+  const { title, subtitle, description, outcomes, audience, level, category, tags, price_cents } = listing;
+  return { title, subtitle, description, outcomes, audience, level, category, tags, price_cents };
 }
 
 /**
@@ -61,11 +61,18 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
   const [outcomes, setOutcomes] = useState(() => (info.outcomes ?? []).join("\n"));
   const [tags, setTags] = useState(() => (info.tags ?? []).join(", "));
   const [rights, setRights] = useState(false);
+  // The price as typed ("9,90"); empty or 0 is free.
+  const [price, setPrice] = useState(() => (info.price_cents ? (info.price_cents / 100).toFixed(2) : ""));
+  const [updateNote, setUpdateNote] = useState("");
+  const payout = useQuery({ queryKey: ["payout"], queryFn: payments.payout });
+  const priceCents = Math.round((Number(price.replace(",", ".")) || 0) * 100);
+  const canCharge = Boolean(payout.data?.enabled && payout.data.ready);
   const [notice, setNotice] = useState<string | null>(null);
   const ids = useId();
 
   const payload = (): Info => ({
     ...info,
+    price_cents: canCharge ? Math.max(0, priceCents) : 0,
     outcomes: outcomes
       .split("\n")
       .map((o) => o.trim())
@@ -90,14 +97,16 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
     onSuccess: (updated) => refresh(updated, updated.status === "PUBLISHED" ? t("sales.noteSaved") : t("sales.noteDraft")),
   });
   const publish = useMutation({
-    mutationFn: () => marketplace.publish(courseId, { ...payload(), rights_confirmed: true }),
-    onSuccess: (updated) =>
+    mutationFn: () => marketplace.publish(courseId, { ...payload(), rights_confirmed: true, update_note: listing?.status === "PUBLISHED" ? updateNote.trim() : "" }),
+    onSuccess: (updated) => {
+      setUpdateNote("");
       refresh(
         updated,
         updated.version > 1
           ? t("sales.notePublishedV", { n: updated.version })
           : t("sales.notePublished"),
-      ),
+      );
+    },
   });
   const unpublish = useMutation({
     mutationFn: () => marketplace.unpublish(listing!.id),
@@ -181,6 +190,7 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
             {t("sales.tags")} <span className="hint">{t("sales.tagsHint")}</span>
             <input value={tags} onChange={(e) => setTags(e.target.value)} />
           </label>
+          <PriceField payout={payout.data} price={price} onPrice={setPrice} ids={ids} />
           <div className="actions">
             <button type="submit" disabled={!valid || busy}>
               {save.isPending ? t("common.saving") : status === "PUBLISHED" ? t("sales.savePage") : t("sales.saveDraft")}
@@ -194,6 +204,12 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
             <p className="hint">
               {status === "PUBLISHED" ? t("sales.publishHintUpdate") : t("sales.publishHint")}
             </p>
+            {status === "PUBLISHED" && (
+              <label>
+                {t("updates.noteLabel")} <span className="hint">{t("updates.noteHint")}</span>
+                <textarea rows={3} value={updateNote} maxLength={2000} placeholder={t("updates.notePlaceholder")} onChange={(e) => setUpdateNote(e.target.value)} />
+              </label>
+            )}
             <label className="toggle">
               <input type="checkbox" checked={rights} onChange={(e) => setRights(e.target.checked)} />
               {t("sales.rights")}
@@ -216,7 +232,99 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
           {notice}
         </p>
       )}
+      {listing && status !== "DRAFT" && listing.acquisition_count > 0 && <AnnounceForm courseId={courseId} students={listing.acquisition_count} />}
       <ErrorBanner error={save.error ?? publish.error ?? unpublish.error} />
     </section>
+  );
+}
+
+/** The price: free unless payments are on and the author has set up where to be paid. */
+function PriceField({ payout, price, onPrice, ids }: { payout: Schemas["PayoutStatus"] | undefined; price: string; onPrice: (value: string) => void; ids: string }) {
+  const { t } = useI18n();
+  if (!payout) return null;
+  if (!payout.enabled) {
+    return (
+      <p className="price-box hint">
+        <strong>{t("sell.price")}:</strong> {t("price.free")}. {t("sell.offNote")}
+      </p>
+    );
+  }
+  if (!payout.ready) {
+    return (
+      <p className="price-box">
+        <strong>{t("sell.price")}:</strong> {t("price.free")}. {t("sell.setupNote")} <Link to="/marketplace/sales">{t("sell.setup")}</Link>
+      </p>
+    );
+  }
+  const money = (cents: number) => new Intl.NumberFormat(undefined, { style: "currency", currency: "EUR" }).format(cents / 100);
+  return (
+    <div className="price-box">
+      <label htmlFor={`${ids}-price`}>
+        {t("sell.price")} <span className="hint">{t("sell.priceHint", { min: money(payout.price_min_cents), max: money(payout.price_max_cents) })}</span>
+      </label>
+      <div className="price-input">
+        <span aria-hidden="true">€</span>
+        <input id={`${ids}-price`} inputMode="decimal" value={price} placeholder="0,00" maxLength={8} onChange={(e) => onPrice(e.target.value.replace(/[^0-9.,]/g, ""))} />
+      </div>
+      <p className="hint">{t("sell.feeNote", { n: payout.fee_percent })}</p>
+    </div>
+  );
+}
+
+/** A message to everyone who has the course, between versions. */
+function AnnounceForm({ courseId, students }: { courseId: string; students: number }) {
+  const { t } = useI18n();
+  const { count } = useLabels();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [sentTo, setSentTo] = useState<number | null>(null);
+  const send = useMutation({
+    mutationFn: () => marketplace.announce(courseId, message.trim()),
+    onSuccess: ({ recipients }) => {
+      setSentTo(recipients);
+      setMessage("");
+      setOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ["listing"] });
+    },
+  });
+  return (
+    <div className="announce-box">
+      <h3 className="with-icon">
+        <Icon name="megaphone" size={18} /> {t("announce.title")}
+      </h3>
+      <p className="hint">{t("announce.explain", { students: count("mkt.students", students) })}</p>
+      {open ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (message.trim()) send.mutate();
+          }}
+        >
+          <label>
+            {t("announce.label")}
+            <textarea rows={3} value={message} maxLength={2000} onChange={(e) => setMessage(e.target.value)} />
+          </label>
+          <div className="actions">
+            <button type="submit" className="primary" disabled={!message.trim() || send.isPending}>
+              {t("announce.send")}
+            </button>
+            <button type="button" className="link" onClick={() => setOpen(false)}>
+              {t("common.cancel")}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button type="button" onClick={() => setOpen(true)}>
+          {t("announce.open")}
+        </button>
+      )}
+      {sentTo !== null && (
+        <p className="banner success" role="status">
+          {t("announce.sent", { n: sentTo })}
+        </p>
+      )}
+      <ErrorBanner error={send.error} />
+    </div>
   );
 }

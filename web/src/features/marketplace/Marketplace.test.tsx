@@ -27,6 +27,8 @@ const summary: Schemas["ListingSummary"] = {
   chapter_count: 2,
   item_count: 120,
   acquisition_count: 7,
+  rating_count: 0,
+  rating_average: null,
   published_at: "2026-10-01T10:00:00Z",
   updated_at: "2026-10-02T10:00:00Z",
   status: "PUBLISHED",
@@ -58,6 +60,8 @@ const detail: Schemas["ListingDetail"] = {
   ],
   is_mine: false,
   has_access: false,
+  can_buy: false,
+  updates: [],
 };
 
 describe("marketplace", () => {
@@ -87,6 +91,7 @@ describe("marketplace", () => {
     const user = userEvent.setup();
     const { requests } = mockApi([
       ["GET", /\/marketplace\/listings\/[^/]+$/, ok(detail)],
+      ["GET", /\/marketplace\/listings\/[^/]+\/reviews$/, ok({ count: 0, average: null, distribution: [0, 0, 0, 0, 0], mine: null, can_review: false, items: [] })],
       ["POST", /\/marketplace\/listings\/[^/]+\/acquire$/, () => ({ status: 201, body: { course_id: COURSE_ID } })],
       ["GET", /\/courses\/[^/]+$/, ok(managedCourse(COURSE_ID))],
       ["GET", /\/courses\/[^/]+\/outline$/, ok([])],
@@ -99,6 +104,7 @@ describe("marketplace", () => {
     expect(screen.getByText("Candidati all'esame da commercialista")).toBeInTheDocument();
     expect(screen.getByText("70 questions")).toBeInTheDocument();
     expect(screen.getByText(/can't be downloaded/)).toBeInTheDocument();
+    expect(await screen.findByText("You can review this course once you have it.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Add to my courses · Free" }));
     await waitFor(() =>

@@ -450,14 +450,20 @@ label { display: grid; gap: 0.3rem; font-weight: 500; }
 .priority-1 { background: #fde8e8; color: #9b1c1c; }
 .priority-2 { background: #fef3c7; color: #8a5a00; }
 .priority-3 { background: #e5edff; color: #3346a6; }
+.priority-4 { background: #e3f4ee; color: #17604a; }
+.priority-5 { background: #eceef2; color: #4a5263; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .priority-1 { background: #4c1d1d; color: #fecaca; }
   :root:not([data-theme="light"]) .priority-2 { background: #4a3810; color: #fde68a; }
   :root:not([data-theme="light"]) .priority-3 { background: #1e2a55; color: #c7d2fe; }
+  :root:not([data-theme="light"]) .priority-4 { background: #123a2e; color: #a7f3d0; }
+  :root:not([data-theme="light"]) .priority-5 { background: #2a2f3a; color: #d1d5db; }
 }
 :root[data-theme="dark"] .priority-1 { background: #4c1d1d; color: #fecaca; }
 :root[data-theme="dark"] .priority-2 { background: #4a3810; color: #fde68a; }
 :root[data-theme="dark"] .priority-3 { background: #1e2a55; color: #c7d2fe; }
+:root[data-theme="dark"] .priority-4 { background: #123a2e; color: #a7f3d0; }
+:root[data-theme="dark"] .priority-5 { background: #2a2f3a; color: #d1d5db; }
 .priority-filter { width: auto; min-height: 44px; }
 .study-content-head { justify-content: space-between; flex-wrap: wrap; }
 .item-head { flex-wrap: wrap; }

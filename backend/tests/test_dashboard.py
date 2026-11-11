@@ -178,7 +178,7 @@ def test_goal_and_xp_today_count_completed_answers(client, learner):
     consolidate(client, headers, c["id"])
 
     data = get_dashboard(client, headers)
-    assert data["xp"] == {"total": 60, "today": 60}
+    assert data["xp"] == {"total": 30, "today": 30}
     assert data["goal"]["done"] == 3
     assert data["streak"]["current"] == 1
     assert data["streak"]["today_complete"] is True

@@ -13,11 +13,14 @@ import { CourseOverview } from "../features/curriculum/CourseOverview";
 import { ProposalPage } from "../features/curriculum/ProposalPage";
 import { QuestionsPage } from "../features/curriculum/QuestionsPage";
 import { WeakSpotsPage } from "../features/curriculum/WeakSpotsPage";
+import { ChatThreadPage } from "../features/community/ChatPage";
 import { CommunityPage, ProfilePage } from "../features/community/CommunityPage";
 import { CourseLeaderboardPage } from "../features/community/CourseLeaderboardPage";
 import { GuidePage } from "../features/guide/GuidePage";
 import { ListingPage } from "../features/marketplace/ListingPage";
 import { MarketplacePage } from "../features/marketplace/MarketplacePage";
+import { SalesPage } from "../features/marketplace/SalesPage";
+import { NotificationsPage } from "../features/notifications/NotificationsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { I18nProvider } from "../i18n";
 import { TopicPage } from "../features/curriculum/TopicPage";
@@ -90,8 +93,12 @@ function SignedInRoutes() {
         <Route path="guide" element={<GuidePage />} />
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/friends" element={<CommunityPage tab="friends" />} />
+        <Route path="community/messages" element={<CommunityPage tab="messages" />} />
+        <Route path="community/messages/:userId" element={<ChatThreadPage />} />
         <Route path="community/users/:userId" element={<ProfilePage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
         <Route path="marketplace" element={<MarketplacePage />} />
+        <Route path="marketplace/sales" element={<SalesPage />} />
         <Route path="marketplace/:listingId" element={<ListingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

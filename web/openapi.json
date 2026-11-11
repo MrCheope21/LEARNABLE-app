@@ -301,6 +301,36 @@
         "title": "AdminUserUpdate",
         "type": "object"
       },
+      "Announced": {
+        "properties": {
+          "recipients": {
+            "title": "Recipients",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "recipients"
+        ],
+        "title": "Announced",
+        "type": "object"
+      },
+      "Announcement": {
+        "additionalProperties": false,
+        "description": "A message from the author to everyone who has the course, without a new version.",
+        "properties": {
+          "message": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "Announcement",
+        "type": "object"
+      },
       "AnswerCreate": {
         "additionalProperties": false,
         "properties": {
@@ -840,6 +870,25 @@
         "title": "ApplyTopic",
         "type": "object"
       },
+      "BlockedPerson": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "name"
+        ],
+        "title": "BlockedPerson",
+        "type": "object"
+      },
       "Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put": {
         "properties": {
           "file": {
@@ -917,7 +966,7 @@
           "priority": {
             "anyOf": [
               {
-                "maximum": 3.0,
+                "maximum": 5.0,
                 "minimum": 1.0,
                 "type": "integer"
               },
@@ -1337,6 +1386,40 @@
         "title": "ChapterUpdate",
         "type": "object"
       },
+      "ChatMessage": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mine": {
+            "title": "Mine",
+            "type": "boolean"
+          },
+          "read": {
+            "title": "Read",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "mine",
+          "body",
+          "created_at",
+          "read"
+        ],
+        "title": "ChatMessage",
+        "type": "object"
+      },
       "ChunkRead": {
         "description": "A source passage for \"View source\" (docs/PROJECT_SPEC.md \u00a766).",
         "properties": {
@@ -1668,6 +1751,51 @@
           "remaining_after_batch"
         ],
         "title": "ConsolidationPlan",
+        "type": "object"
+      },
+      "Conversation": {
+        "description": "A chat with one friend, in the list of chats.",
+        "properties": {
+          "can_send": {
+            "title": "Can Send",
+            "type": "boolean"
+          },
+          "last_at": {
+            "title": "Last At",
+            "type": "string"
+          },
+          "last_message": {
+            "title": "Last Message",
+            "type": "string"
+          },
+          "last_mine": {
+            "title": "Last Mine",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "unread": {
+            "title": "Unread",
+            "type": "integer"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "last_message",
+          "last_mine",
+          "last_at",
+          "unread",
+          "can_send"
+        ],
+        "title": "Conversation",
         "type": "object"
       },
       "CourseCard": {
@@ -3027,6 +3155,30 @@
         "title": "EvaluationStatus",
         "type": "string"
       },
+      "FriendRequests": {
+        "properties": {
+          "incoming": {
+            "items": {
+              "$ref": "#/components/schemas/Person"
+            },
+            "title": "Incoming",
+            "type": "array"
+          },
+          "outgoing": {
+            "items": {
+              "$ref": "#/components/schemas/Person"
+            },
+            "title": "Outgoing",
+            "type": "array"
+          }
+        },
+        "required": [
+          "incoming",
+          "outgoing"
+        ],
+        "title": "FriendRequests",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -3108,6 +3260,30 @@
           "courses"
         ],
         "title": "HomeSummary",
+        "type": "object"
+      },
+      "Inbox": {
+        "description": "The counts behind the badges, polled by the app.",
+        "properties": {
+          "friend_requests": {
+            "title": "Friend Requests",
+            "type": "integer"
+          },
+          "messages": {
+            "title": "Messages",
+            "type": "integer"
+          },
+          "notifications": {
+            "title": "Notifications",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notifications",
+          "messages",
+          "friend_requests"
+        ],
+        "title": "Inbox",
         "type": "object"
       },
       "Introduction": {
@@ -3427,10 +3603,6 @@
       },
       "LeaderboardEntry": {
         "properties": {
-          "following": {
-            "title": "Following",
-            "type": "boolean"
-          },
           "is_me": {
             "title": "Is Me",
             "type": "boolean"
@@ -3442,6 +3614,9 @@
           "rank": {
             "title": "Rank",
             "type": "integer"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/Relation"
           },
           "user_id": {
             "format": "uuid",
@@ -3459,7 +3634,7 @@
           "name",
           "xp",
           "is_me",
-          "following"
+          "relation"
         ],
         "title": "LeaderboardEntry",
         "type": "object"
@@ -3545,7 +3720,7 @@
           "priority": {
             "anyOf": [
               {
-                "maximum": 3.0,
+                "maximum": 5.0,
                 "minimum": 1.0,
                 "type": "integer"
               },
@@ -3830,7 +4005,7 @@
           "priority": {
             "anyOf": [
               {
-                "maximum": 3.0,
+                "maximum": 5.0,
                 "minimum": 1.0,
                 "type": "integer"
               },
@@ -3890,6 +4065,10 @@
           "author": {
             "title": "Author",
             "type": "string"
+          },
+          "can_buy": {
+            "title": "Can Buy",
+            "type": "boolean"
           },
           "category": {
             "$ref": "#/components/schemas/Category"
@@ -3971,6 +4150,21 @@
             ],
             "title": "Published At"
           },
+          "rating_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Average"
+          },
+          "rating_count": {
+            "title": "Rating Count",
+            "type": "integer"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -3993,6 +4187,13 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "updates": {
+            "items": {
+              "$ref": "#/components/schemas/UpdateRead"
+            },
+            "title": "Updates",
+            "type": "array"
           },
           "version": {
             "title": "Version",
@@ -4017,13 +4218,17 @@
           "chapter_count",
           "item_count",
           "acquisition_count",
+          "rating_count",
+          "rating_average",
           "published_at",
           "updated_at",
           "status",
           "course_id",
           "chapters",
           "is_mine",
-          "has_access"
+          "has_access",
+          "can_buy",
+          "updates"
         ],
         "title": "ListingDetail",
         "type": "object"
@@ -4060,6 +4265,13 @@
             "maxItems": 8,
             "title": "Outcomes",
             "type": "array"
+          },
+          "price_cents": {
+            "default": 0,
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Price Cents",
+            "type": "integer"
           },
           "subtitle": {
             "default": "",
@@ -4124,6 +4336,13 @@
             "title": "Outcomes",
             "type": "array"
           },
+          "price_cents": {
+            "default": 0,
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Price Cents",
+            "type": "integer"
+          },
           "rights_confirmed": {
             "const": true,
             "title": "Rights Confirmed",
@@ -4150,6 +4369,12 @@
             "minLength": 1,
             "title": "Title",
             "type": "string"
+          },
+          "update_note": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Update Note",
+            "type": "string"
           }
         },
         "required": [
@@ -4161,11 +4386,130 @@
         "title": "ListingPublish",
         "type": "object"
       },
+      "ListingReview": {
+        "properties": {
+          "author": {
+            "title": "Author",
+            "type": "string"
+          },
+          "comment": {
+            "title": "Comment",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_mine": {
+            "title": "Is Mine",
+            "type": "boolean"
+          },
+          "rating": {
+            "title": "Rating",
+            "type": "integer"
+          },
+          "replied_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replied At"
+          },
+          "reply": {
+            "title": "Reply",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "author",
+          "rating",
+          "comment",
+          "created_at",
+          "updated_at",
+          "is_mine",
+          "reply",
+          "replied_at"
+        ],
+        "title": "ListingReview",
+        "type": "object"
+      },
+      "ListingReviews": {
+        "properties": {
+          "average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
+          },
+          "can_review": {
+            "title": "Can Review",
+            "type": "boolean"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "distribution": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Distribution",
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ListingReview"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "mine": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingReview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "count",
+          "average",
+          "distribution",
+          "mine",
+          "can_review",
+          "items"
+        ],
+        "title": "ListingReviews",
+        "type": "object"
+      },
       "ListingSort": {
         "enum": [
           "popular",
           "newest",
-          "largest"
+          "largest",
+          "best_rated"
         ],
         "title": "ListingSort",
         "type": "string"
@@ -4249,6 +4593,21 @@
             ],
             "title": "Published At"
           },
+          "rating_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Average"
+          },
+          "rating_count": {
+            "title": "Rating Count",
+            "type": "integer"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -4295,12 +4654,36 @@
           "chapter_count",
           "item_count",
           "acquisition_count",
+          "rating_count",
+          "rating_average",
           "published_at",
           "updated_at",
           "status",
           "course_id"
         ],
         "title": "ListingSummary",
+        "type": "object"
+      },
+      "MarkRead": {
+        "additionalProperties": false,
+        "properties": {
+          "ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ids"
+          }
+        },
+        "title": "MarkRead",
         "type": "object"
       },
       "MemoryProgress": {
@@ -4443,6 +4826,22 @@
         "title": "MemoryState",
         "type": "string"
       },
+      "MessageCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "MessageCreate",
+        "type": "object"
+      },
       "MessageRead": {
         "properties": {
           "detail": {
@@ -4535,6 +4934,21 @@
             ],
             "title": "Published At"
           },
+          "rating_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Average"
+          },
+          "rating_count": {
+            "title": "Rating Count",
+            "type": "integer"
+          },
           "source_course_id": {
             "anyOf": [
               {
@@ -4593,6 +5007,8 @@
           "chapter_count",
           "item_count",
           "acquisition_count",
+          "rating_count",
+          "rating_average",
           "published_at",
           "updated_at",
           "status",
@@ -4738,6 +5154,105 @@
         "title": "NextStep",
         "type": "object"
       },
+      "NotificationRead": {
+        "properties": {
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "link": {
+            "title": "Link",
+            "type": "string"
+          },
+          "read": {
+            "title": "Read",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "actor",
+          "data",
+          "link",
+          "created_at",
+          "read"
+        ],
+        "title": "NotificationRead",
+        "type": "object"
+      },
+      "Notifications": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "unread": {
+            "title": "Unread",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "unread"
+        ],
+        "title": "Notifications",
+        "type": "object"
+      },
+      "OrderStatus": {
+        "properties": {
+          "course_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "course_id"
+        ],
+        "title": "OrderStatus",
+        "type": "object"
+      },
       "OrderUpdate": {
         "additionalProperties": false,
         "description": "A parent's children in their new order (drag and drop): every child exactly once.",
@@ -4845,6 +5360,45 @@
         "title": "PasswordResetRequest",
         "type": "object"
       },
+      "PayoutStatus": {
+        "description": "Whether the viewer can sell paid courses.",
+        "properties": {
+          "account": {
+            "title": "Account",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "fee_percent": {
+            "title": "Fee Percent",
+            "type": "integer"
+          },
+          "price_max_cents": {
+            "title": "Price Max Cents",
+            "type": "integer"
+          },
+          "price_min_cents": {
+            "title": "Price Min Cents",
+            "type": "integer"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "account",
+          "ready",
+          "fee_percent",
+          "price_min_cents",
+          "price_max_cents"
+        ],
+        "title": "PayoutStatus",
+        "type": "object"
+      },
       "Period": {
         "enum": [
           "day",
@@ -4856,16 +5410,8 @@
         "type": "string"
       },
       "Person": {
-        "description": "A listed person: someone you follow, a follower, or a search result.",
+        "description": "A listed person: a friend, someone in a friend request, or a search result.",
         "properties": {
-          "follows_me": {
-            "title": "Follows Me",
-            "type": "boolean"
-          },
-          "i_follow": {
-            "title": "I Follow",
-            "type": "boolean"
-          },
           "last_active": {
             "anyOf": [
               {
@@ -4880,6 +5426,20 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/Relation"
+          },
+          "requested_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested At"
           },
           "streak": {
             "title": "Streak",
@@ -4901,8 +5461,7 @@
           "xp_today",
           "streak",
           "last_active",
-          "i_follow",
-          "follows_me"
+          "relation"
         ],
         "title": "Person",
         "type": "object"
@@ -4981,8 +5540,8 @@
             "title": "Eligible",
             "type": "boolean"
           },
-          "ordinal": {
-            "title": "Ordinal",
+          "level": {
+            "title": "Level",
             "type": "integer"
           },
           "xp": {
@@ -4996,7 +5555,7 @@
         },
         "required": [
           "eligible",
-          "ordinal",
+          "level",
           "xp",
           "xp_with_hint"
         ],
@@ -5005,21 +5564,13 @@
       },
       "Profile": {
         "properties": {
-          "followers": {
-            "title": "Followers",
-            "type": "integer"
-          },
-          "following": {
-            "title": "Following",
-            "type": "integer"
-          },
-          "follows_me": {
-            "title": "Follows Me",
+          "blocked": {
+            "title": "Blocked",
             "type": "boolean"
           },
-          "i_follow": {
-            "title": "I Follow",
-            "type": "boolean"
+          "friends": {
+            "title": "Friends",
+            "type": "integer"
           },
           "is_me": {
             "title": "Is Me",
@@ -5032,6 +5583,9 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/Relation"
           },
           "streak": {
             "title": "Streak",
@@ -5058,11 +5612,10 @@
           "xp_total",
           "xp_week",
           "streak",
-          "followers",
-          "following",
+          "friends",
           "is_me",
-          "i_follow",
-          "follows_me"
+          "relation",
+          "blocked"
         ],
         "title": "Profile",
         "type": "object"
@@ -5445,6 +5998,20 @@
         "title": "QueueItem",
         "type": "object"
       },
+      "Redirect": {
+        "description": "An address on the payment provider's site to send the browser to.",
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "Redirect",
+        "type": "object"
+      },
       "Reference": {
         "description": "The correct answer and where it comes from, shown with the feedback (spec \u00a741, \u00a766).",
         "properties": {
@@ -5479,6 +6046,17 @@
         ],
         "title": "Reference",
         "type": "object"
+      },
+      "Relation": {
+        "description": "What another person is to the viewer.",
+        "enum": [
+          "none",
+          "friends",
+          "request_sent",
+          "request_received"
+        ],
+        "title": "Relation",
+        "type": "string"
       },
       "RepeatCreate": {
         "additionalProperties": false,
@@ -5685,6 +6263,129 @@
           "superseded"
         ],
         "title": "ReviewRead",
+        "type": "object"
+      },
+      "ReviewReply": {
+        "additionalProperties": false,
+        "properties": {
+          "reply": {
+            "maxLength": 2000,
+            "title": "Reply",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reply"
+        ],
+        "title": "ReviewReply",
+        "type": "object"
+      },
+      "ReviewWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Comment",
+            "type": "string"
+          },
+          "rating": {
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Rating",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rating"
+        ],
+        "title": "ReviewWrite",
+        "type": "object"
+      },
+      "Sale": {
+        "properties": {
+          "amount_cents": {
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "listing_id": {
+            "format": "uuid",
+            "title": "Listing Id",
+            "type": "string"
+          },
+          "net_cents": {
+            "title": "Net Cents",
+            "type": "integer"
+          },
+          "paid_at": {
+            "title": "Paid At",
+            "type": "string"
+          },
+          "refunded": {
+            "title": "Refunded",
+            "type": "boolean"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "listing_id",
+          "title",
+          "amount_cents",
+          "net_cents",
+          "currency",
+          "paid_at",
+          "refunded"
+        ],
+        "title": "Sale",
+        "type": "object"
+      },
+      "Sales": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "gross_cents": {
+            "title": "Gross Cents",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Sale"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "net_cents": {
+            "title": "Net Cents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "gross_cents",
+          "net_cents",
+          "currency",
+          "items"
+        ],
+        "title": "Sales",
         "type": "object"
       },
       "ScheduleChange": {
@@ -6075,6 +6776,43 @@
         "title": "TemporaryPassword",
         "type": "object"
       },
+      "Thread": {
+        "properties": {
+          "can_send": {
+            "title": "Can Send",
+            "type": "boolean"
+          },
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "can_send",
+          "messages",
+          "has_more"
+        ],
+        "title": "Thread",
+        "type": "object"
+      },
       "Token": {
         "properties": {
           "access_token": {
@@ -6300,6 +7038,42 @@
         "title": "TopicUpdate",
         "type": "object"
       },
+      "UpdateRead": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "note",
+          "created_at"
+        ],
+        "title": "UpdateRead",
+        "type": "object"
+      },
       "UserCreate": {
         "additionalProperties": false,
         "properties": {
@@ -6438,6 +7212,17 @@
             ],
             "title": "Display Name"
           },
+          "email_updates": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Updates"
+          },
           "language": {
             "anyOf": [
               {
@@ -6515,6 +7300,10 @@
             "title": "Email",
             "type": "string"
           },
+          "email_updates": {
+            "title": "Email Updates",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -6564,7 +7353,8 @@
           "daily_goal",
           "language",
           "display_name",
-          "community_visible"
+          "community_visible",
+          "email_updates"
         ],
         "title": "UserRead",
         "type": "object"
@@ -6673,6 +7463,17 @@
             "title": "Hint Used",
             "type": "boolean"
           },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
           "ordinal": {
             "anyOf": [
               {
@@ -6696,6 +7497,7 @@
           "reason",
           "correct",
           "ordinal",
+          "level",
           "base_xp",
           "hint_used",
           "xp"
@@ -6974,6 +7776,48 @@
           }
         ],
         "summary": "Revoke Invitation",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reviews/{review_id}": {
+      "delete": {
+        "description": "Moderation: removes a marketplace review (abuse, spam).",
+        "operationId": "delete_review_api_v1_admin_reviews__review_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Review",
         "tags": [
           "admin"
         ]
@@ -8076,18 +8920,18 @@
         ]
       }
     },
-    "/api/v1/community/followers": {
+    "/api/v1/chats": {
       "get": {
-        "operationId": "followers_api_v1_community_followers_get",
+        "operationId": "chats_api_v1_chats_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/Person"
+                    "$ref": "#/components/schemas/Conversation"
                   },
-                  "title": "Response Followers Api V1 Community Followers Get",
+                  "title": "Response Chats Api V1 Chats Get",
                   "type": "array"
                 }
               }
@@ -8100,24 +8944,145 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Followers",
+        "summary": "Chats",
         "tags": [
           "community"
         ]
       }
     },
-    "/api/v1/community/following": {
+    "/api/v1/chats/{user_id}": {
       "get": {
-        "operationId": "following_api_v1_community_following_get",
+        "operationId": "chat_thread_api_v1_chats__user_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Thread"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Chat Thread",
+        "tags": [
+          "community"
+        ]
+      },
+      "post": {
+        "operationId": "chat_send_api_v1_chats__user_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Chat Send",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/blocked": {
+      "get": {
+        "operationId": "blocked_api_v1_community_blocked_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/Person"
+                    "$ref": "#/components/schemas/BlockedPerson"
                   },
-                  "title": "Response Following Api V1 Community Following Get",
+                  "title": "Response Blocked Api V1 Community Blocked Get",
                   "type": "array"
                 }
               }
@@ -8130,7 +9095,63 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Following",
+        "summary": "Blocked",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/friend-requests": {
+      "get": {
+        "operationId": "friend_requests_api_v1_community_friend_requests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FriendRequests"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Friend Requests",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/friends": {
+      "get": {
+        "operationId": "friends_api_v1_community_friends_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Person"
+                  },
+                  "title": "Response Friends Api V1 Community Friends Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Friends",
         "tags": [
           "community"
         ]
@@ -8292,9 +9313,9 @@
         ]
       }
     },
-    "/api/v1/community/users/{user_id}/follow": {
+    "/api/v1/community/users/{user_id}/block": {
       "delete": {
-        "operationId": "unfollow_api_v1_community_users__user_id__follow_delete",
+        "operationId": "unblock_api_v1_community_users__user_id__block_delete",
         "parameters": [
           {
             "in": "path",
@@ -8327,13 +9348,95 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Unfollow",
+        "summary": "Unblock",
         "tags": [
           "community"
         ]
       },
       "put": {
-        "operationId": "follow_api_v1_community_users__user_id__follow_put",
+        "operationId": "block_api_v1_community_users__user_id__block_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Block",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/users/{user_id}/friend": {
+      "delete": {
+        "description": "Cancel a request you sent, decline one you received, or remove a friend.",
+        "operationId": "unfriend_api_v1_community_users__user_id__friend_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unfriend",
+        "tags": [
+          "community"
+        ]
+      },
+      "put": {
+        "description": "Ask to be friends, or accept their request.",
+        "operationId": "befriend_api_v1_community_users__user_id__friend_put",
         "parameters": [
           {
             "in": "path",
@@ -8373,7 +9476,7 @@
             "HTTPBearer": []
           }
         ],
-        "summary": "Follow",
+        "summary": "Befriend",
         "tags": [
           "community"
         ]
@@ -10069,6 +11172,65 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/marketplace/announce": {
+      "post": {
+        "description": "The author writes to everyone who has the course (at most 5 a day).",
+        "operationId": "announce_api_v1_courses__course_id__marketplace_announce_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Announcement"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Announced"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Announce",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
     "/api/v1/courses/{course_id}/marketplace/info": {
       "put": {
         "operationId": "save_info_api_v1_courses__course_id__marketplace_info_put",
@@ -11280,6 +12442,33 @@
         ]
       }
     },
+    "/api/v1/inbox": {
+      "get": {
+        "description": "The counts behind the app's badges.",
+        "operationId": "inbox_api_v1_inbox_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inbox"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Inbox",
+        "tags": [
+          "community"
+        ]
+      }
+    },
     "/api/v1/learning-items/{item_id}": {
       "delete": {
         "operationId": "delete_learning_item_api_v1_learning_items__item_id__delete",
@@ -12080,6 +13269,26 @@
           },
           {
             "in": "query",
+            "name": "price",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "free",
+                    "paid"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price"
+            }
+          },
+          {
+            "in": "query",
             "name": "sort",
             "required": false,
             "schema": {
@@ -12233,6 +13442,201 @@
         ]
       }
     },
+    "/api/v1/marketplace/listings/{listing_id}/checkout": {
+      "post": {
+        "description": "Starts buying a paid course: the address of the payment page.",
+        "operationId": "checkout_api_v1_marketplace_listings__listing_id__checkout_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Checkout",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/marketplace/listings/{listing_id}/review": {
+      "delete": {
+        "operationId": "delete_review_api_v1_marketplace_listings__listing_id__review_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Review",
+        "tags": [
+          "marketplace"
+        ]
+      },
+      "put": {
+        "description": "Stars and a comment, from someone who has the course; writing again edits it.",
+        "operationId": "write_review_api_v1_marketplace_listings__listing_id__review_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingReviews"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Write Review",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/listings/{listing_id}/reviews": {
+      "get": {
+        "operationId": "reviews_api_v1_marketplace_listings__listing_id__reviews_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingReviews"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reviews",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
     "/api/v1/marketplace/listings/{listing_id}/unpublish": {
       "post": {
         "operationId": "unpublish_api_v1_marketplace_listings__listing_id__unpublish_post",
@@ -12308,6 +13712,288 @@
         "summary": "Mine",
         "tags": [
           "marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/orders/{order_id}": {
+      "get": {
+        "description": "Polled by the buyer's browser after the payment page, until the provider confirmed.",
+        "operationId": "order_api_v1_marketplace_orders__order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Order",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/marketplace/reviews/{review_id}/reply": {
+      "put": {
+        "description": "The course's author answers a review.",
+        "operationId": "reply_to_review_api_v1_marketplace_reviews__review_id__reply_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewReply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reply To Review",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/sales": {
+      "get": {
+        "operationId": "sales_api_v1_marketplace_sales_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sales"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sales",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "list_notifications_api_v1_notifications_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notifications"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Notifications",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/notifications/read": {
+      "post": {
+        "operationId": "read_notifications_api_v1_notifications_read_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkRead"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Notifications",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/payments/payout": {
+      "get": {
+        "description": "Whether the viewer can sell paid courses, checked with the provider when pending.",
+        "operationId": "payout_api_v1_payments_payout_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Payout",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/payments/payout/onboarding": {
+      "post": {
+        "operationId": "onboarding_api_v1_payments_payout_onboarding_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Onboarding",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/payments/stripe/webhook": {
+      "post": {
+        "description": "Called by Stripe, not by a browser: no session, the signature is the proof.",
+        "operationId": "stripe_webhook_api_v1_payments_stripe_webhook_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "stripe-signature",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Stripe-Signature",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stripe Webhook",
+        "tags": [
+          "payments"
         ]
       }
     },

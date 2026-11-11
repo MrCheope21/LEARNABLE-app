@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { marketplace } from "../../api/endpoints";
+import { useEffect } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { marketplace, payments } from "../../api/endpoints";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { dateTime } from "../../components/labels";
 import { Icon } from "../../components/Icon";
+import { Stars } from "../../components/Stars";
 import { useLabels } from "../../components/useLabels";
 import { useI18n } from "../../i18n";
 import { categoryIcon } from "./labels";
+import { Reviews } from "./Reviews";
 
 /**
  * A course's marketplace page, as its author wrote it: what it covers, who it's for, what you'll
@@ -29,12 +32,59 @@ export function ListingPage() {
       navigate(`/courses/${course_id}`);
     },
   });
+  // A paid course: the payment happens on the provider's page, then the browser comes back here
+  // with ?order=…; access arrives when the provider confirms, usually within seconds.
+  const buy = useMutation({
+    mutationFn: () => payments.checkout(listingId),
+    onSuccess: ({ url }) => window.location.assign(url),
+  });
+  const [params, setParams] = useSearchParams();
+  const orderId = params.get("order");
+  const cancelled = params.get("cancelled") !== null;
+  const order = useQuery({
+    queryKey: ["order", orderId],
+    queryFn: () => payments.order(orderId!),
+    enabled: Boolean(orderId),
+    refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 2_000 : false),
+    retry: false,
+  });
+  const paidCourse = order.data?.status === "PAID" ? order.data.course_id : null;
+  useEffect(() => {
+    if (paidCourse) {
+      for (const key of [["dashboard"], ["courses"], ["marketplace"], ["listing", listingId]]) {
+        void queryClient.invalidateQueries({ queryKey: key });
+      }
+    }
+  }, [paidCourse, listingId, queryClient]);
 
   return (
     <div className="page listing-page">
       <p className="breadcrumbs">
         <Link to="/marketplace">← {t("nav.marketplace")}</Link>
       </p>
+      {orderId && order.data?.status === "PENDING" && (
+        <p className="banner info" role="status">
+          {t("buy.confirming")}
+        </p>
+      )}
+      {paidCourse && (
+        <p className="banner success" role="status">
+          {t("buy.done")} <Link to={`/courses/${paidCourse}`}>{t("mkt.open")}</Link>
+        </p>
+      )}
+      {orderId && (order.isError || order.data?.status === "EXPIRED") && (
+        <p className="banner warning" role="status">
+          {t("buy.failed")}
+        </p>
+      )}
+      {cancelled && (
+        <p className="banner info" role="status">
+          {t("buy.cancelled")}{" "}
+          <button type="button" className="link" onClick={() => setParams({}, { replace: true })}>
+            {t("common.dismiss")}
+          </button>
+        </p>
+      )}
       <QueryState query={listing} label={t("mkt.loadingCourse")}>
         {(data) => (
           <>
@@ -48,6 +98,14 @@ export function ListingPage() {
                 {t("mkt.by", { author: data.author })} · {levelLabel[data.level]} · {languageName(data.language)}
                 {data.published_at && ` · ${t("mkt.updated", { date: dateTime(data.updated_at) })}`}
               </p>
+              {data.rating_average !== null && data.rating_average !== undefined && (
+                <p className="listing-rating">
+                  <Stars value={data.rating_average} /> <strong>{data.rating_average.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</strong>{" "}
+                  <a href="#reviews-title" className="hint">
+                    {count("review.count", data.rating_count)}
+                  </a>
+                </p>
+              )}
               <dl className="listing-stats">
                 <div>
                   <dt>{t("concept.questions")}</dt>
@@ -69,13 +127,21 @@ export function ListingPage() {
                   <Link className="button primary" to={`/courses/${data.course_id}`}>
                     {t("mkt.open")}
                   </Link>
-                ) : (
+                ) : data.has_access || data.price_cents === 0 ? (
                   <button type="button" className="primary" disabled={acquire.isPending} onClick={() => acquire.mutate()}>
                     {data.has_access ? t("mkt.addBack") : t("mkt.add", { price: priceLabel(data) })}
                   </button>
+                ) : (
+                  <>
+                    <strong className="listing-price">{priceLabel(data)}</strong>
+                    <button type="button" className="primary" disabled={!data.can_buy || buy.isPending || order.data?.status === "PENDING"} onClick={() => buy.mutate()}>
+                      <Icon name="cart" size={18} /> {buy.isPending ? t("common.pleaseWait") : t("buy.button")}
+                    </button>
+                  </>
                 )}
               </div>
-              <ErrorBanner error={acquire.error} />
+              {!data.is_mine && !data.has_access && data.price_cents > 0 && <p className="hint">{data.can_buy ? t("buy.note") : t("buy.unavailable")}</p>}
+              <ErrorBanner error={acquire.error ?? buy.error} />
             </header>
 
             <section className="card">
@@ -113,6 +179,25 @@ export function ListingPage() {
               </ol>
               <p className="hint">{t("mkt.hiddenNote")}</p>
             </section>
+
+            {data.updates.length > 0 && (
+              <section className="card" aria-labelledby="whats-new">
+                <h2 id="whats-new">{t("updates.title")}</h2>
+                <ol className="update-list">
+                  {data.updates.map((update) => (
+                    <li key={update.id}>
+                      <p className="update-head">
+                        <strong>{update.version ? t("updates.version", { n: update.version }) : t("updates.announcement")}</strong>
+                        <span className="hint">{dateTime(update.created_at)}</span>
+                      </p>
+                      <p className="reading">{update.note}</p>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+
+            {data.published_at && <Reviews listingId={listingId} isAuthor={data.is_mine} />}
           </>
         )}
       </QueryState>

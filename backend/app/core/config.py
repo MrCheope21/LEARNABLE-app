@@ -107,6 +107,17 @@ class Settings(BaseSettings):
     smtp_from: str = ""
     smtp_starttls: bool = True
 
+    # Paid courses on the marketplace (docs/MARKETPLACE.md §8). none: every course is free.
+    # stripe: buyers pay through Stripe Checkout and the money goes to the author's own Stripe
+    # account (Connect), minus the platform's fee.
+    payments_provider: Literal["none", "stripe"] = "none"
+    stripe_secret_key: SecretStr = SecretStr("")
+    stripe_webhook_secret: SecretStr = SecretStr("")
+    # The platform's share of each sale, in percent.
+    platform_fee_percent: int = Field(default=10, ge=0, le=50)
+    price_min_cents: int = Field(default=100, ge=50)
+    price_max_cents: int = Field(default=50_000, ge=100)
+
     # Runtime AI provider (see docs/AI.md) — intentionally provider-agnostic, never hard-coded.
     # Empty means AI features are off: the server runs, and AI endpoints answer 503.
     ai_provider: str = ""
@@ -265,6 +276,21 @@ class Settings(BaseSettings):
             ]
             if missing:
                 raise ValueError(f"EMAIL_BACKEND=smtp requires {' and '.join(missing)}")
+        return self
+
+    @model_validator(mode="after")
+    def _require_stripe_settings(self) -> Self:
+        if self.payments_provider == "stripe":
+            missing = [
+                name
+                for name, value in (
+                    ("STRIPE_SECRET_KEY", self.stripe_secret_key),
+                    ("STRIPE_WEBHOOK_SECRET", self.stripe_webhook_secret),
+                )
+                if not value.get_secret_value().strip()
+            ]
+            if missing:
+                raise ValueError(f"PAYMENTS_PROVIDER=stripe requires {' and '.join(missing)}")
         return self
 
     @model_validator(mode="after")

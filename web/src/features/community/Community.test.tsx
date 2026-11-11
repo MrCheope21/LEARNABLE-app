@@ -12,8 +12,8 @@ const me = { id: BOB, email: "bob@example.com", timezone: "Europe/Rome", daily_g
 
 function board(overrides: Partial<Schemas["Leaderboard"]> = {}): Schemas["Leaderboard"] {
   const entries: Schemas["LeaderboardEntry"][] = [
-    { rank: 1, user_id: ADA, name: "Ada", xp: 1200, is_me: false, following: false },
-    { rank: 2, user_id: BOB, name: "Bob", xp: 600, is_me: true, following: false },
+    { rank: 1, user_id: ADA, name: "Ada", xp: 1200, is_me: false, relation: "none" },
+    { rank: 2, user_id: BOB, name: "Bob", xp: 600, is_me: true, relation: "none" },
   ];
   return { period: "week", scope: "everyone", since: "2026-10-05T00:00:00Z", entries, me: entries[1]!, me_hidden: false, ...overrides };
 }
@@ -72,20 +72,44 @@ describe("community", () => {
     expect(screen.queryByRole("button", { name: "Show me in the community" })).not.toBeInTheDocument();
   });
 
-  it("follows someone from their profile", async () => {
+  it("accepts a friend request from the profile", async () => {
     const user = userEvent.setup();
-    const profile: Schemas["Profile"] = { user_id: ADA, name: "Ada", member_since: "2026-09-01T10:00:00Z", xp_total: 1200, xp_week: 300, streak: 9, followers: 4, following: 2, is_me: false, i_follow: false, follows_me: true };
+    const profile: Schemas["Profile"] = { user_id: ADA, name: "Ada", member_since: "2026-09-01T10:00:00Z", xp_total: 1200, xp_week: 300, streak: 9, friends: 4, is_me: false, relation: "request_received", blocked: false };
     const { requests } = mockApi([
       ["GET", /\/community\/users\/[^/]+$/, ok(profile)],
-      ["PUT", /\/community\/users\/[^/]+\/follow$/, ok({ ...profile, i_follow: true })],
+      ["PUT", /\/community\/users\/[^/]+\/friend$/, ok({ ...profile, relation: "friends" })],
     ]);
     renderApp(`/community/users/${ADA}`);
 
     expect(await screen.findByRole("heading", { name: "Ada" })).toBeInTheDocument();
-    expect(screen.getByText("Follows you")).toBeInTheDocument();
+    expect(screen.getByText("Wants to be your friend")).toBeInTheDocument();
     expect(screen.getByText("1,200")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Follow" }));
-    await waitFor(() => expect(requests.some((r) => r.method === "PUT" && r.path === `/api/v1/community/users/${ADA}/follow`)).toBe(true));
+    expect(screen.getByRole("button", { name: "Decline" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Accept" }));
+    await waitFor(() => expect(requests.some((r) => r.method === "PUT" && r.path === `/api/v1/community/users/${ADA}/friend`)).toBe(true));
+  });
+
+  it("lets a friend be written to, and a stranger be added", async () => {
+    const user = userEvent.setup();
+    const profile: Schemas["Profile"] = { user_id: ADA, name: "Ada", member_since: "2026-09-01T10:00:00Z", xp_total: 1200, xp_week: 300, streak: 9, friends: 4, is_me: false, relation: "friends", blocked: false };
+    const { requests } = mockApi([
+      ["GET", /\/community\/users\/[^/]+$/, ok(profile)],
+      ["GET", /\/community\/friends$/, ok([])],
+      ["GET", /\/community\/friend-requests$/, ok({ incoming: [], outgoing: [] })],
+      ["GET", /\/community\/people$/, ok([{ user_id: ADA, name: "Maria Rossi", xp_today: 40, streak: 3, last_active: null, relation: "none" }])],
+      ["PUT", /\/community\/users\/[^/]+\/friend$/, ok({ ...profile, relation: "request_sent" })],
+      ["GET", /\/auth\/me$/, ok(me)],
+    ]);
+    const view = renderApp(`/community/users/${ADA}`);
+    expect(await screen.findByRole("link", { name: "Message" })).toHaveAttribute("href", `/community/messages/${ADA}`);
+    expect(screen.getByRole("button", { name: "Remove friend" })).toBeInTheDocument();
+    view.unmount();
+
+    renderApp("/community/friends");
+    await user.type(await screen.findByLabelText("Find learners by name"), "rossi");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+    await user.click(await screen.findByRole("button", { name: "Add friend" }));
+    await waitFor(() => expect(requests.some((r) => r.method === "PUT" && r.path === `/api/v1/community/users/${ADA}/friend`)).toBe(true));
   });
 
   it("says a hidden profile isn't available", async () => {
@@ -96,16 +120,18 @@ describe("community", () => {
 
   it("searches learners by name on the Friends tab", async () => {
     const user = userEvent.setup();
-    const person: Schemas["Person"] = { user_id: ADA, name: "Maria Rossi", xp_today: 40, streak: 3, last_active: null, i_follow: false, follows_me: false };
+    const person: Schemas["Person"] = { user_id: ADA, name: "Maria Rossi", xp_today: 40, streak: 3, last_active: null, relation: "none" };
     const { fetchMock } = mockApi([
-      ["GET", /\/community\/following$/, ok([])],
-      ["GET", /\/community\/followers$/, ok([])],
+      ["GET", /\/community\/friends$/, ok([])],
+      ["GET", /\/community\/friend-requests$/, ok({ incoming: [{ user_id: BOB, name: "Carla", xp_today: 0, streak: 1, last_active: null, relation: "request_received" }], outgoing: [] })],
       ["GET", /\/community\/people$/, ok([person])],
       ["GET", /\/auth\/me$/, ok(me)],
     ]);
     renderApp("/community/friends");
 
-    expect(await screen.findByText("You aren't following anyone yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No friends yet.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Friend requests/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Accept" })).toBeInTheDocument();
     await user.type(screen.getByLabelText("Find learners by name"), "rossi");
     await user.click(screen.getByRole("button", { name: "Search" }));
     expect(await screen.findByRole("link", { name: "Maria Rossi" })).toBeInTheDocument();

@@ -5,16 +5,22 @@ import { community, type Period, type Scope } from "../../api/endpoints";
 import type { Schemas } from "../../api/client";
 import { meKey } from "../../app/AppShell";
 import { auth } from "../../api/endpoints";
+import { Icon } from "../../components/Icon";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { useI18n } from "../../i18n";
-import { BoardControls, FollowButton, LeaderboardList } from "./Leaderboard";
+import { badge, useInbox } from "../notifications/useInbox";
+import { MessagesTab } from "./ChatPage";
+import { BoardControls, FriendButton, LeaderboardList } from "./Leaderboard";
 
 const BOARD_KEY = ["community", "board"] as const;
 const PEOPLE_KEY = ["community", "people"] as const;
 
-/** "Community": the leaderboard and, on the Friends tab, the people you follow. */
-export function CommunityPage({ tab = "leaderboard" }: { tab?: "leaderboard" | "friends" }) {
+type Tab = "leaderboard" | "friends" | "messages";
+
+/** "Community": the leaderboard, your friends and friend requests, and your messages. */
+export function CommunityPage({ tab = "leaderboard" }: { tab?: Tab }) {
   const { t } = useI18n();
+  const inbox = useInbox();
   return (
     <div className="page community">
       <div className="page-header">
@@ -25,11 +31,27 @@ export function CommunityPage({ tab = "leaderboard" }: { tab?: "leaderboard" | "
         <NavLink end to="/community">
           {t("community.tab.leaderboard")}
         </NavLink>
-        <NavLink to="/community/friends">{t("community.tab.friends")}</NavLink>
+        <NavLink to="/community/friends">
+          {t("community.tab.friends")}
+          <Count n={inbox.friend_requests} label={t("friends.badge", { n: inbox.friend_requests })} />
+        </NavLink>
+        <NavLink to="/community/messages">
+          {t("community.tab.messages")}
+          <Count n={inbox.messages} label={t("chat.badge", { n: inbox.messages })} />
+        </NavLink>
       </nav>
       <JoinBanner />
-      {tab === "friends" ? <FriendsTab /> : <GlobalBoard />}
+      {tab === "friends" ? <FriendsTab /> : tab === "messages" ? <MessagesTab /> : <GlobalBoard />}
     </div>
+  );
+}
+
+function Count({ n, label }: { n: number; label: string }) {
+  if (n <= 0) return null;
+  return (
+    <span className="count-badge" aria-label={label} role="img">
+      {badge(n)}
+    </span>
   );
 }
 
@@ -76,14 +98,14 @@ export function GlobalBoard() {
   );
 }
 
-/** The Friends tab: search, people you follow, your followers. */
+/** The Friends tab: requests waiting for you first, then search, your friends, requests you sent. */
 export function FriendsTab() {
   const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
   const searchId = useId();
-  const following = useQuery({ queryKey: [...PEOPLE_KEY, "following"], queryFn: community.following });
-  const followers = useQuery({ queryKey: [...PEOPLE_KEY, "followers"], queryFn: community.followers });
+  const friends = useQuery({ queryKey: [...PEOPLE_KEY, "friends"], queryFn: community.friends });
+  const requests = useQuery({ queryKey: [...PEOPLE_KEY, "requests"], queryFn: community.requests, refetchInterval: 30_000 });
   const found = useQuery({
     queryKey: [...PEOPLE_KEY, "search", submitted],
     queryFn: () => community.people(submitted),
@@ -93,8 +115,18 @@ export function FriendsTab() {
     event.preventDefault();
     setSubmitted(query.trim());
   };
+  const incoming = requests.data?.incoming ?? [];
+  const outgoing = requests.data?.outgoing ?? [];
   return (
     <>
+      {incoming.length > 0 && (
+        <section className="card requests-card" aria-labelledby="incoming-title">
+          <h2 id="incoming-title">
+            {t("friends.incoming")} <span className="count-badge">{incoming.length}</span>
+          </h2>
+          <PeopleList people={incoming} />
+        </section>
+      )}
       <form className="card friends-search" role="search" onSubmit={submit}>
         <label htmlFor={searchId}>{t("community.searchLabel")}</label>
         <div className="inline-field">
@@ -103,24 +135,26 @@ export function FriendsTab() {
             {t("community.search")}
           </button>
         </div>
+        <p className="hint">{t("friends.searchHint")}</p>
         {submitted.length >= 2 && (
           <QueryState query={found}>
             {(people) => (people.length === 0 ? <p className="hint">{t("community.noResults")}</p> : <PeopleList people={people} />)}
           </QueryState>
         )}
       </form>
-      <section className="card" aria-labelledby="following-title">
-        <h2 id="following-title">{t("community.followingList")}</h2>
-        <QueryState query={following}>
-          {(people) => (people.length === 0 ? <p className="hint">{t("community.noFollowing")}</p> : <PeopleList people={people} />)}
+      <section className="card" aria-labelledby="friends-title">
+        <h2 id="friends-title">{t("friends.yours")}</h2>
+        <QueryState query={friends}>
+          {(people) => (people.length === 0 ? <p className="hint">{t("friends.none")}</p> : <PeopleList people={people} />)}
         </QueryState>
       </section>
-      <section className="card" aria-labelledby="followers-title">
-        <h2 id="followers-title">{t("community.followersList")}</h2>
-        <QueryState query={followers}>
-          {(people) => (people.length === 0 ? <p className="hint">{t("community.noFollowers")}</p> : <PeopleList people={people} />)}
-        </QueryState>
-      </section>
+      {outgoing.length > 0 && (
+        <section className="card" aria-labelledby="outgoing-title">
+          <h2 id="outgoing-title">{t("friends.outgoing")}</h2>
+          <p className="hint">{t("friends.outgoingHint")}</p>
+          <PeopleList people={outgoing} />
+        </section>
+      )}
     </>
   );
 }
@@ -131,26 +165,43 @@ function PeopleList({ people }: { people: Schemas["Person"][] }) {
     <ul className="people">
       {people.map((p) => (
         <li key={p.user_id} className="person">
-          <div>
+          <span className="profile-avatar" aria-hidden="true">
+            {p.name[0]?.toUpperCase()}
+          </span>
+          <div className="person-main">
             <Link to={`/community/users/${p.user_id}`}>{p.name}</Link>
-            {p.i_follow && p.follows_me && <span className="pill"> {t("community.friend")}</span>}
-            {!p.i_follow && p.follows_me && <span className="pill"> {t("community.followsYou")}</span>}
             <p className="hint">
-              {t("community.streakDays", { n: p.streak })} · {t("community.xpToday", { n: p.xp_today })}
+              {p.relation === "request_received"
+                ? t("friends.wantsYou")
+                : p.relation === "request_sent"
+                  ? t("friends.waiting")
+                  : `${t("community.streakDays", { n: p.streak })} · ${t("community.xpToday", { n: p.xp_today })}`}
             </p>
           </div>
-          <FollowButton userId={p.user_id} following={p.i_follow} refresh={[PEOPLE_KEY, BOARD_KEY]} />
+          <span className="person-actions">
+            {p.relation === "friends" && (
+              <Link className="button" to={`/community/messages/${p.user_id}`}>
+                <Icon name="chat" size={16} /> {t("chat.write")}
+              </Link>
+            )}
+            <FriendButton userId={p.user_id} relation={p.relation} refresh={[PEOPLE_KEY, BOARD_KEY]} />
+          </span>
         </li>
       ))}
     </ul>
   );
 }
 
-/** One learner's public page: name, XP, streak, followers, and follow. */
+/** One learner's public page: name, XP, streak, friends, and what you can do about them. */
 export function ProfilePage() {
   const { t } = useI18n();
   const { userId = "" } = useParams();
-  const profile = useQuery({ queryKey: ["community", "profile", userId], queryFn: () => community.profile(userId), retry: false });
+  const queryClient = useQueryClient();
+  const key = ["community", "profile", userId];
+  const profile = useQuery({ queryKey: key, queryFn: () => community.profile(userId), retry: false });
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: ["community"] });
+  const block = useMutation({ mutationFn: () => community.block(userId), onSuccess: refresh });
+  const unblock = useMutation({ mutationFn: () => community.unblock(userId), onSuccess: refresh });
   return (
     <div className="page community">
       <p className="breadcrumbs">
@@ -171,17 +222,48 @@ export function ProfilePage() {
                   {p.is_me && <span className="pill"> {t("community.you")}</span>}
                 </h1>
                 <p className="hint">{t("community.since", { date: new Date(p.member_since).toLocaleDateString() })}</p>
-                {p.i_follow && p.follows_me && <span className="pill">{t("community.friend")}</span>}
-                {!p.i_follow && p.follows_me && <span className="pill">{t("community.followsYou")}</span>}
+                {p.relation === "friends" && <span className="pill friend-pill">{t("community.friend")}</span>}
+                {p.relation === "request_received" && <span className="pill">{t("friends.wantsYou")}</span>}
+                {p.relation === "request_sent" && <span className="pill">{t("friends.waiting")}</span>}
               </div>
               <dl className="stats">
                 <Stat label={t("community.statXpTotal")} value={p.xp_total.toLocaleString()} />
                 <Stat label={t("community.statXpWeek")} value={p.xp_week.toLocaleString()} />
                 <Stat label={t("community.statStreak")} value={String(p.streak)} />
-                <Stat label={t("community.statFollowers")} value={String(p.followers)} />
-                <Stat label={t("community.statFollowing")} value={String(p.following)} />
+                <Stat label={t("friends.stat")} value={String(p.friends)} />
               </dl>
-              {!p.is_me && <FollowButton userId={p.user_id} following={p.i_follow} refresh={[["community", "profile", userId], PEOPLE_KEY, BOARD_KEY]} />}
+              {!p.is_me && (
+                <div className="profile-actions">
+                  {p.blocked ? (
+                    <>
+                      <p className="banner warning">{t("friends.blockedNote")}</p>
+                      <button type="button" disabled={unblock.isPending} onClick={() => unblock.mutate()}>
+                        {t("friends.unblock")}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {p.relation === "friends" && (
+                        <Link className="button primary" to={`/community/messages/${p.user_id}`}>
+                          <Icon name="chat" size={16} /> {t("chat.write")}
+                        </Link>
+                      )}
+                      <FriendButton userId={p.user_id} relation={p.relation} refresh={[key, PEOPLE_KEY, BOARD_KEY]} />
+                      <button
+                        type="button"
+                        className="link danger"
+                        disabled={block.isPending}
+                        onClick={() => {
+                          if (window.confirm(t("friends.blockConfirm", { name: p.name }))) block.mutate();
+                        }}
+                      >
+                        {t("friends.block")}
+                      </button>
+                    </>
+                  )}
+                  <ErrorBanner error={block.error ?? unblock.error} />
+                </div>
+              )}
             </section>
           )}
         </QueryState>

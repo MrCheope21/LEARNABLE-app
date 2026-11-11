@@ -13,7 +13,8 @@ EssentialPoints = Annotated[
 ]
 Difficulty = Annotated[int, Field(ge=1, le=5)]
 # 1 Essential, 2 Important, 3 Extra.
-Priority = Annotated[int, Field(ge=1, le=3)]
+# 1 Essential, 2 Important, 3 Useful, 4 Accessory, 5 In depth (models/enums.py).
+Priority = Annotated[int, Field(ge=1, le=5)]
 QuestionText = Annotated[str, Field(min_length=1, max_length=2000)]
 
 

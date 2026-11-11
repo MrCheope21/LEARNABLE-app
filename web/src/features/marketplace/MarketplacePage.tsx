@@ -6,6 +6,7 @@ import { marketplace, type ListingFilters } from "../../api/endpoints";
 import { Icon } from "../../components/Icon";
 import { HelpTip } from "../../components/HelpTip";
 import { QueryState } from "../../components/QueryState";
+import { Stars } from "../../components/Stars";
 import { useLabels } from "../../components/useLabels";
 import { useI18n } from "../../i18n";
 import type { MessageKey } from "../../i18n/messages/en";
@@ -15,7 +16,7 @@ import { CATEGORIES, LEVELS, categoryIcon } from "./labels";
 const COVER_HUES = ["#1555DD", "#0F766E", "#7C3AED", "#B45309", "#BE185D", "#15803D", "#1D4ED8", "#9333EA", "#0E7490", "#A21CAF", "#C2410C", "#4338CA", "#475569"];
 const LANGUAGE_CODES = ["it", "en"];
 const SIZES = ["small", "medium", "large"] as const;
-const SORTS = ["popular", "newest", "largest"] as const;
+const SORTS = ["popular", "best_rated", "newest", "largest"] as const;
 
 type Listing = Schemas["ListingSummary"];
 
@@ -112,6 +113,14 @@ export function MarketplacePage() {
           </select>
         </label>
         <label>
+          {t("mkt.price")}
+          <select value={filters.price ?? ""} onChange={(e) => set({ price: (e.target.value || undefined) as ListingFilters["price"] })}>
+            <option value="">{t("mkt.any")}</option>
+            <option value="free">{t("price.free")}</option>
+            <option value="paid">{t("mkt.pricePaid")}</option>
+          </select>
+        </label>
+        <label>
           {t("mkt.sort")}
           <select value={filters.sort ?? "popular"} onChange={(e) => set({ sort: e.target.value as ListingFilters["sort"] })}>
             {SORTS.map((s) => (
@@ -166,6 +175,9 @@ function PublishedByMe() {
           </li>
         ))}
       </ul>
+      <p>
+        <Link to="/marketplace/sales">{t("sell.link")}</Link>
+      </p>
     </details>
   );
 }
@@ -188,6 +200,12 @@ function ListingCard({ listing }: { listing: Listing }) {
         {count("unit.question", listing.item_count)} · {count("unit.chapter", listing.chapter_count)} · {levelLabel[listing.level]} ·{" "}
         {languageName(listing.language)}
       </p>
+      {listing.rating_average !== null && listing.rating_average !== undefined && (
+        <p className="listing-rating">
+          <Stars value={listing.rating_average} size={14} /> <strong>{listing.rating_average.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</strong>{" "}
+          <span className="hint">({listing.rating_count})</span>
+        </p>
+      )}
       <div className="listing-foot">
         <strong>{priceLabel(listing)}</strong>
         {listing.course_id ? <span className="pill">{t("mkt.inYourCourses")}</span> : <span className="hint">{count("mkt.students", listing.acquisition_count)}</span>}

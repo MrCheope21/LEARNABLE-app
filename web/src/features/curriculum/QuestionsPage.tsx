@@ -12,7 +12,7 @@ import { useI18n } from "../../i18n";
 import type { MessageKey } from "../../i18n/messages/en";
 import { Breadcrumbs } from "./Consolidate";
 import { useReadOnlyCourse } from "../../components/CourseAccess";
-import { PriorityBadge, PrioritySelect } from "../../components/PriorityBadge";
+import { PriorityBadge, PrioritySelect, PRIORITIES } from "../../components/PriorityBadge";
 import { Tooltip } from "../../components/Tooltip";
 import { studyLink } from "../study/StudyPage";
 import { ReferenceDrawingEditor } from "./ReferenceDrawingEditor";
@@ -160,7 +160,7 @@ export function QuestionsPage() {
           onChange={(e) => setPriorityFilter(e.target.value ? Number(e.target.value) : null)}
         >
           <option value="">{t("q.allPriorities")}</option>
-          {[1, 2, 3].map((p) => (
+          {PRIORITIES.map((p) => (
             <option key={p} value={p}>
               {t("q.priorityOnly", { label: priorityLabel[p] ?? "", n: (items.data ?? []).filter((i) => i.priority === p).length })}
             </option>
@@ -201,7 +201,7 @@ export function QuestionsPage() {
             onChange={(e) => e.target.value && bulk.mutate({ item_ids: ids, action: "set_priority", priority: Number(e.target.value), delete_emptied_concepts: false })}
           >
             <option value="">{t("q.setPriorityPlaceholder")}</option>
-            {[1, 2, 3].map((p) => (
+            {PRIORITIES.map((p) => (
               <option key={p} value={p}>
                 {priorityLabel[p]}
               </option>

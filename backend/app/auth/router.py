@@ -149,6 +149,8 @@ def update_preferences(
         current_user.username = name or None
     if payload.community_visible is not None:
         current_user.community_visible = payload.community_visible
+    if payload.email_updates is not None:
+        current_user.email_updates = payload.email_updates
     # Visible people need a name (it is all others see); clearing the name takes you out.
     if current_user.community_visible and not current_user.display_name:
         if payload.community_visible:
