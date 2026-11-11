@@ -29,9 +29,11 @@ def migration_engine(database_url: str, engine: Engine, tmp_path):
         fresh.dispose()
     else:
         yield engine
+        # Not metadata.drop_all: it drops constraints by the models' names, and a constraint
+        # created by a migration may be named differently. Empty the schema instead.
         with engine.begin() as conn:
-            conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
-        Base.metadata.drop_all(engine)
+            conn.execute(text("DROP SCHEMA public CASCADE"))
+            conn.execute(text("CREATE SCHEMA public"))
 
 
 def _alembic_config(connection) -> Config:
