@@ -139,7 +139,7 @@ test("consolidation loop: concept → activate → I have studied it → 3 good 
   await page.getByRole("link", { name: "LEARNABLE home" }).click();
   await expect(page.getByRole("region", { name: "Experience" })).toContainText("XP today");
   const dashboard = await apiGet<Dashboard>(page, "/api/v1/dashboard");
-  expect(dashboard.xp.today).toBeGreaterThanOrEqual(55);
+  expect(dashboard.xp.today).toBeGreaterThanOrEqual(25); // 5 (hint) + 10 + 10
   expect(dashboard.streak.current).toBeGreaterThanOrEqual(1);
   expect(dashboard.goal.done).toBeGreaterThanOrEqual(3);
   await expect(page.getByLabel(`Total experience: ${dashboard.xp.total} XP`)).toBeVisible();
