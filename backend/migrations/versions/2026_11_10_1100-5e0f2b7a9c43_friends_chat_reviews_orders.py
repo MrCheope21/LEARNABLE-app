@@ -273,11 +273,11 @@ def upgrade() -> None:
 
     with op.batch_alter_table("users", schema=None) as batch_op:
         batch_op.add_column(
-            sa.Column("email_updates", sa.Boolean(), server_default=sa.text("1"), nullable=False)
+            sa.Column("email_updates", sa.Boolean(), server_default=sa.true(), nullable=False)
         )
         batch_op.add_column(sa.Column("payout_account_id", sa.String(length=255), nullable=True))
         batch_op.add_column(
-            sa.Column("payout_ready", sa.Boolean(), server_default=sa.text("0"), nullable=False)
+            sa.Column("payout_ready", sa.Boolean(), server_default=sa.false(), nullable=False)
         )
 
 
