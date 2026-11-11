@@ -340,10 +340,10 @@ def downgrade() -> None:
 
     op.create_table(
         "follows",
-        sa.Column("id", sa.CHAR(length=32), nullable=False),
-        sa.Column("follower_id", sa.CHAR(length=32), nullable=False),
-        sa.Column("followee_id", sa.CHAR(length=32), nullable=False),
-        sa.Column("created_at", sa.DATETIME(), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("follower_id", sa.Uuid(), nullable=False),
+        sa.Column("followee_id", sa.Uuid(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.CheckConstraint("follower_id <> followee_id", name=op.f("ck_follows_not_self")),
         sa.ForeignKeyConstraint(
             ["followee_id"],
