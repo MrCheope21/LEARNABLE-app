@@ -103,15 +103,15 @@ test("consolidation loop: concept → activate → I have studied it → 3 good 
   await expect(page.getByText(/Correct · \+5 XP · Hint used/)).toBeVisible();
   expect(first.schedule).toBeNull(); // rounds seconds apart aren't reviews
 
-  // Rounds 2 and 3 of the same item: 20 and 30 XP.
+  // Rounds 2 and 3 of the same item: still level 0, so 10 XP each (xp_v2).
   await page.getByRole("button", { name: /Continue/ }).click();
   await expect(page.getByText("Good answer 2 of 3")).toBeVisible();
   const second = await answerCurrent(page);
-  expect(second.xp?.xp).toBe(20);
+  expect(second.xp?.xp).toBe(10);
   await page.getByRole("button", { name: /Continue/ }).click();
   await expect(page.getByText("Good answer 3 of 3")).toBeVisible();
   const third = await answerCurrent(page);
-  expect(third.xp?.xp).toBe(30);
+  expect(third.xp?.xp).toBe(10);
   // Only the last round is scheduled: an encoding, level 0 → 1.
   expect(third.schedule?.next_level).toBe(1);
 
@@ -121,7 +121,7 @@ test("consolidation loop: concept → activate → I have studied it → 3 good 
   await page.getByRole("button", { name: /^Hard/ }).click();
   const override = (await (await overridden).json()) as AnswerResult;
   expect(override.final_outcome).toBe("HARD");
-  expect(override.xp?.xp).toBe(30);
+  expect(override.xp?.xp).toBe(10);
   await expect(page.getByText("Graded by you")).toBeVisible();
 
   // Finish the batch (other items, if the concept has several).
@@ -224,7 +224,7 @@ test("curriculum loop: new course → chapter → upload → AI proposal → edi
         "# Il pegno\n\nIl pegno e una garanzia reale su beni mobili consegnati al creditore.\n",
     ),
   });
-  await expect(page.getByText("Ready")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Ready", { exact: true })).toBeVisible({ timeout: 30_000 });
 
   await page.getByRole("button", { name: "Analyze new material" }).click();
   const topicTitle = page.getByLabel("Topic title").first();
