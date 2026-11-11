@@ -59,6 +59,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Reports
+         * @description What people reported (a person, a message, a review): open ones first.
+         */
+        get: operations["list_reports_api_v1_admin_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/{report_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen Report */
+        post: operations["reopen_report_api_v1_admin_reports__report_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/reports/{report_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Report */
+        post: operations["resolve_report_api_v1_admin_reports__report_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/reviews/{review_id}": {
         parameters: {
             query?: never;
@@ -286,6 +340,29 @@ export interface paths {
          *     a fresh token for this one.
          */
         post: operations["change_password_api_v1_auth_change_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/delete-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete My Account
+         * @description Deletes the account for good, with everything it owns: courses, uploaded files, answers,
+         *     XP, friendships, messages, reviews and the courses it published (people who already have
+         *     one keep their copy). Needs the password (422 `wrong_password`). The only administrator
+         *     can't leave (409 `last_admin`): the site would have nobody to run it.
+         */
+        post: operations["delete_my_account_api_v1_auth_delete_account_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1531,6 +1608,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Interests
+         * @description The tags the user follows, and tags of published courses they could follow.
+         */
+        get: operations["list_interests_api_v1_interests_get"];
+        /**
+         * Follow Tag
+         * @description Follow a tag: a notification when a course carrying it is first published.
+         */
+        put: operations["follow_tag_api_v1_interests_put"];
+        post?: never;
+        /** Unfollow Tag */
+        delete: operations["unfollow_tag_api_v1_interests_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/learning-items/{item_id}": {
         parameters: {
             query?: never;
@@ -2038,6 +2140,26 @@ export interface paths {
         patch: operations["update_question_api_v1_questions__question_id__patch"];
         trace?: never;
     };
+    "/api/v1/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report
+         * @description Tell the administrator about a person, a message you received or a review.
+         */
+        post: operations["report_api_v1_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/review-sessions/{session_id}": {
         parameters: {
             query?: never;
@@ -2300,6 +2422,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AccountDelete
+         * @description Deleting your own account: the password again, so a session left open can't do it.
+         */
+        AccountDelete: {
+            /** Password */
+            password: string;
+        };
         /** Acquired */
         Acquired: {
             /**
@@ -2358,6 +2488,11 @@ export interface components {
             default_storage_mb: number;
             /** Email Enabled */
             email_enabled: boolean;
+            /**
+             * Open Reports
+             * @default 0
+             */
+            open_reports: number;
             /** Registration Open */
             registration_open: boolean;
             /** Shared Daily Cap */
@@ -3464,6 +3599,13 @@ export interface components {
             /** Notifications */
             notifications: number;
         };
+        /** Interests */
+        Interests: {
+            /** Suggestions */
+            suggestions: string[];
+            /** Tags */
+            tags: string[];
+        };
         /**
          * Introduction
          * @description LEARN only: what to encode, shown before the first retrieval.
@@ -4490,6 +4632,68 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** ReportCreate */
+        ReportCreate: {
+            kind: components["schemas"]["ReportKind"];
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+        };
+        /**
+         * ReportKind
+         * @enum {string}
+         */
+        ReportKind: "user" | "message" | "review";
+        /**
+         * ReportRead
+         * @description What the administrator sees: who reported, about whom, and the reported text itself
+         *     (copied when the report was made).
+         */
+        ReportRead: {
+            /** Created At */
+            created_at: string;
+            /** Excerpt */
+            excerpt: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["ReportKind"];
+            /** Reason */
+            reason: string;
+            /** Reporter */
+            reporter: string;
+            /** Reporter Email */
+            reporter_email: string;
+            /** Resolved At */
+            resolved_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "OPEN" | "RESOLVED";
+            /** Subject */
+            subject: string | null;
+            /** Subject Email */
+            subject_email: string | null;
+            /** Subject Id */
+            subject_id: string | null;
+            /** Subject Reports */
+            subject_reports: number;
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+        };
         /**
          * ReviewLoad
          * @description Upcoming reviews of items that can be reviewed now (active, trained, not paused), by the
@@ -4743,6 +4947,11 @@ export interface components {
          * @enum {string}
          */
         StudyState: "NOT_STUDIED" | "STUDIED" | "ACTIVE" | "PAUSED" | "COMPLETED";
+        /** TagFollow */
+        TagFollow: {
+            /** Tag */
+            tag: string;
+        };
         /** TemporaryPassword */
         TemporaryPassword: {
             /** Password */
@@ -5177,6 +5386,84 @@ export interface operations {
             };
         };
     };
+    list_reports_api_v1_admin_reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportRead"][];
+                };
+            };
+        };
+    };
+    reopen_report_api_v1_admin_reports__report_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_report_api_v1_admin_reports__report_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_review_api_v1_admin_reviews__review_id__delete: {
         parameters: {
             query?: never;
@@ -5558,6 +5845,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Token"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_my_account_api_v1_auth_delete_account_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDelete"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -8150,6 +8468,90 @@ export interface operations {
             };
         };
     };
+    list_interests_api_v1_interests_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Interests"];
+                };
+            };
+        };
+    };
+    follow_tag_api_v1_interests_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagFollow"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Interests"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unfollow_tag_api_v1_interests_delete: {
+        parameters: {
+            query: {
+                tag: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Interests"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_learning_item_api_v1_learning_items__item_id__get: {
         parameters: {
             query?: never;
@@ -9129,6 +9531,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["QuestionRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_api_v1_reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

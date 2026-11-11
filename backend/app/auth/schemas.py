@@ -121,6 +121,12 @@ class PasswordChange(_AuthInput):
     new_password: NewPassword
 
 
+class AccountDelete(_AuthInput):
+    """Deleting your own account: the password again, so a session left open can't do it."""
+
+    password: Annotated[str, Field(min_length=1, max_length=128)]
+
+
 class MessageRead(BaseModel):
     detail: str
 

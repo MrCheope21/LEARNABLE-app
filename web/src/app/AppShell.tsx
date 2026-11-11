@@ -73,7 +73,7 @@ function BottomNav() {
 export function TopNav() {
   const summary = useQuery({ queryKey: dashboardKey, queryFn: dashboard.get });
   const streak = summary.data?.streak.current;
-  const xp = summary.data?.xp.total;
+  const xp = summary.data?.xp.today;
   const { t } = useI18n();
   const inbox = useInbox();
   const social = inbox.messages + inbox.friend_requests;
@@ -105,8 +105,8 @@ export function TopNav() {
             </span>
           )}
           {xp !== undefined && (
-            <span className="nav-stat xp-stat" title={t("nav.xp", { n: xp })} aria-label={t("nav.xp", { n: xp })}>
-              <XpIcon /> {xp.toLocaleString()}
+            <span className="nav-stat xp-stat" title={t("nav.xpToday", { n: xp })} aria-label={t("nav.xpToday", { n: xp })}>
+              <XpIcon /> +{xp.toLocaleString()}
             </span>
           )}
           <NavLink to="/notifications" className="nav-bell" aria-label={inbox.notifications > 0 ? t("nav.notificationsN", { n: inbox.notifications }) : t("nav.notifications")}>

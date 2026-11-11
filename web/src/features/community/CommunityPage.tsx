@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
 import { Link, NavLink, useParams } from "react-router-dom";
-import { community, type Period, type Scope } from "../../api/endpoints";
+import { community, courses, type Period, type Scope } from "../../api/endpoints";
 import type { Schemas } from "../../api/client";
 import { meKey } from "../../app/AppShell";
 import { auth } from "../../api/endpoints";
 import { Icon } from "../../components/Icon";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
+import { ReportButton } from "../../components/ReportButton";
 import { useI18n } from "../../i18n";
 import { badge, useInbox } from "../notifications/useInbox";
 import { MessagesTab } from "./ChatPage";
@@ -89,10 +90,31 @@ function JoinBanner() {
 export function GlobalBoard() {
   const [period, setPeriod] = useState<Period>("week");
   const [scope, setScope] = useState<Scope>("everyone");
-  const board = useQuery({ queryKey: [...BOARD_KEY, period, scope], queryFn: () => community.leaderboard(period, scope) });
+  // "" = XP from every course; otherwise the XP earned in that one course.
+  const [courseId, setCourseId] = useState("");
+  const { t } = useI18n();
+  const mine = useQuery({ queryKey: ["courses"], queryFn: courses.list });
+  const board = useQuery({
+    queryKey: [...BOARD_KEY, period, scope, courseId],
+    queryFn: () => (courseId ? community.courseLeaderboard(courseId, period, scope) : community.leaderboard(period, scope)),
+  });
   return (
     <>
       <BoardControls period={period} scope={scope} onPeriod={setPeriod} onScope={setScope} />
+      {(mine.data?.length ?? 0) > 0 && (
+        <label className="inline-form board-course">
+          {t("community.boardCourse")}
+          <select value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+            <option value="">{t("community.allCourses")}</option>
+            {mine.data?.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.title}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {courseId && <p className="hint">{t("community.boardCourseHint")}</p>}
       <QueryState query={board}>{(data) => <LeaderboardList board={data} queryKeys={[BOARD_KEY]} />}</QueryState>
     </>
   );
@@ -138,7 +160,7 @@ export function FriendsTab() {
         <p className="hint">{t("friends.searchHint")}</p>
         {submitted.length >= 2 && (
           <QueryState query={found}>
-            {(people) => (people.length === 0 ? <p className="hint">{t("community.noResults")}</p> : <PeopleList people={people} />)}
+            {(people) => (people.length === 0 ? <p className="banner info">{t("friends.searchHelp")}</p> : <PeopleList people={people} />)}
           </QueryState>
         )}
       </form>
@@ -261,6 +283,7 @@ export function ProfilePage() {
                       </button>
                     </>
                   )}
+                  <ReportButton kind="user" targetId={p.user_id} />
                   <ErrorBanner error={block.error ?? unblock.error} />
                 </div>
               )}

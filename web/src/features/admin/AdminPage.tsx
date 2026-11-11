@@ -28,7 +28,7 @@ function megabytes(bytes: number): string {
 export function AdminPage() {
   const { t } = useI18n();
   const me = useQuery({ queryKey: meKey, queryFn: auth.me });
-  const [tab, setTab] = useState<"users" | "invites">("users");
+  const [tab, setTab] = useState<"users" | "invites" | "reports">("users");
   const summary = useQuery({ queryKey: summaryKey, queryFn: admin.summary, enabled: me.data?.is_admin === true });
   if (me.isPending) return <div className="state" role="status">{t("common.loading")}</div>;
   if (!me.data?.is_admin) return <Navigate to="/" replace />;
@@ -51,26 +51,147 @@ export function AdminPage() {
         <button type="button" aria-pressed={tab === "invites"} onClick={() => setTab("invites")}>
           {t("admin.tabInvites")}
         </button>
+        <button type="button" aria-pressed={tab === "reports"} onClick={() => setTab("reports")}>
+          {t("admin.tabReports")}
+          {(summary.data?.open_reports ?? 0) > 0 && <span className="count-badge">{summary.data?.open_reports}</span>}
+        </button>
       </nav>
-      {tab === "users" ? <Users myId={me.data.id} /> : <Invitations />}
+      {tab === "users" ? <Users myId={me.data.id} /> : tab === "invites" ? <Invitations /> : <Reports />}
     </div>
   );
 }
 
 function Users({ myId }: { myId: string }) {
+  const { t } = useI18n();
   const users = useQuery({ queryKey: usersKey, queryFn: admin.users });
+  const [search, setSearch] = useState("");
+  const [only, setOnly] = useState<"all" | "suspended" | "admins">("all");
+  const needle = search.trim().toLowerCase();
   return (
-    <QueryState query={users}>
-      {(rows) => (
-        <ul className="admin-list">
-          {rows.map((user) => (
-            <li key={user.id}>
-              <UserCard user={user} isMe={user.id === myId} />
-            </li>
+    <>
+      <div className="queue-tools admin-search">
+        <input type="search" value={search} placeholder={t("admin.search")} aria-label={t("admin.search")} onChange={(e) => setSearch(e.target.value)} />
+        <div className="tabs" role="group" aria-label={t("admin.filter")}>
+          {(["all", "suspended", "admins"] as const).map((value) => (
+            <button key={value} type="button" aria-pressed={only === value} onClick={() => setOnly(value)}>
+              {t(`admin.filter.${value}` as MessageKey)}
+            </button>
           ))}
-        </ul>
-      )}
-    </QueryState>
+        </div>
+      </div>
+      <QueryState query={users}>
+        {(rows) => {
+          const shown = rows.filter(
+            (user) =>
+              (only === "all" || (only === "suspended" ? !user.is_active : user.is_admin)) &&
+              (!needle || `${user.email} ${user.username ?? ""} ${user.display_name ?? ""}`.toLowerCase().includes(needle)),
+          );
+          return shown.length === 0 ? (
+            <p className="state">{t("admin.noMatch")}</p>
+          ) : (
+            <>
+              <p className="hint">{t("admin.shown", { n: shown.length, total: rows.length })}</p>
+              <ul className="admin-list">
+                {shown.map((user) => (
+                  <li key={user.id}>
+                    <UserCard user={user} isMe={user.id === myId} />
+                  </li>
+                ))}
+              </ul>
+            </>
+          );
+        }}
+      </QueryState>
+    </>
+  );
+}
+
+const reportsKey = ["admin", "reports"] as const;
+
+/** What people reported: the reported text itself, who it is about, and what to do about it. */
+function Reports() {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const list = useQuery({ queryKey: reportsKey, queryFn: admin.reports });
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ["admin"] });
+  };
+  const resolve = useMutation({ mutationFn: (id: string) => admin.resolveReport(id), onSuccess: refresh });
+  const reopen = useMutation({ mutationFn: (id: string) => admin.reopenReport(id), onSuccess: refresh });
+  const suspend = useMutation({ mutationFn: (userId: string) => admin.updateUser(userId, { is_active: false }), onSuccess: refresh });
+  const removeReview = useMutation({ mutationFn: (reviewId: string) => admin.deleteReview(reviewId), onSuccess: refresh });
+  const busy = resolve.isPending || reopen.isPending || suspend.isPending || removeReview.isPending;
+  return (
+    <>
+      <QueryState query={list}>
+        {(rows) =>
+          rows.length === 0 ? (
+            <p className="state">{t("admin.reportsNone")}</p>
+          ) : (
+            <ul className="admin-list">
+              {rows.map((report) => (
+                <li key={report.id}>
+                  <article className={report.status === "OPEN" ? "card admin-report" : "card admin-report resolved"}>
+                    <header className="card-header">
+                      <strong>
+                        {t(`admin.reportKind.${report.kind}` as MessageKey)}
+                        {report.subject && `: ${report.subject}`}
+                      </strong>
+                      <span className={report.status === "OPEN" ? "pill danger" : "pill"}>{t(report.status === "OPEN" ? "admin.reportOpen" : "admin.reportResolved")}</span>
+                    </header>
+                    <p className="hint">
+                      {t("admin.reportBy", { who: report.reporter_email, date: dateTime(report.created_at) })}
+                      {report.subject_email && ` · ${t("admin.reportAbout", { who: report.subject_email, n: report.subject_reports })}`}
+                    </p>
+                    {report.excerpt && <blockquote className="report-excerpt">{report.excerpt}</blockquote>}
+                    {report.reason && (
+                      <p>
+                        <strong>{t("admin.reportReason")}</strong> {report.reason}
+                      </p>
+                    )}
+                    <div className="actions">
+                      {report.status === "OPEN" ? (
+                        <button type="button" className="primary" disabled={busy} onClick={() => resolve.mutate(report.id)}>
+                          {t("admin.reportResolve")}
+                        </button>
+                      ) : (
+                        <button type="button" disabled={busy} onClick={() => reopen.mutate(report.id)}>
+                          {t("admin.reportReopen")}
+                        </button>
+                      )}
+                      {report.kind === "review" && report.status === "OPEN" && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
+                            if (window.confirm(t("review.moderateConfirm"))) removeReview.mutate(report.target_id);
+                          }}
+                        >
+                          {t("review.moderate")}
+                        </button>
+                      )}
+                      {report.subject_id && report.status === "OPEN" && (
+                        <button
+                          type="button"
+                          className="link danger"
+                          disabled={busy}
+                          onClick={() => {
+                            if (window.confirm(t("admin.reportSuspendConfirm", { who: report.subject_email ?? "" }))) suspend.mutate(report.subject_id as string);
+                          }}
+                        >
+                          {t("admin.suspend")}
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </QueryState>
+      <ErrorBanner error={resolve.error ?? reopen.error ?? suspend.error ?? removeReview.error} />
+    </>
   );
 }
 

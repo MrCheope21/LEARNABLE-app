@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { auth, community } from "../../api/endpoints";
 import { dashboardKey, meKey, TimezoneForm } from "../../app/AppShell";
@@ -366,6 +367,51 @@ function SecuritySection() {
         </button>
         <p className="hint">{t("settings.signOutHint")}</p>
       </div>
+      <p>
+        <Link to="/privacy">{t("privacy.title")}</Link>
+      </p>
+      <DeleteAccount />
     </section>
+  );
+}
+
+/** Deleting the account for good: asked twice (open the form, then type the password). */
+function DeleteAccount() {
+  const { t } = useI18n();
+  const { signOut } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const id = useId();
+  const remove = useMutation({ mutationFn: () => auth.deleteAccount(password), onSuccess: signOut });
+  if (!open) {
+    return (
+      <div>
+        <button type="button" className="link danger" onClick={() => setOpen(true)}>
+          {t("account.delete")}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <form
+      className="settings-form delete-account"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (password) remove.mutate();
+      }}
+    >
+      <p className="banner warning">{t("account.deleteWarn")}</p>
+      <label htmlFor={id}>{t("account.deletePassword")}</label>
+      <input id={id} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <div className="actions">
+        <button type="submit" className="danger" disabled={!password || remove.isPending}>
+          {t("account.deleteConfirm")}
+        </button>
+        <button type="button" className="link" onClick={() => setOpen(false)}>
+          {t("common.cancel")}
+        </button>
+      </div>
+      <ErrorBanner error={remove.error} />
+    </form>
   );
 }

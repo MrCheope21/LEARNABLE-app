@@ -244,9 +244,16 @@ function PriceField({ payout, price, onPrice, ids }: { payout: Schemas["PayoutSt
   if (!payout) return null;
   if (!payout.enabled) {
     return (
-      <p className="price-box hint">
-        <strong>{t("sell.price")}:</strong> {t("price.free")}. {t("sell.offNote")}
-      </p>
+      <div className="price-box">
+        <label htmlFor={`${ids}-price`}>{t("sell.price")}</label>
+        <div className="price-input">
+          <span aria-hidden="true">€</span>
+          <input id={`${ids}-price`} value={t("price.free")} disabled readOnly />
+        </div>
+        <p className="hint">
+          {t("sell.offNote")} <Link to="/marketplace/sales">{t("sell.offMore")}</Link>
+        </p>
+      </div>
     );
   }
   if (!payout.ready) {

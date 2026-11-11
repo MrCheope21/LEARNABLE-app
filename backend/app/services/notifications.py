@@ -8,6 +8,8 @@ transaction, and read by the bell in the app. Kinds and their `data`:
     course_review       {listing_id, title, rating}          actor = the reviewer
     review_reply        {listing_id, title}                  actor = the author
     course_sold         {listing_id, title, amount_cents, currency}   actor = the buyer
+    course_new          {listing_id, title, tag}             actor = the author; `tag` is the
+                        followed tag that matched (services/interests.py)
 """
 
 import uuid

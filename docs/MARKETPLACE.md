@@ -107,6 +107,15 @@ Stripe's own fees are taken from the platform's share (destination charges), so
 `PLATFORM_FEE_PERCENT` has to cover them: on small prices the fixed part of Stripe's fee can be
 larger than 10%.
 
+### PayPal
+
+Buyers can pay with PayPal through the same Stripe Checkout page: no code changes, because the
+checkout doesn't fix the payment methods. It has to be requested and enabled in the Stripe
+dashboard (Settings → Payment methods → PayPal); for marketplaces on Connect, Stripe and PayPal
+review the request, which can take weeks, and it is offered to businesses in European countries.
+Authors are still paid out by Stripe to their bank account, not to a PayPal balance. A separate
+PayPal integration (PayPal Commerce Platform) is not built.
+
 ### Before selling for real
 
 Selling courses is a business activity: it needs the legal side in place first (terms of sale and

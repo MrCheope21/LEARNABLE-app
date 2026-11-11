@@ -142,7 +142,7 @@ test("consolidation loop: concept → activate → I have studied it → 3 good 
   expect(dashboard.xp.today).toBeGreaterThanOrEqual(25); // 5 (hint) + 10 + 10
   expect(dashboard.streak.current).toBeGreaterThanOrEqual(1);
   expect(dashboard.goal.done).toBeGreaterThanOrEqual(3);
-  await expect(page.getByLabel(`Total experience: ${dashboard.xp.total} XP`)).toBeVisible();
+  await expect(page.getByLabel(`XP earned today: ${dashboard.xp.today}`)).toBeVisible();
 
   await page.getByRole("link", { name: "Progress" }).click();
   await expect(page.getByRole("heading", { name: "Curriculum", exact: true })).toBeVisible();

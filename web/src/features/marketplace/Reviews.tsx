@@ -6,6 +6,7 @@ import { meKey } from "../../app/AppShell";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { StarInput, Stars } from "../../components/Stars";
 import { useLabels } from "../../components/useLabels";
+import { ReportButton } from "../../components/ReportButton";
 import { useI18n } from "../../i18n";
 
 type Review = Schemas["ListingReview"];
@@ -187,6 +188,7 @@ function ReviewItem({ review, isAuthor, isAdmin, onDone }: { review: Review; isA
             {review.reply ? t("review.editReply") : t("review.reply")}
           </button>
         )}
+        {!review.is_mine && <ReportButton kind="review" targetId={review.id} />}
         {isAdmin && !review.is_mine && (
           <button
             type="button"

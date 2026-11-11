@@ -603,6 +603,7 @@ PATCH  /api/v1/auth/me          # {"timezone"?, "daily_goal"? (1-500)}
 POST   /api/v1/auth/password-reset/request   # {"email"} → 202, same answer for any email
 POST   /api/v1/auth/password-reset/confirm   # {"token", "new_password"} → 204
 POST   /api/v1/auth/change-password          # {"current_password", "new_password"} → Token
+POST   /api/v1/auth/delete-account           # {"password"} → 204; deletes the account and all it owns
 POST   /api/v1/auth/refresh     # not yet implemented
 POST   /api/v1/auth/logout      # not yet implemented (sign-out is client-side)
 ```
@@ -626,3 +627,17 @@ POST   /api/v1/auth/logout      # not yet implemented (sign-out is client-side)
   user's calendar day for streaks, goal, XP today and activity; changing it applies from then on.
 
 See DEVELOPMENT.md "Decisions made autonomously → Auth" for the reasoning behind each rule.
+
+## Interests and reports
+
+Described in docs/COMMUNITY.md §6-§7.
+
+```
+GET    /api/v1/interests                       # {tags, suggestions}
+PUT    /api/v1/interests                       # {"tag"}
+DELETE /api/v1/interests?tag=
+POST   /api/v1/reports                         # {"kind": "user"|"message"|"review", "target_id", "reason"}
+GET    /api/v1/admin/reports                   # administrators
+POST   /api/v1/admin/reports/{id}/resolve
+POST   /api/v1/admin/reports/{id}/reopen
+```

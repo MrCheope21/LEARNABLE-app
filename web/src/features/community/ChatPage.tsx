@@ -5,6 +5,7 @@ import type { Schemas } from "../../api/client";
 import { chat, community } from "../../api/endpoints";
 import { Icon } from "../../components/Icon";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
+import { ReportButton } from "../../components/ReportButton";
 import { useI18n } from "../../i18n";
 import { inboxKey } from "../notifications/useInbox";
 
@@ -202,6 +203,7 @@ function Bubble({ message, showTime }: { message: Message; showTime: boolean }) 
           {message.mine && message.read && ` · ${t("chat.read")}`}
         </span>
       )}
+      {!message.mine && showTime && <ReportButton kind="message" targetId={message.id} />}
     </div>
   );
 }

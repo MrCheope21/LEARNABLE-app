@@ -75,9 +75,42 @@ POST /api/v1/notifications/read    # {ids?}: these, or all
 Course updates and authors' announcements are also emailed when the server can send email and the
 user left "Email me…" on in Settings (`users.email_updates`, on by default).
 
-## 6. Not built yet
+## 6. Interests: tags to hear about
 
-- No rate limits on friend requests, messages or announcements (fine while registration is by
-  invitation; needed before opening it).
-- No reporting of a person or a message to the administrator; blocking is the only tool.
+A user can follow tags (`tag_subscriptions`, lowercased, up to 30). When a course carrying one of
+them is published for the first time, each follower gets one `course_new` notification
+(`{listing_id, title, tag}`); not the author, not who already has the course, not across a block.
+A new version of a course tells only the people who have it (`course_update`).
+
+```
+GET    /api/v1/interests          # {tags, suggestions}: suggestions are tags of published courses
+PUT    /api/v1/interests          # {tag}
+DELETE /api/v1/interests?tag=
+```
+
+## 7. Reports to the administrator
+
+Anyone can report a person, a message they received or a review, with an optional reason
+(`reports`; reporting the same thing again updates it). The report keeps a copy of what was
+reported (the name, that one message, that one review): the administrator sees that and nothing
+else of anyone's conversations. In Administration → Reports the administrator marks it resolved,
+removes the review or suspends the account.
+
+```
+POST /api/v1/reports                          # {kind: user|message|review, target_id, reason}
+GET  /api/v1/admin/reports                    # open ones first
+POST /api/v1/admin/reports/{id}/resolve | /reopen
+```
+
+## 8. Privacy notice and deleting the account
+
+`/privacy` in the app (also reachable signed out) says what is stored, who sees it, what goes to
+the AI service and how to delete everything. `POST /api/v1/auth/delete-account {password}`
+deletes the signed-in account with everything it owns (the same as an administrator deleting
+it); the only administrator can't (409 `last_admin`).
+
+## 9. Not built yet
+
+- No rate limits on announcements; friend requests, messages, searches and reports are limited
+  per account per hour.
 - No push notifications (the installed web app polls while open).

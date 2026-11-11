@@ -2,13 +2,14 @@ import re
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import passwords
 from app.auth.dependencies import get_current_user
 from app.auth.schemas import (
+    AccountDelete,
     MessageRead,
     PasswordChange,
     PasswordResetConfirm,
@@ -37,7 +38,8 @@ from app.core.rate_limit import limiter, per_ip, per_user
 from app.db.session import get_db
 from app.email.sender import EmailSender, get_email_sender
 from app.models.user import User
-from app.services import community, invitations
+from app.services import accounts, community, invitations
+from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -159,6 +161,40 @@ def update_preferences(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@router.post(
+    "/delete-account",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(per_user("delete-account", 10, 900))],
+)
+def delete_my_account(
+    payload: AccountDelete,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    storage: DocumentStorage = Depends(get_document_storage),
+) -> Response:
+    """Deletes the account for good, with everything it owns: courses, uploaded files, answers,
+    XP, friendships, messages, reviews and the courses it published (people who already have
+    one keep their copy). Needs the password (422 `wrong_password`). The only administrator
+    can't leave (409 `last_admin`): the site would have nobody to run it."""
+    if not verify_password(payload.password, current_user.hashed_password):
+        raise InvalidRequestError(
+            "Your password is incorrect.", details={"reason": "wrong_password"}
+        )
+    if current_user.is_admin:
+        others = db.scalar(
+            select(func.count())
+            .select_from(User)
+            .where(User.is_admin, User.is_active, User.id != current_user.id)
+        )
+        if not others:
+            raise ConflictError(
+                "You are the only administrator: make someone else one first.",
+                details={"reason": "last_admin"},
+            )
+    accounts.delete_account(db, storage, current_user.id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 _RESET_ACCEPTED = (

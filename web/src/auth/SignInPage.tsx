@@ -89,6 +89,11 @@ export function SignInPage() {
         )}
         {mode === "register" && <p className="hint">{t("signin.usernameHint")}</p>}
         {mode === "register" && (
+          <p className="hint">
+            <a href="/privacy">{t("privacy.title")}</a>
+          </p>
+        )}
+        {mode === "register" && (
           <>
             <label>
               {t("signin.invite")}

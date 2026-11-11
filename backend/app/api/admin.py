@@ -31,7 +31,8 @@ from app.schemas.admin import (
     InvitationRead,
     TemporaryPassword,
 )
-from app.services import accounts, invitations, marketplace, quota
+from app.schemas.community import ReportRead
+from app.services import accounts, invitations, marketplace, moderation, quota
 from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -108,6 +109,7 @@ def summary(db: Session = DB) -> AdminSummary:
         default_evaluations=settings.ai_daily_evaluations,
         default_generations=settings.ai_daily_generations,
         default_storage_mb=settings.storage_limit_mb,
+        open_reports=moderation.open_count(db),
     )
 
 
@@ -167,6 +169,22 @@ def reset_password(user_id: uuid.UUID, db: Session = DB) -> TemporaryPassword:
 def delete_review(review_id: uuid.UUID, db: Session = DB) -> None:
     """Moderation: removes a marketplace review (abuse, spam)."""
     marketplace.moderate_review(db, review_id)
+
+
+@router.get("/reports", response_model=list[ReportRead])
+def list_reports(db: Session = DB) -> list[ReportRead]:
+    """What people reported (a person, a message, a review): open ones first."""
+    return moderation.listed(db)
+
+
+@router.post("/reports/{report_id}/resolve", status_code=status.HTTP_204_NO_CONTENT)
+def resolve_report(report_id: uuid.UUID, db: Session = DB) -> None:
+    moderation.set_resolved(db, report_id, True)
+
+
+@router.post("/reports/{report_id}/reopen", status_code=status.HTTP_204_NO_CONTENT)
+def reopen_report(report_id: uuid.UUID, db: Session = DB) -> None:
+    moderation.set_resolved(db, report_id, False)
 
 
 @router.get("/invitations", response_model=list[InvitationRead])

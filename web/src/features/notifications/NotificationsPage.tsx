@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
-import { notifications } from "../../api/endpoints";
+import { interests, notifications } from "../../api/endpoints";
 import { Icon, type IconName } from "../../components/Icon";
-import { QueryState } from "../../components/QueryState";
+import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { dateTime } from "../../components/labels";
 import { useI18n } from "../../i18n";
 import type { MessageKey } from "../../i18n/messages/en";
@@ -20,6 +20,7 @@ const ICONS: Record<string, IconName> = {
   course_review: "star",
   review_reply: "chat",
   course_sold: "cart",
+  course_new: "store",
 };
 
 /** What happened while you were away: friend requests, course updates, reviews, sales. */
@@ -55,7 +56,74 @@ export function NotificationsPage() {
           )
         }
       </QueryState>
+      <InterestsCard />
     </div>
+  );
+}
+
+/** Tags to hear about: a notification when a course carrying one of them is published. */
+function InterestsCard() {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const [tag, setTag] = useState("");
+  const inputId = useId();
+  const key = ["interests"] as const;
+  const state = useQuery({ queryKey: key, queryFn: interests.get });
+  const done = (data: Schemas["Interests"]) => queryClient.setQueryData(key, data);
+  const follow = useMutation({ mutationFn: (value: string) => interests.follow(value), onSuccess: (data) => { done(data); setTag(""); } });
+  const unfollow = useMutation({ mutationFn: (value: string) => interests.unfollow(value), onSuccess: done });
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (tag.trim().length >= 2) follow.mutate(tag.trim());
+  };
+  return (
+    <section className="card interests-card" aria-labelledby="interests-title">
+      <h2 id="interests-title">{t("interests.title")}</h2>
+      <p className="hint">{t("interests.hint")}</p>
+      <form className="inline-field" onSubmit={submit}>
+        <input id={inputId} value={tag} maxLength={40} placeholder={t("interests.placeholder")} aria-label={t("interests.placeholder")} onChange={(e) => setTag(e.target.value)} />
+        <button type="submit" className="primary" disabled={follow.isPending || tag.trim().length < 2}>
+          {t("interests.add")}
+        </button>
+      </form>
+      <QueryState query={state}>
+        {(data) => (
+          <>
+            {data.tags.length === 0 ? (
+              <p className="hint">{t("interests.none")}</p>
+            ) : (
+              <ul className="tag-chips">
+                {data.tags.map((value) => (
+                  <li key={value}>
+                    <span className="tag-chip on">
+                      #{value}
+                      <button type="button" aria-label={t("interests.remove", { tag: value })} title={t("interests.remove", { tag: value })} disabled={unfollow.isPending} onClick={() => unfollow.mutate(value)}>
+                        ×
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {data.suggestions.length > 0 && (
+              <>
+                <p className="hint">{t("interests.suggestions")}</p>
+                <ul className="tag-chips">
+                  {data.suggestions.map((value) => (
+                    <li key={value}>
+                      <button type="button" className="tag-chip" disabled={follow.isPending} onClick={() => follow.mutate(value)}>
+                        + #{value}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </>
+        )}
+      </QueryState>
+      <ErrorBanner error={follow.error ?? unfollow.error} />
+    </section>
   );
 }
 
@@ -70,6 +138,7 @@ function NotificationRow({ item }: { item: Item }) {
         title: String(data.title ?? ""),
         n: String(data.version ?? data.rating ?? ""),
         amount: money(data.amount_cents, data.currency),
+        tag: String(data.tag ?? ""),
       })
     : t("notif.kind.other");
   const detail = String(data.note ?? data.message ?? "");
@@ -97,6 +166,7 @@ const KNOWN: Record<string, true> = {
   "notif.kind.course_review": true,
   "notif.kind.review_reply": true,
   "notif.kind.course_sold": true,
+  "notif.kind.course_new": true,
 };
 
 function money(cents: unknown, currency: unknown): string {

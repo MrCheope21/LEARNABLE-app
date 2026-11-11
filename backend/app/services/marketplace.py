@@ -52,7 +52,7 @@ from app.schemas.marketplace import (
     ReviewWrite,
     UpdateRead,
 )
-from app.services import drawings, notifications, payments
+from app.services import drawings, interests, notifications, payments
 from app.services.courses.service import get_owned_course
 from app.services.learning.service import new_item
 from app.services.managed_courses import ensure_editable, syncing
@@ -110,6 +110,9 @@ def publish(
     _sync_all(db, storage, listing)
     if old_version >= 1:
         _tell(db, listing, "course_update", payload.update_note, version=listing.version)
+    else:
+        # The first publication: whoever follows one of its tags hears about it.
+        interests.tell_new_course(db, listing)
     db.commit()
     # The previous version's drawings, now that every course with access has the new ones.
     for key in old_drawings:

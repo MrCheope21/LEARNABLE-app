@@ -77,11 +77,9 @@ export function ExperienceWidget({ xp }: { xp: Dashboard["xp"] }) {
         <HelpTip text="help.xp" topic={t("xp.title")} guide="progress" />
       </div>
       <p className="big-number">
-        <XpIcon size={28} /> {xp.total.toLocaleString()} <span className="hint">XP</span>
+        <XpIcon size={28} /> +{xp.today.toLocaleString()} <span className="hint">{t("xp.todayUnit")}</span>
       </p>
-      <p>
-        <strong>{t("dash.xpTodayPlus", { n: xp.today.toLocaleString() })}</strong>
-      </p>
+      <p className="hint">{t("xp.periodsHint")}</p>
       <p>
         <Link to="/community" className="with-icon">
           <Icon name="trophy" size={16} /> {t("community.seeLeaderboard")}

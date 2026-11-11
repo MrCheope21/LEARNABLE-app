@@ -2,7 +2,7 @@
 anything about their courses or answers. Only people who opted in appear at all."""
 
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -160,3 +160,54 @@ class Inbox(BaseModel):
     notifications: int
     messages: int
     friend_requests: int
+
+
+# --- Interests: tags the user wants to hear about ---
+
+
+class TagFollow(InputModel):
+    tag: Annotated[str, Field(min_length=2, max_length=40)]
+
+
+class Interests(BaseModel):
+    # Followed tags, lowercased, in the order they were added.
+    tags: list[str]
+    # Tags of published courses the user doesn't follow yet, most used first.
+    suggestions: list[str]
+
+
+# --- Reports to the administrator ---
+
+
+class ReportKind(StrEnum):
+    USER = "user"
+    MESSAGE = "message"
+    REVIEW = "review"
+
+
+class ReportCreate(InputModel):
+    kind: ReportKind
+    # The user's, the message's or the review's id.
+    target_id: UUID
+    reason: Annotated[str, Field(max_length=1000)] = ""
+
+
+class ReportRead(BaseModel):
+    """What the administrator sees: who reported, about whom, and the reported text itself
+    (copied when the report was made)."""
+
+    id: UUID
+    kind: ReportKind
+    target_id: UUID
+    reporter: str
+    reporter_email: str
+    subject_id: UUID | None
+    subject: str | None
+    subject_email: str | None
+    reason: str
+    excerpt: str
+    status: Literal["OPEN", "RESOLVED"]
+    created_at: UTCTimestamp
+    resolved_at: UTCTimestamp | None
+    # How many reports, open or not, are about the same person.
+    subject_reports: int

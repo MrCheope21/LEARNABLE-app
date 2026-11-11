@@ -1,7 +1,14 @@
 """Importing this package registers every model on Base.metadata (needed by Alembic and tests)."""
 
 from app.models.auth import AiUsage, Invitation, PasswordResetToken
-from app.models.community import Block, Friendship, Message, Notification
+from app.models.community import (
+    Block,
+    Friendship,
+    Message,
+    Notification,
+    Report,
+    TagSubscription,
+)
 from app.models.course import Chapter, Concept, Course, CourseSettings, Topic
 from app.models.curriculum import ConceptSource, CurriculumProposal
 from app.models.document import Document, DocumentChunk
@@ -51,9 +58,11 @@ __all__ = [
     "Notification",
     "PasswordResetToken",
     "QuestionFormulation",
+    "Report",
     "Review",
     "ReviewSession",
     "ReviewState",
+    "TagSubscription",
     "Topic",
     "User",
     "XpAward",

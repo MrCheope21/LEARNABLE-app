@@ -81,8 +81,12 @@ describe("guide", () => {
     backend({ ...me, language: "es" });
     renderApp("/guide");
     expect(await screen.findByRole("heading", { level: 1, name: "Cómo funciona LEARNABLE" })).toBeInTheDocument();
-    expect(screen.getAllByRole("region")).toHaveLength(12);
-    expect(screen.getByRole("link", { name: "Repasa a tiempo" })).toHaveAttribute("href", "#guide-review");
+    // One step at a time: the first one, with a button for each of the 11 steps.
+    expect(screen.getByRole("heading", { level: 2, name: "Cómo se organiza un curso" })).toBeInTheDocument();
+    expect(screen.getByText("Paso 1 de 11")).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "7. Repasa a tiempo" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Repasa a tiempo" })).toBeInTheDocument();
+    expect(screen.getByText("Paso 7 de 11")).toBeInTheDocument();
   });
 });
 

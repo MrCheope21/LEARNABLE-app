@@ -30,6 +30,7 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { ReviewHubPage } from "../features/home/HomePage";
 import { ReviewQueuePage } from "../features/home/ReviewQueuePage";
 import { CourseMaterialPage } from "../features/material/MaterialPanel";
+import { PrivacyPage } from "../features/privacy/PrivacyPage";
 import { ProgressPage } from "../features/progress/ProgressPage";
 import { StudyPage } from "../features/study/StudyPage";
 import { AppShell } from "./AppShell";
@@ -66,7 +67,14 @@ export function AppRoutes() {
 
 function SignedInRoutes() {
   const { isSignedIn } = useAuth();
-  if (!isSignedIn) return <SignInPage />;
+  if (!isSignedIn) {
+    return (
+      <Routes>
+        <Route path="/privacy" element={<PrivacyPage signedIn={false} />} />
+        <Route path="*" element={<SignInPage />} />
+      </Routes>
+    );
+  }
   return (
     <Routes>
       <Route path="/study/:courseId" element={<StudyPage />} />
@@ -91,6 +99,7 @@ function SignedInRoutes() {
         <Route path="settings" element={<SettingsPage />} />
         <Route path="admin" element={<AdminPage />} />
         <Route path="guide" element={<GuidePage />} />
+        <Route path="privacy" element={<PrivacyPage />} />
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/friends" element={<CommunityPage tab="friends" />} />
         <Route path="community/messages" element={<CommunityPage tab="messages" />} />

@@ -50,6 +50,8 @@ class AdminSummary(BaseModel):
     default_evaluations: int
     default_generations: int
     default_storage_mb: int
+    # Reports waiting for the administrator (GET /admin/reports).
+    open_reports: int = 0
 
 
 class InvitationCreate(InputModel):

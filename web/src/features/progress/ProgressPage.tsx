@@ -3,7 +3,8 @@ import { useState } from "react";
 import { progress } from "../../api/endpoints";
 import { QueryState } from "../../components/QueryState";
 import { CurriculumBlock, MemoryBlock, ReviewLoadBlock } from "../../components/ProgressBlocks";
-import { percent } from "../../components/labels";
+import type { Schemas } from "../../api/client";
+import { useLabels } from "../../components/useLabels";
 import { useI18n } from "../../i18n";
 import { homeKey } from "../home/HomePage";
 
@@ -66,41 +67,7 @@ export function ProgressPage() {
                         </ul>
                       </section>
                     )}
-                    <section className="card">
-                      <h2>{t("prog.byChapter")}</h2>
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th scope="col">{t("prog.colChapter")}</th>
-                            <th scope="col">{t("pb.conceptsActive")}</th>
-                            <th scope="col">{t("pb.itemsTrained")}</th>
-                            <th scope="col">{t("pb.mastery")}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {p.chapters.flatMap((chapter) => [
-                            <tr key={chapter.id} className="group-row">
-                              <th scope="row">{chapter.title}</th>
-                              <td>
-                                {t("pb.activeOf", { active: chapter.curriculum.active, total: chapter.curriculum.concepts })}
-                              </td>
-                              <td>{chapter.memory.items_trained}</td>
-                              <td>{percent(chapter.memory.mastery)}</td>
-                            </tr>,
-                            ...chapter.topics.map((topic) => (
-                              <tr key={topic.id}>
-                                <td className="indent">{topic.title}</td>
-                                <td>
-                                  {t("pb.activeOf", { active: topic.curriculum.active, total: topic.curriculum.concepts })}
-                                </td>
-                                <td>{topic.memory.items_trained}</td>
-                                <td>{percent(topic.memory.mastery)}</td>
-                              </tr>
-                            )),
-                          ])}
-                        </tbody>
-                      </table>
-                    </section>
+                    <ChapterBars chapters={p.chapters} />
                   </>
                 )}
               </QueryState>
@@ -109,5 +76,68 @@ export function ProgressPage() {
         }
       </QueryState>
     </div>
+  );
+}
+
+type Memory = Schemas["MemoryProgress"];
+const PARTS = ["mastered", "review", "learning", "new"] as const;
+
+function counts(memory: Memory): Record<(typeof PARTS)[number], number> {
+  return { mastered: memory.mastered, review: memory.review + memory.relearning, learning: memory.learning, new: memory.new };
+}
+
+/** One bar: how the questions of a chapter (or a topic) divide by how well they are known. */
+function KnowledgeBar({ memory, label }: { memory: Memory; label: string }) {
+  const { t } = useI18n();
+  const n = counts(memory);
+  const total = PARTS.reduce((sum, part) => sum + n[part], 0);
+  const known = total > 0 ? Math.round((n.mastered / total) * 100) : 0;
+  return (
+    <>
+      <span className="know-bar" role="img" aria-label={t("prog.barAria", { name: label, known, total })}>
+        {total === 0 ? null : PARTS.filter((part) => n[part] > 0).map((part) => <span key={part} className={`seg seg-${part}`} style={{ flexGrow: n[part] }} />)}
+      </span>
+      <span className="know-figure">{total === 0 ? "–" : `${known}%`}</span>
+    </>
+  );
+}
+
+/**
+ * "By chapter": each chapter is one bar, coloured by how well its questions are known, with the
+ * share already mastered next to it. Opening a chapter shows the same bar for each topic.
+ */
+function ChapterBars({ chapters }: { chapters: Schemas["CourseProgress"]["chapters"] }) {
+  const { t } = useI18n();
+  const { memoryStateLabel } = useLabels();
+  const legend = { mastered: memoryStateLabel.MASTERED, review: memoryStateLabel.REVIEW, learning: memoryStateLabel.LEARNING, new: memoryStateLabel.NEW };
+  if (chapters.length === 0) return null;
+  return (
+    <section className="card know-card" aria-labelledby="know-title">
+      <h2 id="know-title">{t("prog.byChapter")}</h2>
+      <p className="hint">{t("prog.barHint")}</p>
+      <ul className="know-legend" aria-hidden="true">
+        {PARTS.map((part) => (
+          <li key={part}>
+            <span className={`seg seg-${part}`} /> {legend[part]}
+          </li>
+        ))}
+      </ul>
+      <div className="know-list">
+        {chapters.map((chapter) => (
+          <details key={chapter.id} className="know-chapter">
+            <summary className="know-row">
+              <span className="know-name">{chapter.title}</span>
+              <KnowledgeBar memory={chapter.memory} label={chapter.title} />
+            </summary>
+            {chapter.topics.map((topic) => (
+              <div key={topic.id} className="know-row topic">
+                <span className="know-name">{topic.title}</span>
+                <KnowledgeBar memory={topic.memory} label={topic.title} />
+              </div>
+            ))}
+          </details>
+        ))}
+      </div>
+    </section>
   );
 }

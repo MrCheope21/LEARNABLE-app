@@ -36,6 +36,8 @@ export const auth = {
         body: { current_password: currentPassword, new_password: newPassword },
       }),
     ),
+  /** Deletes the signed-in account and everything it owns. */
+  deleteAccount: (password: string) => call(api.POST("/api/v1/auth/delete-account", { body: { password } })),
 };
 
 export const dashboard = {
@@ -439,6 +441,21 @@ export const notifications = {
   markRead: (ids?: Id[]) => call(api.POST("/api/v1/notifications/read", { body: { ids } })),
 };
 
+/** Tags to hear about: a notification when a course carrying one is first published. */
+export const interests = {
+  get: () => call(api.GET("/api/v1/interests")),
+  follow: (tag: string) => call(api.PUT("/api/v1/interests", { body: { tag } })),
+  unfollow: (tag: string) => call(api.DELETE("/api/v1/interests", { params: { query: { tag } } })),
+};
+
+export type ReportKind = Schemas["ReportKind"];
+
+/** Tell the administrator about a person, a message you received or a review. */
+export const reports = {
+  send: (kind: ReportKind, targetId: Id, reason: string) =>
+    call(api.POST("/api/v1/reports", { body: { kind, target_id: targetId, reason } })),
+};
+
 export const payments = {
   payout: () => call(api.GET("/api/v1/payments/payout")),
   onboarding: () => call(api.POST("/api/v1/payments/payout/onboarding")),
@@ -462,4 +479,7 @@ export const admin = {
   revokeInvitation: (id: Id) =>
     call(api.DELETE("/api/v1/admin/invitations/{invitation_id}", { params: { path: { invitation_id: id } } })),
   deleteReview: (id: Id) => call(api.DELETE("/api/v1/admin/reviews/{review_id}", { params: { path: { review_id: id } } })),
+  reports: () => call(api.GET("/api/v1/admin/reports")),
+  resolveReport: (id: Id) => call(api.POST("/api/v1/admin/reports/{report_id}/resolve", { params: { path: { report_id: id } } })),
+  reopenReport: (id: Id) => call(api.POST("/api/v1/admin/reports/{report_id}/reopen", { params: { path: { report_id: id } } })),
 };

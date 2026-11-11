@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { payments } from "../../api/endpoints";
+import { auth, payments } from "../../api/endpoints";
+import { meKey } from "../../app/AppShell";
 import { Icon } from "../../components/Icon";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { dateTime } from "../../components/labels";
@@ -15,6 +16,7 @@ export function SalesPage() {
   const { t } = useI18n();
   const payout = useQuery({ queryKey: ["payout"], queryFn: payments.payout });
   const sales = useQuery({ queryKey: ["sales"], queryFn: payments.sales });
+  const me = useQuery({ queryKey: meKey, queryFn: auth.me });
   const setup = useMutation({
     mutationFn: payments.onboarding,
     onSuccess: ({ url }) => window.location.assign(url),
@@ -35,7 +37,10 @@ export function SalesPage() {
               <Icon name="receipt" size={20} /> {t("sell.payments")}
             </h2>
             {!status.enabled ? (
-              <p>{t("sell.off")}</p>
+              <>
+                <p>{t("sell.off")}</p>
+                {me.data?.is_admin && <p className="banner info">{t("sell.offAdmin")}</p>}
+              </>
             ) : status.ready ? (
               <>
                 <p className="banner success">{t("sell.ready")}</p>

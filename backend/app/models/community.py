@@ -117,3 +117,52 @@ class Notification(Base):
     link: Mapped[str] = mapped_column(String(300), default="")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
     read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+
+
+class TagSubscription(Base):
+    """ "Tell me about new courses on this": a tag the user follows. When a course carrying the
+    tag is published for the first time, they get a notification. Stored lowercased."""
+
+    __tablename__ = "tag_subscriptions"
+    __table_args__ = (UniqueConstraint("user_id", "tag"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    tag: Mapped[str] = mapped_column(String(40), index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+
+
+REPORT_OPEN = "OPEN"
+REPORT_RESOLVED = "RESOLVED"
+
+
+class Report(Base):
+    """Someone tells the administrator about a person, a message or a review. `excerpt` is
+    what was reported, copied at that moment (the reported name, message or review text), so
+    the administrator sees exactly that and nothing else of anyone's conversations."""
+
+    __tablename__ = "reports"
+    __table_args__ = (
+        UniqueConstraint("reporter_id", "kind", "target_id"),
+        Index("ix_reports_status_created_at", "status", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    reporter_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # "user", "message" or "review".
+    kind: Mapped[str] = mapped_column(String(16))
+    # The user's, message's or review's id (no foreign key: the report outlives its target).
+    target_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    # The person the report is about: the user, the message's sender, the review's author.
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    reason: Mapped[str] = mapped_column(Text, default="")
+    excerpt: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(16), default=REPORT_OPEN)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+    resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)

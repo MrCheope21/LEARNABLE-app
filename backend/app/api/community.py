@@ -18,16 +18,19 @@ from app.schemas.community import (
     CourseLeaderboard,
     FriendRequests,
     Inbox,
+    Interests,
     Leaderboard,
     MessageCreate,
     Notifications,
     Period,
     Person,
     Profile,
+    ReportCreate,
     Scope,
+    TagFollow,
     Thread,
 )
-from app.services import chat, community, notifications
+from app.services import chat, community, interests, moderation, notifications
 
 router = APIRouter(tags=["community"])
 
@@ -168,3 +171,42 @@ def list_notifications(db: Session = DB, user: User = CurrentUser) -> Notificati
 @router.post("/notifications/read", status_code=status.HTTP_204_NO_CONTENT)
 def read_notifications(payload: MarkRead, db: Session = DB, user: User = CurrentUser) -> None:
     notifications.mark_read(db, user.id, payload.ids)
+
+
+# --- Interests: tags to hear about ---
+
+
+@router.get("/interests", response_model=Interests)
+def list_interests(db: Session = DB, user: User = CurrentUser) -> Interests:
+    """The tags the user follows, and tags of published courses they could follow."""
+    return interests.interests(db, user.id)
+
+
+@router.put(
+    "/interests",
+    response_model=Interests,
+    dependencies=[Depends(per_user("interests", 120, 3600))],
+)
+def follow_tag(payload: TagFollow, db: Session = DB, user: User = CurrentUser) -> Interests:
+    """Follow a tag: a notification when a course carrying it is first published."""
+    return interests.follow(db, user.id, payload.tag)
+
+
+@router.delete("/interests", response_model=Interests)
+def unfollow_tag(
+    tag: str = Query(max_length=40), db: Session = DB, user: User = CurrentUser
+) -> Interests:
+    return interests.unfollow(db, user.id, tag)
+
+
+# --- Reports to the administrator ---
+
+
+@router.post(
+    "/reports",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(per_user("reports", 20, 3600))],
+)
+def report(payload: ReportCreate, db: Session = DB, user: User = CurrentUser) -> None:
+    """Tell the administrator about a person, a message you received or a review."""
+    moderation.report(db, user, payload.kind, payload.target_id, payload.reason)

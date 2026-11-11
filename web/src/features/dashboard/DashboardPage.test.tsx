@@ -106,7 +106,7 @@ describe("dashboard", () => {
 
     // Navigation: the logo goes home; streak and XP are in the bar.
     expect(screen.getByRole("link", { name: "LEARNABLE home" })).toHaveAttribute("href", "/");
-    expect(screen.getByLabelText("Total experience: 1240 XP")).toBeInTheDocument();
+    expect(screen.getByLabelText("XP earned today: 60")).toBeInTheDocument();
   });
 
   it("filters, searches and sorts the library", async () => {

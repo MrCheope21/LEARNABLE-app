@@ -1,6 +1,23 @@
 {
   "components": {
     "schemas": {
+      "AccountDelete": {
+        "additionalProperties": false,
+        "description": "Deleting your own account: the password again, so a session left open can't do it.",
+        "properties": {
+          "password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "AccountDelete",
+        "type": "object"
+      },
       "Acquired": {
         "properties": {
           "course_id": {
@@ -99,6 +116,11 @@
           "email_enabled": {
             "title": "Email Enabled",
             "type": "boolean"
+          },
+          "open_reports": {
+            "default": 0,
+            "title": "Open Reports",
+            "type": "integer"
           },
           "registration_open": {
             "title": "Registration Open",
@@ -3286,6 +3308,30 @@
         "title": "Inbox",
         "type": "object"
       },
+      "Interests": {
+        "properties": {
+          "suggestions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tags",
+          "suggestions"
+        ],
+        "title": "Interests",
+        "type": "object"
+      },
       "Introduction": {
         "description": "LEARN only: what to encode, shown before the first retrieval.",
         "properties": {
@@ -6075,6 +6121,153 @@
         "title": "RepeatCreate",
         "type": "object"
       },
+      "ReportCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ReportKind"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Reason",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "target_id"
+        ],
+        "title": "ReportCreate",
+        "type": "object"
+      },
+      "ReportKind": {
+        "enum": [
+          "user",
+          "message",
+          "review"
+        ],
+        "title": "ReportKind",
+        "type": "string"
+      },
+      "ReportRead": {
+        "description": "What the administrator sees: who reported, about whom, and the reported text itself\n(copied when the report was made).",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "excerpt": {
+            "title": "Excerpt",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ReportKind"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "reporter": {
+            "title": "Reporter",
+            "type": "string"
+          },
+          "reporter_email": {
+            "title": "Reporter Email",
+            "type": "string"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "RESOLVED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "subject_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Email"
+          },
+          "subject_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Id"
+          },
+          "subject_reports": {
+            "title": "Subject Reports",
+            "type": "integer"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "target_id",
+          "reporter",
+          "reporter_email",
+          "subject_id",
+          "subject",
+          "subject_email",
+          "reason",
+          "excerpt",
+          "status",
+          "created_at",
+          "resolved_at",
+          "subject_reports"
+        ],
+        "title": "ReportRead",
+        "type": "object"
+      },
       "ReviewLoad": {
         "description": "Upcoming reviews of items that can be reviewed now (active, trained, not paused), by the\nuser's calendar day. Buckets don't overlap: everything due today is due_now + later_today.",
         "properties": {
@@ -6762,6 +6955,22 @@
         ],
         "title": "StudyState",
         "type": "string"
+      },
+      "TagFollow": {
+        "additionalProperties": false,
+        "properties": {
+          "tag": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Tag",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag"
+        ],
+        "title": "TagFollow",
+        "type": "object"
       },
       "TemporaryPassword": {
         "properties": {
@@ -7781,6 +7990,119 @@
         ]
       }
     },
+    "/api/v1/admin/reports": {
+      "get": {
+        "description": "What people reported (a person, a message, a review): open ones first.",
+        "operationId": "list_reports_api_v1_admin_reports_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReportRead"
+                  },
+                  "title": "Response List Reports Api V1 Admin Reports Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Reports",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/{report_id}/reopen": {
+      "post": {
+        "operationId": "reopen_report_api_v1_admin_reports__report_id__reopen_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reopen Report",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/{report_id}/resolve": {
+      "post": {
+        "operationId": "resolve_report_api_v1_admin_reports__report_id__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Resolve Report",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/reviews/{review_id}": {
       "delete": {
         "description": "Moderation: removes a marketplace review (abuse, spam).",
@@ -8383,6 +8705,46 @@
           }
         ],
         "summary": "Change Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/delete-account": {
+      "post": {
+        "description": "Deletes the account for good, with everything it owns: courses, uploaded files, answers,\nXP, friendships, messages, reviews and the courses it published (people who already have\none keep their copy). Needs the password (422 `wrong_password`). The only administrator\ncan't leave (409 `last_admin`): the site would have nobody to run it.",
+        "operationId": "delete_my_account_api_v1_auth_delete_account_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDelete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete My Account",
         "tags": [
           "auth"
         ]
@@ -12469,6 +12831,124 @@
         ]
       }
     },
+    "/api/v1/interests": {
+      "delete": {
+        "operationId": "unfollow_tag_api_v1_interests_delete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tag",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "Tag",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Interests"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unfollow Tag",
+        "tags": [
+          "community"
+        ]
+      },
+      "get": {
+        "description": "The tags the user follows, and tags of published courses they could follow.",
+        "operationId": "list_interests_api_v1_interests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Interests"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Interests",
+        "tags": [
+          "community"
+        ]
+      },
+      "put": {
+        "description": "Follow a tag: a notification when a course carrying it is first published.",
+        "operationId": "follow_tag_api_v1_interests_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagFollow"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Interests"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Follow Tag",
+        "tags": [
+          "community"
+        ]
+      }
+    },
     "/api/v1/learning-items/{item_id}": {
       "delete": {
         "operationId": "delete_learning_item_api_v1_learning_items__item_id__delete",
@@ -14093,6 +14573,46 @@
         "summary": "Update Question",
         "tags": [
           "learning-items"
+        ]
+      }
+    },
+    "/api/v1/reports": {
+      "post": {
+        "description": "Tell the administrator about a person, a message you received or a review.",
+        "operationId": "report_api_v1_reports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Report",
+        "tags": [
+          "community"
         ]
       }
     },
