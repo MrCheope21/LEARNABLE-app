@@ -121,12 +121,18 @@ function Reports() {
   const suspend = useMutation({ mutationFn: (userId: string) => admin.updateUser(userId, { is_active: false }), onSuccess: refresh });
   const removeReview = useMutation({ mutationFn: (reviewId: string) => admin.deleteReview(reviewId), onSuccess: refresh });
   const busy = resolve.isPending || reopen.isPending || suspend.isPending || removeReview.isPending;
+  const [search, setSearch] = useState("");
+  const needle = search.trim().toLowerCase();
   return (
     <>
+      <div className="queue-tools admin-search">
+        <input type="search" value={search} placeholder={t("admin.search")} aria-label={t("admin.search")} onChange={(e) => setSearch(e.target.value)} />
+      </div>
       <QueryState query={list}>
-        {(rows) =>
-          rows.length === 0 ? (
-            <p className="state">{t("admin.reportsNone")}</p>
+        {(all) => {
+          const rows = all.filter((r) => !needle || `${r.reporter} ${r.reporter_email} ${r.subject ?? ""} ${r.subject_email ?? ""}`.toLowerCase().includes(needle));
+          return rows.length === 0 ? (
+            <p className="state">{all.length === 0 ? t("admin.reportsNone") : t("admin.noMatch")}</p>
           ) : (
             <ul className="admin-list">
               {rows.map((report) => (
@@ -187,8 +193,8 @@ function Reports() {
                 </li>
               ))}
             </ul>
-          )
-        }
+          );
+        }}
       </QueryState>
       <ErrorBanner error={resolve.error ?? reopen.error ?? suspend.error ?? removeReview.error} />
     </>
@@ -324,6 +330,7 @@ function Invitations() {
   const [email, setEmail] = useState("");
   const [days, setDays] = useState("7");
   const [sendEmail, setSendEmail] = useState(true);
+  const [search, setSearch] = useState("");
   const summary = useQuery({ queryKey: summaryKey, queryFn: admin.summary });
   const canEmail = summary.data?.email_enabled === true;
   const [created, setCreated] = useState<Schemas["InvitationCreated"] | null>(null);
@@ -389,10 +396,15 @@ function Invitations() {
           </button>
         </section>
       )}
+      <div className="queue-tools admin-search">
+        <input type="search" value={search} placeholder={t("admin.search")} aria-label={t("admin.search")} onChange={(e) => setSearch(e.target.value)} />
+      </div>
       <QueryState query={list}>
-        {(rows) =>
-          rows.length === 0 ? (
-            <p className="state">{t("admin.invNone")}</p>
+        {(all) => {
+          const needle = search.trim().toLowerCase();
+          const rows = all.filter((i) => !needle || `${i.note} ${i.email ?? ""} ${i.used_by_email ?? ""}`.toLowerCase().includes(needle));
+          return rows.length === 0 ? (
+            <p className="state">{all.length === 0 ? t("admin.invNone") : t("admin.noMatch")}</p>
           ) : (
             <ul className="admin-list">
               {rows.map((invitation) => (
@@ -401,8 +413,8 @@ function Invitations() {
                 </li>
               ))}
             </ul>
-          )
-        }
+          );
+        }}
       </QueryState>
       <ErrorBanner error={revoke.error} />
     </>
