@@ -172,8 +172,8 @@
 .review-form h3 { margin: 0; }
 .review-mine { margin: 0.8rem 0 0; }
 .review-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; }
-.review { display: grid; gap: 0.4rem; padding: 0.9rem 0; border-top: 1px solid var(--border); }
-.review p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-item { display: grid; gap: 0.4rem; padding: 0.9rem 0; border-top: 1px solid var(--border); }
+.review-item p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .review-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.6rem; }
 .review-head .pill { margin-left: 0; }
 .review-reply { margin: 0.2rem 0 0; padding: 0.6rem 0.9rem; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 10px 10px 0; display: grid; gap: 0.2rem; }
@@ -380,3 +380,5 @@ summary.know-row .know-name::before { content: "▸"; display: inline-block; wid
 .offline-card .reference h3, .offline-card .your-answer h3 { margin: 0 0 0.3rem; font-size: 0.9rem; color: var(--muted); }
 .offline-card .grade { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
 @media (max-width: 420px) { .offline-card .grade { grid-template-columns: 1fr 1fr; } }
+/* The green review button keeps a green shadow (the shared one is tinted with the accent blue). */
+.button.review, button.review { box-shadow: 0 1px 2px rgb(0 0 0 / 14%), 0 4px 12px color-mix(in srgb, var(--review) 30%, transparent); }

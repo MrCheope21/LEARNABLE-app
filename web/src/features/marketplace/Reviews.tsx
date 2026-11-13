@@ -146,7 +146,7 @@ function ReviewItem({ review, isAuthor, isAdmin, onDone }: { review: Review; isA
   });
   const moderate = useMutation({ mutationFn: () => admin.deleteReview(review.id), onSuccess: onDone });
   return (
-    <li className="review">
+    <li className="review-item">
       <div className="review-head">
         <strong>{review.author}</strong>
         {review.is_mine && <span className="pill">{t("community.you")}</span>}
