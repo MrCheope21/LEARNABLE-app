@@ -3246,6 +3246,11 @@
             "title": "Feedback",
             "type": "string"
           },
+          "gap": {
+            "default": "",
+            "title": "Gap",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -5532,6 +5537,172 @@
           "unread"
         ],
         "title": "Notifications",
+        "type": "object"
+      },
+      "OfflineAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "answered_at": {
+            "format": "date-time",
+            "title": "Answered At",
+            "type": "string"
+          },
+          "client_id": {
+            "maxLength": 64,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Client Id",
+            "type": "string"
+          },
+          "learning_item_id": {
+            "format": "uuid",
+            "title": "Learning Item Id",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ReviewOutcome"
+          },
+          "question_formulation_id": {
+            "format": "uuid",
+            "title": "Question Formulation Id",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 10000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "learning_item_id",
+          "question_formulation_id",
+          "outcome",
+          "answered_at"
+        ],
+        "title": "OfflineAnswer",
+        "type": "object"
+      },
+      "OfflineCard": {
+        "properties": {
+          "drawing": {
+            "title": "Drawing",
+            "type": "boolean"
+          },
+          "due_at": {
+            "title": "Due At",
+            "type": "string"
+          },
+          "essential_points": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Essential Points",
+            "type": "array"
+          },
+          "expected_knowledge": {
+            "title": "Expected Knowledge",
+            "type": "string"
+          },
+          "learning_item_id": {
+            "format": "uuid",
+            "title": "Learning Item Id",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "question_formulation_id": {
+            "format": "uuid",
+            "title": "Question Formulation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learning_item_id",
+          "question_formulation_id",
+          "question",
+          "expected_knowledge",
+          "essential_points",
+          "due_at",
+          "drawing"
+        ],
+        "title": "OfflineCard",
+        "type": "object"
+      },
+      "OfflinePack": {
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/OfflineCard"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "course_id": {
+            "format": "uuid",
+            "title": "Course Id",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "until": {
+            "title": "Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "course_id",
+          "title",
+          "created_at",
+          "until",
+          "cards"
+        ],
+        "title": "OfflinePack",
+        "type": "object"
+      },
+      "OfflineSync": {
+        "additionalProperties": false,
+        "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/OfflineAnswer"
+            },
+            "maxItems": 500,
+            "title": "Answers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "answers"
+        ],
+        "title": "OfflineSync",
+        "type": "object"
+      },
+      "OfflineSyncResult": {
+        "properties": {
+          "applied": {
+            "title": "Applied",
+            "type": "integer"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "applied",
+          "skipped"
+        ],
+        "title": "OfflineSyncResult",
         "type": "object"
       },
       "OrderStatus": {
@@ -12371,6 +12542,114 @@
         "summary": "Publish",
         "tags": [
           "marketplace"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/offline-pack": {
+      "get": {
+        "description": "The questions due in the next 7 days with their reference answers, to review offline.",
+        "operationId": "offline_pack_api_v1_courses__course_id__offline_pack_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflinePack"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Offline Pack",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/offline-sync": {
+      "post": {
+        "description": "Self-graded answers given offline, each applied as a review at the moment it was given.",
+        "operationId": "offline_sync_api_v1_courses__course_id__offline_sync_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfflineSync"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflineSyncResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Offline Sync",
+        "tags": [
+          "review"
         ]
       }
     },

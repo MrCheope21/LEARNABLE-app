@@ -666,3 +666,66 @@ def test_sessions_never_reach_another_course(client, course, auth_headers):
         ("GET", f"/api/v1/learning-items/{it['id']}/reviews"),
     ]:
         assert client.request(method, url, headers=stranger).status_code == 404
+
+
+def test_a_partial_answer_says_in_one_line_what_was_missing(client, course):
+    """The evaluation carries `gap`: one sentence on what the answer lacked (empty when
+    nothing did), shown right under the grade."""
+    headers, course_id, _, topic_id = course
+    made = concept(client, headers, topic_id)
+    item(client, headers, made["id"])
+    item(client, headers, made["id"], title="Mutuo: oggetto")
+    session = start(client, headers, course_id).json()
+    partial = answer(client, headers, session["id"], PARTIAL).json()
+    assert partial["evaluation"]["gap"] == "Missing: obbligo di restituzione"
+    full = answer(client, headers, session["id"], FULL).json()
+    assert full["evaluation"]["gap"] == ""
+
+
+def test_offline_review_pack_and_sync(client, course, db_session):
+    """Due questions go to the device; self-graded answers come back and are applied at the
+    moment they were given, once, unless the item was reviewed since."""
+    headers, course_id, _, topic_id = course
+    made = concept(client, headers, topic_id)
+    first = item(client, headers, made["id"])
+    second = item(client, headers, made["id"], title="Mutuo: oggetto")
+    learn(client, headers, course_id)
+    make_due(db_session, first["id"])
+    state = memory(db_session, first["id"])
+    state.last_reviewed_at = utc_now() - timedelta(days=1)
+    db_session.commit()
+
+    pack = client.get(f"/api/v1/courses/{course_id}/offline-pack", headers=headers).json()
+    assert pack["cards"][0]["learning_item_id"] == first["id"]
+    assert {c["learning_item_id"] for c in pack["cards"]} == {first["id"], second["id"]}
+    card_one = pack["cards"][0]
+    assert card_one["expected_knowledge"].startswith("Consegna di denaro")
+
+    answered = (utc_now() - timedelta(seconds=30)).isoformat()
+    body = {
+        "answers": [
+            {
+                "client_id": "device-1-0001",
+                "learning_item_id": first["id"],
+                "question_formulation_id": card_one["question_formulation_id"],
+                "text": "consegna",
+                "outcome": "GOOD",
+                "answered_at": answered,
+            }
+        ]
+    }
+    before = memory(db_session, first["id"]).level
+    url = f"/api/v1/courses/{course_id}/offline-sync"
+    assert client.post(url, json=body, headers=headers).json() == {"applied": 1, "skipped": 0}
+    after = memory(db_session, first["id"])
+    assert after.level == before + 1
+    assert abs((after.last_reviewed_at - utc_now()).total_seconds() - (-30)) < 5
+    # Sent again (the device didn't hear back): nothing changes.
+    assert client.post(url, json=body, headers=headers).json() == {"applied": 0, "skipped": 1}
+    assert memory(db_session, first["id"]).level == before + 1
+    # An answer older than the last review is skipped: the newer review stands.
+    body["answers"][0] |= {
+        "client_id": "device-2-0001",
+        "answered_at": (utc_now() - timedelta(hours=1)).isoformat(),
+    }
+    assert client.post(url, json=body, headers=headers).json() == {"applied": 0, "skipped": 1}

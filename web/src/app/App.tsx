@@ -18,6 +18,7 @@ import { CoursesPage } from "../features/courses/CoursesPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { ReviewHubPage } from "../features/home/HomePage";
 import { ReviewQueuePage } from "../features/home/ReviewQueuePage";
+import { OfflinePage } from "../features/offline/OfflinePage";
 import { ProgressPage } from "../features/progress/ProgressPage";
 import { AppShell } from "./AppShell";
 
@@ -82,6 +83,8 @@ function SignedInRoutes() {
   return (
     <Routes>
       <Route path="/study/:courseId" element={<StudyPage />} />
+      {/* Outside the shell, whose data needs the network; loaded with the app, so it opens offline. */}
+      <Route path="/offline/:courseId" element={<OfflinePage />} />
       <Route element={<AppShell />}>
         <Route index element={<DashboardPage />} />
         <Route path="courses" element={<CoursesPage />} />

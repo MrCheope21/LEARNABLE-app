@@ -19,6 +19,9 @@ from app.schemas.review import (
     ConsolidationPlan,
     DisputeCreate,
     HintState,
+    OfflinePack,
+    OfflineSync,
+    OfflineSyncResult,
     OverrideCreate,
     PickCreate,
     RepeatCreate,
@@ -30,7 +33,7 @@ from app.schemas.review import (
 )
 from app.services import drawings
 from app.services.quota import EVALUATION, ai_quota
-from app.services.review import consolidation, service
+from app.services.review import consolidation, offline, service
 from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(tags=["review"])
@@ -221,3 +224,24 @@ def override(
 @router.get("/learning-items/{item_id}/reviews", response_model=list[ReviewRead])
 def list_reviews(item_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> list[Review]:
     return service.list_item_reviews(db, user.id, item_id)
+
+
+# --- Offline review (services/review/offline.py) ---
+
+
+@router.get("/courses/{course_id}/offline-pack", response_model=OfflinePack)
+def offline_pack(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> OfflinePack:
+    """The questions due in the next 7 days with their reference answers, to review offline."""
+    return offline.pack(db, user.id, course_id)
+
+
+@router.post(
+    "/courses/{course_id}/offline-sync",
+    response_model=OfflineSyncResult,
+    dependencies=[Depends(per_user("offline_sync", 120, 3600))],
+)
+def offline_sync(
+    course_id: uuid.UUID, payload: OfflineSync, db: Session = DB, user: User = CurrentUser
+) -> OfflineSyncResult:
+    """Self-graded answers given offline, each applied as a review at the moment it was given."""
+    return offline.sync(db, user, course_id, payload.answers)

@@ -9,6 +9,7 @@ import { ErrorBanner } from "../components/QueryState";
 import { badge, useInbox } from "../features/notifications/useInbox";
 import { useI18n } from "../i18n";
 import { useOffline } from "../pwa";
+import * as offlineStore from "../features/offline/store";
 
 export const dashboardKey = ["dashboard"] as const;
 export const meKey = ["me"] as const;
@@ -29,14 +30,28 @@ export function AppShell() {
   );
 }
 
-/** Without a network the app still opens (service worker), but nothing can be loaded or saved. */
+/**
+ * Without a network the app still opens (service worker): the courses downloaded for offline
+ * review are listed here. Back online, answers given offline are sent.
+ */
 function OfflineNotice() {
   const { t } = useI18n();
-  if (!useOffline()) return null;
+  const offline = useOffline();
+  const [downloaded, setDownloaded] = useState(() => Object.values(offlineStore.packs()));
+  useEffect(() => offlineStore.subscribe(() => setDownloaded(Object.values(offlineStore.packs()))), []);
+  useEffect(() => {
+    if (!offline && offlineStore.queue().length > 0) void offlineStore.sync();
+  }, [offline]);
+  if (!offline) return null;
   return (
-    <p className="offline-notice" role="status">
-      {t("offline.notice")}
-    </p>
+    <div className="offline-notice" role="status">
+      <span>{downloaded.length > 0 ? t("offline.noticeWithCourses") : t("offline.notice")}</span>
+      {downloaded.map((pack) => (
+        <Link key={pack.course_id} to={`/offline/${pack.course_id}`}>
+          {pack.title}
+        </Link>
+      ))}
+    </div>
   );
 }
 

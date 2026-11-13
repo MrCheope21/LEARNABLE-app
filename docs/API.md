@@ -653,3 +653,13 @@ GET /api/v1/auth/export                      # everything held about the account
 `new_per_day` spreads the questions not learned yet over the days left, keeping the last fifth
 (at most a week) for review only; `pace` is the new questions learned per day over the last 7
 days; `status` is `on_track`, `behind`, `done` (nothing new left) or `past`.
+
+## Offline review, imports, "what was missing"
+
+- Offline review: `GET /courses/{id}/offline-pack`, `POST /courses/{id}/offline-sync` (docs/OFFLINE.md).
+- Question banks also accept Anki decks (`.apkg`, exported with "Support older Anki versions"),
+  Excel (`.xlsx`) and CSV/TSV: they are converted to the labelled text format and stored as that
+  (`services/question_banks/converting.py`). Columns are recognised by name (Domanda/Question/
+  Front, Risposta/Answer/Back, Argomento/Topic/Deck, Priorità/Priority) or taken in order.
+- Evaluations carry `gap`: one sentence on what the answer lacked compared with the reference
+  answer (prompt `answer_evaluation_v3`); empty when nothing did and on older evaluations.

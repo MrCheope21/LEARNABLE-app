@@ -89,6 +89,22 @@ export function PointChecklist({ evaluation }: { evaluation: Evaluation }) {
   );
 }
 
+/**
+ * "What was missing", in one line, right under the grade: the evaluator's own sentence, or, on
+ * evaluations made before it wrote one, the first missing points and misconceptions.
+ */
+export function GapLine({ evaluation }: { evaluation: Evaluation }) {
+  const { t } = useI18n();
+  if (evaluation.status !== "COMPLETED" || evaluation.classification === "CORRECT") return null;
+  const text = evaluation.gap?.trim() || [...evaluation.misconceptions, ...evaluation.missing_points].slice(0, 2).join(" · ");
+  if (!text) return null;
+  return (
+    <p className="gap-line" role="note">
+      <span className="gap-label">{t("eval.gap")}</span> {text}
+    </p>
+  );
+}
+
 /** One evaluation: its verdict, feedback, scores and checklist. Used for both opinions. */
 export function EvaluationView({ evaluation, previous }: { evaluation: Evaluation; previous?: Evaluation }) {
   const { t } = useI18n();

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -185,6 +186,8 @@ class EvaluationRead(BaseModel):
     source_corrections: list[str]
     context_sufficient: bool | None
     feedback: str
+    # What the answer lacked, in one sentence ("" when nothing, and on older evaluations).
+    gap: str = ""
     user_argument: str | None
     ai_provider: str | None
     ai_model: str | None
@@ -304,3 +307,47 @@ class ConsolidationPlan(BaseModel):
     answers_in_batch: int
     # Left for later batches after the next one.
     remaining_after_batch: int
+
+
+# --- Offline review (services/review/offline.py) ---
+
+
+class OfflineCard(BaseModel):
+    learning_item_id: UUID
+    question_formulation_id: UUID
+    question: str
+    expected_knowledge: str
+    essential_points: list[str]
+    due_at: UTCTimestamp
+    # Answered by drawing: offline the student compares with the reference in their head.
+    drawing: bool
+
+
+class OfflinePack(BaseModel):
+    course_id: UUID
+    title: str
+    created_at: UTCTimestamp
+    # Questions due until this moment are in the pack.
+    until: UTCTimestamp
+    cards: list[OfflineCard]
+
+
+class OfflineAnswer(InputModel):
+    # Made by the device, so sending the same answer twice applies it once.
+    client_id: Annotated[str, Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")]
+    learning_item_id: UUID
+    question_formulation_id: UUID
+    text: Annotated[str, Field(max_length=10_000)] = ""
+    outcome: ReviewOutcome
+    # When it was answered, on the device (with its time zone).
+    answered_at: datetime
+
+
+class OfflineSync(InputModel):
+    answers: Annotated[list[OfflineAnswer], Field(max_length=500)]
+
+
+class OfflineSyncResult(BaseModel):
+    applied: int
+    # Reviewed meanwhile on another device, removed, paused, or already sent.
+    skipped: int

@@ -271,6 +271,14 @@ export const documents = {
     ),
 };
 
+/** Reviewing offline: the pack to keep on the device, and the answers given without a network. */
+export const review = {
+  offlinePack: (courseId: Id) =>
+    call(api.GET("/api/v1/courses/{course_id}/offline-pack", { params: { path: { course_id: courseId } } })),
+  offlineSync: (courseId: Id, answers: Schemas["OfflineAnswer"][]) =>
+    call(api.POST("/api/v1/courses/{course_id}/offline-sync", { params: { path: { course_id: courseId } }, body: { answers } })),
+};
+
 export const study = {
   start: (courseId: Id, body: Schemas["SessionCreate"]) =>
     call(

@@ -13,9 +13,9 @@ import { useI18n } from "../../i18n";
 import { bankPrompt } from "./bankPrompt";
 import { outlineKey } from "../curriculum/CourseLayout";
 
-const ACCEPT = ".pdf,.docx,.pptx,.txt,.md,.markdown,image/*";
+const ACCEPT = ".pdf,.docx,.pptx,.txt,.md,.markdown,image/*,.apkg,.xlsx,.csv,.tsv";
 // Question banks are read by their text labels: text formats only.
-const ACCEPT_QUESTIONS = ".pdf,.docx,.txt,.md,.markdown";
+const ACCEPT_QUESTIONS = ".pdf,.docx,.txt,.md,.markdown,.apkg,.xlsx,.csv,.tsv";
 
 type Purpose = Schemas["DocumentPurpose"];
 
@@ -118,6 +118,9 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
         <p>{t("mat.howToBody")}</p>
         <pre>{"# Topic\nDomanda: What is …?\nRisposta: It is …\nPriorità: 2"}</pre>
         <p>{t("mat.howToBody2")}</p>
+        <p>
+          <strong>{t("mat.importOther")}</strong> {t("mat.importOtherBody")}
+        </p>
         <PriorityHelp />
         <ChatbotPrompt />
       </details>

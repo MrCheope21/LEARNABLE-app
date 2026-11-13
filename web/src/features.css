@@ -363,3 +363,20 @@ summary.know-row .know-name::before { content: "▸"; display: inline-block; wid
 .discount-form label { display: grid; gap: 0.2rem; font-size: 0.85rem; }
 .discount-form input { width: 9rem; max-width: 100%; }
 .discount-form input[type="number"] { width: 5.5rem; }
+
+/* "What was missing", one line under the grade */
+.gap-line { margin: 0.3rem 0 0; padding: 0.55rem 0.8rem; border-radius: var(--radius-sm, 10px); background: var(--surface); border-inline-start: 4px solid var(--warn); font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.gap-label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--warn); }
+
+/* ---------- Offline review ---------- */
+.offline-notice { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem 0.9rem; }
+.offline-notice a { color: inherit; text-decoration: underline; }
+.offline-control { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.9rem; font-size: 0.9rem; }
+.offline-status { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.offline-card { display: grid; gap: 0.8rem; }
+.offline-card .question { margin: 0; }
+.offline-card textarea { width: 100%; }
+.offline-card .reference { padding: 0.8rem 1rem; border-radius: var(--radius-sm, 10px); background: var(--surface-2); }
+.offline-card .reference h3, .offline-card .your-answer h3 { margin: 0 0 0.3rem; font-size: 0.9rem; color: var(--muted); }
+.offline-card .grade { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
+@media (max-width: 420px) { .offline-card .grade { grid-template-columns: 1fr 1fr; } }

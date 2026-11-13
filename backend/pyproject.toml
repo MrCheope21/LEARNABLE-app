@@ -43,5 +43,5 @@ warn_required_dynamic_aliases = true
 
 [[tool.mypy.overrides]]
 # boto3 ships no type information; only app/storage uses it, behind DocumentStorage.
-module = ["boto3", "boto3.*", "botocore", "botocore.*", "pywebpush", "pywebpush.*"]
+module = ["boto3", "boto3.*", "botocore", "botocore.*", "pywebpush", "pywebpush.*", "openpyxl", "openpyxl.*"]
 ignore_missing_imports = true

@@ -21,7 +21,7 @@ import { ConceptPanel } from "./ConceptPanel";
 import { useI18n } from "../../i18n";
 import { DisputeForm } from "./DisputeForm";
 import { recognitionLanguage, useDictation } from "./useDictation";
-import { EvaluationView } from "./EvaluationView";
+import { EvaluationView, GapLine } from "./EvaluationView";
 import { useStudySession, type AnswerView, type Card } from "./useStudySession";
 
 /** Builds the session request from the URL: /study/:courseId?intent=…&mode=…&concepts=a,b */
@@ -492,6 +492,7 @@ function Result({
         </div>
         <Award result={result} />
         <ScheduleNote result={result} />
+        {shown && <GapLine evaluation={shown} />}
       </header>
 
       {/* 2. The question and what was answered. */}

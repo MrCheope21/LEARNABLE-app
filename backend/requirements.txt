@@ -25,3 +25,5 @@ boto3>=1.35
 tzdata>=2024.1
 # Push notifications for review reminders (VAPID signing and payload encryption).
 pywebpush>=2.0
+# Importing questions and answers from Excel workbooks (.xlsx).
+openpyxl>=3.1

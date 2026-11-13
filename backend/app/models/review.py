@@ -175,6 +175,8 @@ class Evaluation(Base):
     source_corrections: Mapped[list[str]] = mapped_column(JSON, default=list)
     context_sufficient: Mapped[bool | None] = mapped_column(Boolean, default=None)
     feedback: Mapped[str] = mapped_column(Text, default="")
+    # One sentence on what the answer lacked compared with the reference answer (prompt v3+).
+    gap: Mapped[str] = mapped_column(Text, default="", server_default="")
     # Set on a second opinion: the student's objection to the first evaluation, which the
     # evaluator was shown. Such a row never decides the outcome, the schedule or XP.
     user_argument: Mapped[str | None] = mapped_column(String(1000), default=None)

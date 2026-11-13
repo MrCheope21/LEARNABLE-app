@@ -1326,6 +1326,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courses/{course_id}/offline-pack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Offline Pack
+         * @description The questions due in the next 7 days with their reference answers, to review offline.
+         */
+        get: operations["offline_pack_api_v1_courses__course_id__offline_pack_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/offline-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Offline Sync
+         * @description Self-graded answers given offline, each applied as a review at the moment it was given.
+         */
+        post: operations["offline_sync_api_v1_courses__course_id__offline_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/{course_id}/outline": {
         parameters: {
             query?: never;
@@ -3787,6 +3827,11 @@ export interface components {
             /** Feedback */
             feedback: string;
             /**
+             * Gap
+             * @default
+             */
+            gap: string;
+            /**
              * Id
              * Format: uuid
              */
@@ -4602,6 +4647,83 @@ export interface components {
             items: components["schemas"]["NotificationRead"][];
             /** Unread */
             unread: number;
+        };
+        /** OfflineAnswer */
+        OfflineAnswer: {
+            /**
+             * Answered At
+             * Format: date-time
+             */
+            answered_at: string;
+            /** Client Id */
+            client_id: string;
+            /**
+             * Learning Item Id
+             * Format: uuid
+             */
+            learning_item_id: string;
+            outcome: components["schemas"]["ReviewOutcome"];
+            /**
+             * Question Formulation Id
+             * Format: uuid
+             */
+            question_formulation_id: string;
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+        };
+        /** OfflineCard */
+        OfflineCard: {
+            /** Drawing */
+            drawing: boolean;
+            /** Due At */
+            due_at: string;
+            /** Essential Points */
+            essential_points: string[];
+            /** Expected Knowledge */
+            expected_knowledge: string;
+            /**
+             * Learning Item Id
+             * Format: uuid
+             */
+            learning_item_id: string;
+            /** Question */
+            question: string;
+            /**
+             * Question Formulation Id
+             * Format: uuid
+             */
+            question_formulation_id: string;
+        };
+        /** OfflinePack */
+        OfflinePack: {
+            /** Cards */
+            cards: components["schemas"]["OfflineCard"][];
+            /**
+             * Course Id
+             * Format: uuid
+             */
+            course_id: string;
+            /** Created At */
+            created_at: string;
+            /** Title */
+            title: string;
+            /** Until */
+            until: string;
+        };
+        /** OfflineSync */
+        OfflineSync: {
+            /** Answers */
+            answers: components["schemas"]["OfflineAnswer"][];
+        };
+        /** OfflineSyncResult */
+        OfflineSyncResult: {
+            /** Applied */
+            applied: number;
+            /** Skipped */
+            skipped: number;
         };
         /** OrderStatus */
         OrderStatus: {
@@ -8280,6 +8402,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MyListing"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    offline_pack_api_v1_courses__course_id__offline_pack_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfflinePack"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    offline_sync_api_v1_courses__course_id__offline_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfflineSync"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfflineSyncResult"];
                 };
             };
             /** @description Validation Error */

@@ -25,6 +25,7 @@ from app.services.courses.service import get_owned_course
 from app.services.documents.chunking import chunk_blocks
 from app.services.documents.detection import SUPPORTED_DESCRIPTION, clean_filename, detect_type
 from app.services.documents.extraction import ExtractionError, extract
+from app.services.question_banks import converting
 from app.services.question_banks.importing import NoQuestionsFoundError, import_question_bank
 from app.storage.documents import (
     DocumentStorage,
@@ -63,6 +64,18 @@ def upload_document(
         _check_chapter(db, course_id, chapter_id)
     if not data:
         raise UnsupportedMediaTypeError("The file is empty.")
+    if converting.convertible(filename or "", data):
+        # An Anki deck or a spreadsheet: always questions and answers, stored as the labelled
+        # text it converts to (services/question_banks/converting.py).
+        try:
+            converted = converting.convert(filename or "", data)
+        except ExtractionError as exc:
+            raise UnsupportedMediaTypeError(str(exc)) from exc
+        filename, data, purpose = (
+            converted.filename,
+            converted.text.encode(),
+            DocumentPurpose.QUESTION_BANK,
+        )
     detected = detect_type(filename or "", data)
     if detected is None:
         raise UnsupportedMediaTypeError(
@@ -70,8 +83,8 @@ def upload_document(
         )
     if purpose is DocumentPurpose.QUESTION_BANK and detected.kind not in _QUESTION_BANK_KINDS:
         raise UnsupportedMediaTypeError(
-            "Questions and answers can be imported from PDF, Word (.docx), text (.txt) or "
-            "Markdown (.md) files."
+            "Questions and answers can be imported from PDF, Word (.docx), text (.txt), "
+            "Markdown (.md), Excel (.xlsx), CSV or Anki (.apkg) files."
         )
 
     quota.check_storage(db, user_id, len(data))

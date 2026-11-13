@@ -868,6 +868,7 @@ def _evaluate(
     base.source_corrections = list(out.source_corrections)
     base.context_sufficient = out.context_sufficient
     base.feedback = out.feedback
+    base.gap = out.gap.strip()
     base.ai_provider = info.provider[:50]
     base.ai_model = info.model[:200]
     base.ai_model_version = info.model_version[:200]

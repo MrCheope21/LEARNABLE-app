@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import * as offlineStore from "../offline/store";
 import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
 import { dashboard } from "../../api/endpoints";
@@ -74,6 +76,45 @@ export function ReviewHubPage() {
   );
 }
 
+/** Keep this course on the device to review without a network (features/offline). */
+function OfflineControl({ courseId }: { courseId: string }) {
+  const { t } = useI18n();
+  const [pack, setPack] = useState(() => offlineStore.packOf(courseId));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => offlineStore.subscribe(() => setPack(offlineStore.packOf(courseId))), [courseId]);
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      if (!(await offlineStore.download(courseId))) setError(t("offline.noRoom"));
+    } catch {
+      setError(t("offline.downloadFailed"));
+    }
+    setBusy(false);
+  };
+  return (
+    <div className="offline-control">
+      {pack ? (
+        <>
+          <Link to={`/offline/${courseId}`}>{t("offline.open", { n: pack.cards.length })}</Link>
+          <button type="button" className="link" disabled={busy} onClick={() => void save()}>
+            {t("offline.refresh")}
+          </button>
+          <button type="button" className="link danger" onClick={() => offlineStore.forget(courseId)}>
+            {t("offline.remove")}
+          </button>
+        </>
+      ) : (
+        <button type="button" className="link" disabled={busy} onClick={() => void save()}>
+          <Icon name="download" size={16} /> {busy ? t("common.pleaseWait") : t("offline.download")}
+        </button>
+      )}
+      {error && <span className="error">{error}</span>}
+    </div>
+  );
+}
+
 function ReviewCard({ course }: { course: Schemas["CourseCard"] }) {
   const { t } = useI18n();
   return (
@@ -98,6 +139,7 @@ function ReviewCard({ course }: { course: Schemas["CourseCard"] }) {
           {t("course.practiceHard")}
         </Link>
       </div>
+      <OfflineControl courseId={course.id} />
     </article>
   );
 }
