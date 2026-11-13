@@ -150,31 +150,54 @@ def _topic_for(db: Session, chapter: Chapter, title: str) -> Topic:
     return topic
 
 
-# "Priorità: 1", "Priorità: alta" or "Priority: extra" at the end of a line of a question or its
-# answer sets the question's priority; the label itself is not part of the text.
+# "Priorità: 1" … "Priorità: 5", "Priorità: alta" or "Priority: accessory" at the end of a line
+# of a question or its answer sets the question's priority; the label is not part of the text.
 _PRIORITY_LINE = re.compile(
     # On its own line, or at the end of one (the parser joins a question's lines with spaces).
     r"(?:^|\s)(?i:priorit[aà]|priority)\s*[:.\-\u2013]\s*(?P<value>[^\s.,;]+)[.,;]?\s*$",
     re.MULTILINE,
 )
 _PRIORITY_WORDS = {
+    # 1 Essential: must be known.
     "1": 1,
     "alta": 1,
     "essenziale": 1,
+    "fondamentale": 1,
     "core": 1,
     "high": 1,
     "essential": 1,
+    # 2 Important.
     "2": 2,
     "media": 2,
     "importante": 2,
     "medium": 2,
     "important": 2,
+    # 3 Useful: completes the picture.
     "3": 3,
     "bassa": 3,
+    "utile": 3,
+    "complementare": 3,
     "extra": 3,
-    "approfondimento": 3,
     "low": 3,
-    "addendum": 3,
+    "useful": 3,
+    # 4 Accessory: a detail, not central.
+    "4": 4,
+    "accessoria": 4,
+    "accessorio": 4,
+    "secondaria": 4,
+    "dettaglio": 4,
+    "accessory": 4,
+    "minor": 4,
+    "detail": 4,
+    # 5 In depth: optional.
+    "5": 5,
+    "approfondimento": 5,
+    "facoltativa": 5,
+    "facoltativo": 5,
+    "curiosità": 5,
+    "addendum": 5,
+    "optional": 5,
+    "in-depth": 5,
 }
 
 

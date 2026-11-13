@@ -162,7 +162,7 @@ def test_learn_introduces_then_encodes_and_initializes_the_schedule(client, cour
         "GOOD",
         "NEW",
     )
-    assert (review["scheduling_policy"], review["scheduling_policy_version"]) == ("chessable", "2")
+    assert (review["scheduling_policy"], review["scheduling_policy_version"]) == ("chessable", "3")
 
 
 def test_failed_encoding_keeps_the_item_new_and_asks_it_again(client, course, db_session):
@@ -271,7 +271,7 @@ def test_hard_keeps_the_level_and_marks_the_item(client, course, db_session):
     assert (state.marked_hard, state.hard_count) == (True, 1)
 
 
-def test_again_drops_one_item_and_never_its_siblings(client, course, db_session):
+def test_again_sends_one_item_to_level_zero_and_never_its_siblings(client, course, db_session):
     headers, course_id, _, topic_id = course
     c = concept(client, headers, topic_id)
     definition = item(client, headers, c["id"], "Definizione")
@@ -288,10 +288,48 @@ def test_again_drops_one_item_and_never_its_siblings(client, course, db_session)
     assert session["total"] == 1
     result = answer(client, headers, session["id"], WRONG).json()
 
-    # Scheduling v2: a first slip drops two levels (a second slip in a row would go to 1).
-    assert (result["final_outcome"], result["schedule"]["next_level"]) == ("AGAIN", 3)
-    assert memory(db_session, scenario["id"]).lapse_count == 1
+    # Scheduling v3: a failed review goes back to level 0, due now.
+    assert (result["final_outcome"], result["schedule"]["next_level"]) == ("AGAIN", 0)
+    state = memory(db_session, scenario["id"])
+    assert (state.level, state.state.value, state.lapse_count) == (0, "RELEARNING", 1)
     assert memory(db_session, definition["id"]).level == 5
+    # It isn't done for this session: it is asked again, and only a good answer ends that.
+    assert result["session"]["total"] == 2
+    assert card(client, headers, session["id"])["done"] is False
+    retry = answer(client, headers, session["id"], FULL).json()
+    assert retry["final_outcome"] == "GOOD"
+    assert (retry["schedule"]["previous_level"], retry["schedule"]["next_level"]) == (0, 1)
+    assert memory(db_session, scenario["id"]).level == 1
+    assert card(client, headers, session["id"])["done"] is True
+
+
+def test_a_failed_review_comes_back_until_it_is_answered_well(client, course, db_session):
+    headers, course_id, _, topic_id = course
+    it = item(client, headers, concept(client, headers, topic_id)["id"])
+    learn(client, headers, course_id)
+    make_due(db_session, it["id"])
+    session = start(client, headers, course_id, "SCHEDULED_REVIEW").json()
+    for _ in range(3):  # wrong, wrong, wrong: still required
+        assert answer(client, headers, session["id"], WRONG).json()["final_outcome"] == "AGAIN"
+        assert card(client, headers, session["id"])["done"] is False
+        assert memory(db_session, it["id"]).level == 0
+    answer(client, headers, session["id"], FULL)
+    assert card(client, headers, session["id"])["done"] is True
+    assert memory(db_session, it["id"]).level == 1
+
+
+def test_a_failed_review_not_finished_stays_due_for_the_next_session(client, course, db_session):
+    headers, course_id, _, topic_id = course
+    it = item(client, headers, concept(client, headers, topic_id)["id"])
+    learn(client, headers, course_id)
+    make_due(db_session, it["id"])
+    session = start(client, headers, course_id, "SCHEDULED_REVIEW").json()
+    answer(client, headers, session["id"], WRONG)
+    client.post(f"/api/v1/review-sessions/{session['id']}/end", headers=headers)
+    # Level 0 and due now: the next scheduled review asks it again.
+    again = start(client, headers, course_id, "SCHEDULED_REVIEW")
+    assert again.status_code == 201
+    assert again.json()["total"] == 1
 
 
 def test_formulations_rotate_and_share_one_memory_state(client, course, db_session):
@@ -504,9 +542,9 @@ def test_override_replays_the_transition_and_keeps_the_ai_evaluation(client, cou
     assert (overridden["override_outcome"], overridden["final_outcome"]) == ("AGAIN", "AGAIN")
     assert overridden["evaluation"] == graded["evaluation"]  # never overwritten
     assert overridden["schedule"]["previous_level"] == 1  # replayed from the stored state
-    assert overridden["schedule"]["next_level"] == 1
+    assert overridden["schedule"]["next_level"] == 0
     state = memory(db_session, it["id"])
-    assert (state.level, state.state.value) == (1, "LEARNING")
+    assert (state.level, state.state.value) == (0, "RELEARNING")
 
     history = client.get(f"/api/v1/learning-items/{it['id']}/reviews", headers=headers).json()
     original, replay = history[-2], history[-1]
@@ -628,3 +666,66 @@ def test_sessions_never_reach_another_course(client, course, auth_headers):
         ("GET", f"/api/v1/learning-items/{it['id']}/reviews"),
     ]:
         assert client.request(method, url, headers=stranger).status_code == 404
+
+
+def test_a_partial_answer_says_in_one_line_what_was_missing(client, course):
+    """The evaluation carries `gap`: one sentence on what the answer lacked (empty when
+    nothing did), shown right under the grade."""
+    headers, course_id, _, topic_id = course
+    made = concept(client, headers, topic_id)
+    item(client, headers, made["id"])
+    item(client, headers, made["id"], title="Mutuo: oggetto")
+    session = start(client, headers, course_id).json()
+    partial = answer(client, headers, session["id"], PARTIAL).json()
+    assert partial["evaluation"]["gap"] == "Missing: obbligo di restituzione"
+    full = answer(client, headers, session["id"], FULL).json()
+    assert full["evaluation"]["gap"] == ""
+
+
+def test_offline_review_pack_and_sync(client, course, db_session):
+    """Due questions go to the device; self-graded answers come back and are applied at the
+    moment they were given, once, unless the item was reviewed since."""
+    headers, course_id, _, topic_id = course
+    made = concept(client, headers, topic_id)
+    first = item(client, headers, made["id"])
+    second = item(client, headers, made["id"], title="Mutuo: oggetto")
+    learn(client, headers, course_id)
+    make_due(db_session, first["id"])
+    state = memory(db_session, first["id"])
+    state.last_reviewed_at = utc_now() - timedelta(days=1)
+    db_session.commit()
+
+    pack = client.get(f"/api/v1/courses/{course_id}/offline-pack", headers=headers).json()
+    assert pack["cards"][0]["learning_item_id"] == first["id"]
+    assert {c["learning_item_id"] for c in pack["cards"]} == {first["id"], second["id"]}
+    card_one = pack["cards"][0]
+    assert card_one["expected_knowledge"].startswith("Consegna di denaro")
+
+    answered = (utc_now() - timedelta(seconds=30)).isoformat()
+    body = {
+        "answers": [
+            {
+                "client_id": "device-1-0001",
+                "learning_item_id": first["id"],
+                "question_formulation_id": card_one["question_formulation_id"],
+                "text": "consegna",
+                "outcome": "GOOD",
+                "answered_at": answered,
+            }
+        ]
+    }
+    before = memory(db_session, first["id"]).level
+    url = f"/api/v1/courses/{course_id}/offline-sync"
+    assert client.post(url, json=body, headers=headers).json() == {"applied": 1, "skipped": 0}
+    after = memory(db_session, first["id"])
+    assert after.level == before + 1
+    assert abs((after.last_reviewed_at - utc_now()).total_seconds() - (-30)) < 5
+    # Sent again (the device didn't hear back): nothing changes.
+    assert client.post(url, json=body, headers=headers).json() == {"applied": 0, "skipped": 1}
+    assert memory(db_session, first["id"]).level == before + 1
+    # An answer older than the last review is skipped: the newer review stands.
+    body["answers"][0] |= {
+        "client_id": "device-2-0001",
+        "answered_at": (utc_now() - timedelta(hours=1)).isoformat(),
+    }
+    assert client.post(url, json=body, headers=headers).json() == {"applied": 0, "skipped": 1}

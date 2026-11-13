@@ -251,3 +251,5 @@ class EvaluationOutput(AIOutputModel):
     # False when the passages don't let the answer be judged (spec §19): never guessed.
     context_sufficient: bool
     feedback: Annotated[str, Field(max_length=3000)] = ""
+    # One sentence: what the answer lacked compared with the reference answer ("" when nothing).
+    gap: Annotated[str, Field(max_length=500)] = ""

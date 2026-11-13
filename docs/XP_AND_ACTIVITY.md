@@ -8,7 +8,7 @@ the isolation matrix, and the web/Playwright flows.
 XP and activity sit **beside** the learning loop and never feed back into it: the scheduler,
 the ReviewOutcomeResolver and mastery estimates never read them.
 
-## 1. "I have studied this concept": three consolidation rounds
+## 1. "I have studied this concept": three good answers
 
 Opening or activating a Concept isn't studying it. Activation prepares Learning Items; the user
 reads them; then **"I have studied this concept"** (`POST /concepts/{id}/consolidation`)
@@ -17,19 +17,21 @@ starts consolidation:
 - The Concept's NEW, trainable, askable items are taken in course order, **5 per batch**
   (15 answers). The plan (`GET /concepts/{id}/consolidation`) shows the batch size, the rounds
   and the number of answers before starting, and how many items wait for later batches.
-- A batch is a stored `CONSOLIDATION` review session whose pool holds each item **three times in
-  a row**. Each round is a separate answer, evaluated, with corrective feedback; the card shows
-  "Round n of 3". The same question (or an existing formulation of the same item) is asked
-  again; no new AI generation is needed.
-- Three **completed** rounds, not "until three correct": Correct → Wrong → Correct is 10 → 0 →
-  20 XP.
+- A batch is a stored `CONSOLIDATION` review session. Each item is asked until it has been
+  answered **well three times** (GOOD/EASY), not necessarily in a row; each answer is evaluated
+  with corrective feedback, and the card shows "Good answer n of 3". A not-good answer adds one
+  more slot for that item. The same question (or an existing formulation) is asked again; no new
+  AI generation is needed.
+- XP follows correct answers: the nth correct answer of an item earns 10n (halved by a hint).
+  Wrong → Correct → Correct → Correct is 0 → 10 → 20 → 30 XP; extra tries beyond the three
+  good answers earn nothing.
 - **Resume, never reset.** Leaving keeps the batch open; asking again (or "Resume" on the
   dashboard) continues at the same slot. A finished batch is never replayed; a new batch only
   takes items still NEW.
 - **Scheduler:** three answers seconds apart are one act of encoding, not three reviews. Only an
-  item's **last round** goes through the SchedulingPolicy (`process_learning` with that round's
-  outcome), so a correct item starts at level 1 (4 hours) like any first success, and a failed
-  last round leaves it NEW for a later batch. Every round is kept as an Answer with its
+  item's **third good answer** goes through the SchedulingPolicy (`process_learning` with that round's
+  outcome), so a correct item starts at level 1 (4 hours) like any first success, and an item that never
+  gets three good answers stays NEW for a later batch. Every round is kept as an Answer with its
   Evaluation (`consolidation_round` 1-3); only the last one writes a Review history row
   (SCHEDULING.md §4a).
 - Completing a batch isn't consolidating the whole Concept: the end screen says how many items
@@ -40,14 +42,21 @@ the iOS app. It shows the full answer before recall, so its attempts earn no XP 
 
 ## 2. The XP rule
 
-Per user **and** Learning Item, a counter of XP-counted correct answers (`item_success_counters`,
-shared by all of the item's question formulations):
+The reward follows the Learning Item's **level** (its step on the review ladder) at the moment
+the question was asked:
 
 ```
-base XP of the nth correct answer = min(10 × n, 150)        (10, 20, 30 … 150 from the 15th)
-awarded XP                        = base, halved if a hint was revealed first
-                                                             (5, 10, 15 … 75)
+base XP of a correct answer = 10 × (level + 1)       (level 0 → 10, level 1 → 20 … level 8 → 90)
+awarded XP                  = base, halved if a hint was revealed first
 ```
+
+This is `xp_v2` (owner decision, 2026-11-10). Under `xp_v1` the reward grew with the count of
+correct answers (`min(10 × n, 150)`), so it kept growing even after a failed review had sent the
+item back to level 0. Now a level has one reward: an item that falls back earns what that level
+earns. Awards already given keep their amount; each row records the policy version and, since
+`xp_v2`, the `level` it was decided at. The counter of XP-counted correct answers
+(`item_success_counters`, the award's `ordinal`) is still kept, as a count and for the
+anti-farming rule in §3.
 
 - **Correct** means: the AI classified the answer `CORRECT` *and* the deterministic resolver
   turned it into a success (GOOD or HARD). The client never sends an amount or a correctness
@@ -65,7 +74,7 @@ awarded XP                        = base, halved if a hint was revealed first
 
 | Attempt | Eligible | Unique occasion |
 |---|---|---|
-| Consolidation round | the item's first **three** consolidation rounds, ever | `initial:1..3` |
+| Consolidation answer | until the item has **three correct** consolidation answers, ever | `initial:<attempt>` |
 | Scheduled review | only when the item was **due** when answered | `review:<due date>` |
 | LEARN (answer shown first) | no | — |
 | Practice (any mode, even with `update_schedule`) | no | — |
@@ -84,11 +93,14 @@ before the next due date can't earn twice.
 "Show hint" (`POST /review-sessions/{id}/hint`) before answering:
 
 - The UI states **"Using a hint halves the XP for this answer."** before anything is revealed.
-- The hint is the opening word(s) of the item's first key point (about a third of it, 1-6
-  words), or of its reference answer: a retrieval cue from the stored, source-grounded
-  reference, never the whole answer, never a new AI call (so it can't contradict the reference
-  and costs nothing). It's cached on the question formulation. When the reference is too short
-  to cut a cue from, there's honestly no hint (`hint_unavailable`), and nothing is recorded.
+- The hint (revised 2026-11-08; the earlier cue, the first words of the first key point, mostly
+  repeated the question and rarely helped) has two parts, both from the stored, source-grounded
+  reference, never a new AI call (so it can't contradict the reference and costs nothing):
+  **how many key points** the answer should cover, and up to four **key terms**, one per key
+  point: its longest word (5+ letters) that the question doesn't already contain. Whole
+  sentences are never shown. The server sends `point_count` and `terms`; the UI shows a count
+  and chips. When the reference is too short to cut cues from, there's honestly no hint
+  (`hint_unavailable`), and nothing is recorded.
 - The reveal is stored (`hint_reveals`, one per session slot) **before** it's returned. The
   answer to that slot is marked `hint_used` by the server; reloading, leaving or a
   client-side change can't remove it. Asking again returns the same hint: several hints still

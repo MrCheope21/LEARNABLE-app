@@ -1,0 +1,43 @@
+# LEARNABLE on one small VM (Google Cloud e2-micro, 1 GB RAM): the API + web app in one
+# container with SQLite, behind Caddy for automatic HTTPS. No PostgreSQL: one person's study
+# data fits SQLite, and it saves the memory a 1 GB VM doesn't have.
+# Setup: docs/DEPLOYMENT_GOOGLE.md. Run from the repo root:
+#   docker compose -f deploy/google/docker-compose.yml --env-file .env up -d --build
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    logging: {driver: local}
+    env_file: ../../.env
+    environment:
+      DATABASE_URL: sqlite:////app/var/learnable.db
+      PUBLIC_APP_URL: https://${DOMAIN:?set DOMAIN in .env, e.g. learnable.duckdns.org}
+    command: sh -c "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1"
+    volumes:
+      # The database file and the uploaded documents: everything worth backing up.
+      - app_var:/app/var
+    mem_limit: 600m
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    logging: {driver: local}
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  app_var:
+    name: learnable_app_var
+  caddy_data:
+  caddy_config:

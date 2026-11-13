@@ -14,6 +14,23 @@ NormalizedEmail = Annotated[
     EmailStr, BeforeValidator(_strip), AfterValidator(lambda email: email.lower())
 ]
 
+# A sign-in name: 3-30 lowercase letters, digits, dots, underscores and hyphens, stored lowercased.
+# No "@", so a login of "a@b.c" is always an email and anything else a username.
+Username = Annotated[
+    str,
+    BeforeValidator(_strip),
+    AfterValidator(lambda name: name.lower()),
+    Field(min_length=3, max_length=30, pattern=r"^[A-Za-z0-9._-]+$"),
+]
+
+# What the sign-in form accepts: the email or the username, whichever the person remembers.
+LoginName = Annotated[
+    str,
+    BeforeValidator(_strip),
+    AfterValidator(lambda name: name.lower()),
+    Field(min_length=1, max_length=320),
+]
+
 # 12+ characters per OWASP ASVS 2.1.1. The upper bound caps hashing cost per request.
 NewPassword = Annotated[str, Field(min_length=12, max_length=128)]
 
@@ -43,6 +60,9 @@ Language = Literal["en", "it", "es", "fr", "de", "zh", "ja", "ar", "hi"]
 
 class UserCreate(_AuthInput):
     email: NormalizedEmail
+    username: Username | None = None
+    # The code from an administrator's invitation link; required unless sign-up is open.
+    invite: Annotated[str, BeforeValidator(_strip), Field(max_length=200)] | None = None
     password: NewPassword
     # The device's zone; UTC when omitted (it can be changed later).
     timezone: Timezone | None = None
@@ -51,7 +71,8 @@ class UserCreate(_AuthInput):
 
 
 class UserLogin(_AuthInput):
-    email: NormalizedEmail
+    # The field keeps its name for existing clients; it holds an email or a username.
+    email: LoginName
     # No policy check at login: the policy can tighten later without locking out older accounts.
     password: Annotated[str, Field(min_length=1, max_length=128)]
 
@@ -61,11 +82,17 @@ class UserRead(BaseModel):
 
     id: UUID
     email: EmailStr
+    username: str | None
+    is_admin: bool
     timezone: str
     # Completed answers per day.
     daily_goal: int
     language: Language
     display_name: str | None
+    # Opted in to the community (leaderboards, profile, friends, messages).
+    community_visible: bool
+    # Takes emails about updates to the courses they have.
+    email_updates: bool
 
 
 class UserPreferencesUpdate(_AuthInput):
@@ -74,6 +101,10 @@ class UserPreferencesUpdate(_AuthInput):
     language: Language | None = None
     # An empty string clears it.
     display_name: Annotated[str, Field(max_length=80)] | None = None
+    # An empty string clears it.
+    username: Annotated[str, BeforeValidator(_strip), Field(max_length=30)] | None = None
+    community_visible: bool | None = None
+    email_updates: bool | None = None
 
 
 class PasswordResetRequest(_AuthInput):
@@ -88,6 +119,12 @@ class PasswordResetConfirm(_AuthInput):
 class PasswordChange(_AuthInput):
     current_password: Annotated[str, Field(min_length=1, max_length=128)]
     new_password: NewPassword
+
+
+class AccountDelete(_AuthInput):
+    """Deleting your own account: the password again, so a session left open can't do it."""
+
+    password: Annotated[str, Field(min_length=1, max_length=128)]
 
 
 class MessageRead(BaseModel):

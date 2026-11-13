@@ -2,12 +2,17 @@ import { useMutation } from "@tanstack/react-query";
 import { useId } from "react";
 import type { Schemas } from "../api/client";
 import { learningItems } from "../api/endpoints";
-import { priorityLabel } from "./labels";
+import { useI18n } from "../i18n";
+import { useLabels } from "./useLabels";
 import { ErrorBanner } from "./QueryState";
 
-/** "Essential" / "Important" / "Extra" next to a question. */
+/** From 1 Essential to 5 In depth (optional): the levels a question can have. */
+export const PRIORITIES = [1, 2, 3, 4, 5] as const;
+
+/** "Essential" … "In depth" next to a question. */
 export function PriorityBadge({ priority }: { priority: number }) {
-  return <span className={`pill priority priority-${priority}`}>{priorityLabel[priority] ?? "Important"}</span>;
+  const { priorityLabel } = useLabels();
+  return <span className={`pill priority priority-${priority}`}>{priorityLabel[priority] ?? priorityLabel[2]}</span>;
 }
 
 /**
@@ -17,13 +22,15 @@ export function PriorityBadge({ priority }: { priority: number }) {
  */
 export function PrioritySelect({ item, onSaved }: { item: Schemas["LearningItemRead"]; onSaved: () => void }) {
   const id = useId();
+  const { t } = useI18n();
+  const { priorityLabel } = useLabels();
   const save = useMutation({ mutationFn: (priority: number) => learningItems.update(item.id, { priority }), onSuccess: onSaved });
   const author = item.origin_priority;
   return (
     <div className="priority-select">
-      <label htmlFor={id}>{author != null ? "Your priority" : "Priority"}</label>
+      <label htmlFor={id}>{author != null ? t("priority.yours") : t("priority.label")}</label>
       <select id={id} value={item.priority} disabled={save.isPending} onChange={(e) => save.mutate(Number(e.target.value))}>
-        {[1, 2, 3].map((p) => (
+        {PRIORITIES.map((p) => (
           <option key={p} value={p}>
             {priorityLabel[p]}
           </option>
@@ -31,9 +38,9 @@ export function PrioritySelect({ item, onSaved }: { item: Schemas["LearningItemR
       </select>
       {author != null && author !== item.priority && (
         <span className="hint">
-          Author: {priorityLabel[author]} ·{" "}
+          {t("priority.author", { name: priorityLabel[author] ?? "" })} ·{" "}
           <button type="button" className="link" disabled={save.isPending} onClick={() => save.mutate(author)}>
-            Use the author's
+            {t("priority.useAuthor")}
           </button>
         </span>
       )}

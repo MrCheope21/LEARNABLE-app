@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { useI18n } from "../../i18n";
 
 const MIN_LENGTH = 3;
 
@@ -12,6 +13,7 @@ export function DisputeForm({
   onAsk: (argument: string) => Promise<void>;
   testAi?: boolean;
 }) {
+  const { t } = useI18n();
   const [argument, setArgument] = useState("");
   const id = useId();
   const ready = argument.trim().length >= MIN_LENGTH;
@@ -23,27 +25,24 @@ export function DisputeForm({
         if (ready) void onAsk(argument.trim());
       }}
     >
-      <h3>Ask the AI to look again</h3>
+      <h3>{t("dispute.title")}</h3>
       {testAi && (
         <p className="banner warning" role="note">
-          The test AI can't read your objection: a second opinion would repeat the same grade. Grade it yourself below.
+          {t("dispute.testAi")}
         </p>
       )}
-      <label htmlFor={id}>Why do you disagree?</label>
+      <label htmlFor={id}>{t("dispute.why")}</label>
       <textarea
         id={id}
         rows={3}
         maxLength={1000}
         value={argument}
         onChange={(e) => setArgument(e.target.value)}
-        placeholder="Say what the evaluation got wrong…"
+        placeholder={t("dispute.placeholder")}
       />
-      <p className="hint">
-        The AI sees your objection and evaluates again. Both opinions stay visible; your grade changes only if you
-        choose it below.
-      </p>
+      <p className="hint">{t("dispute.hint")}</p>
       <button type="submit" disabled={working || !ready}>
-        {working ? "Asking…" : "Ask for a second opinion"}
+        {working ? t("dispute.asking") : t("dispute.ask")}
       </button>
     </form>
   );

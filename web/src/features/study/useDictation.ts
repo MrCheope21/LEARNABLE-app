@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useI18n } from "../../i18n";
+import type { MessageKey } from "../../i18n/messages/en";
 
 // The browser's speech recognition (Chrome, Edge, Safari). TypeScript's DOM library doesn't
 // describe it, so only what is used is declared.
@@ -31,11 +33,11 @@ export function recognitionLanguage(courseLanguage?: string | null): string {
   return LANGUAGES[(courseLanguage ?? "").slice(0, 2).toLowerCase()] ?? navigator.language;
 }
 
-const ERRORS: Record<string, string> = {
-  "not-allowed": "The microphone is blocked. Allow it in your browser's site settings to dictate.",
-  "service-not-allowed": "The microphone is blocked. Allow it in your browser's site settings to dictate.",
-  network: "Speech recognition needs an internet connection.",
-  "audio-capture": "No microphone was found.",
+const ERRORS: Record<string, MessageKey> = {
+  "not-allowed": "dictation.blocked",
+  "service-not-allowed": "dictation.blocked",
+  network: "dictation.network",
+  "audio-capture": "dictation.noMic",
 };
 
 /**
@@ -43,6 +45,7 @@ const ERRORS: Record<string, string> = {
  * `interim`. Nothing is recorded or stored here: the browser transcribes, and only text is used.
  */
 export function useDictation(language: string, onFinal: (text: string) => void) {
+  const { t } = useI18n();
   const [supported] = useState(() => recognitionConstructor() !== null);
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");
@@ -74,7 +77,7 @@ export function useDictation(language: string, onFinal: (text: string) => void) 
     };
     next.onerror = (event) => {
       if (event.error !== "no-speech" && event.error !== "aborted") {
-        setError(ERRORS[event.error] ?? "Speech recognition stopped unexpectedly. You can keep typing.");
+        setError(t(ERRORS[event.error] ?? "dictation.stopped"));
       }
     };
     next.onend = () => {
@@ -86,7 +89,7 @@ export function useDictation(language: string, onFinal: (text: string) => void) 
     setError(null);
     setListening(true);
     next.start();
-  }, [language]);
+  }, [language, t]);
 
   useEffect(() => () => recognition.current?.abort(), []);
 

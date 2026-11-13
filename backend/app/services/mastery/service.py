@@ -13,20 +13,22 @@ from collections import defaultdict
 from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, Topic
-from app.models.enums import MemoryState, StudyState
+from app.models.enums import MemoryState, StudyState, XpReason
 from app.models.learning import LearningItem, ReviewState
 from app.models.review import Answer, Evaluation
+from app.models.rewards import XpAward
 from app.schemas.progress import (
     ChapterProgress,
     ConceptProgress,
     CourseProgress,
     CourseSummary,
     CurriculumProgress,
+    ExamPlan,
     HomeSummary,
     MemoryProgress,
     ReviewLoad,
@@ -43,7 +45,7 @@ MISCONCEPTIONS_PER_CONCEPT = 5
 def course_progress(
     db: Session, user_id: uuid.UUID, course_id: uuid.UUID, utc_offset_minutes: int = 0
 ) -> CourseProgress:
-    get_owned_course(db, user_id, course_id)
+    course = get_owned_course(db, user_id, course_id)
     chapters = db.scalars(
         select(Chapter)
         .where(Chapter.course_id == course_id)
@@ -116,12 +118,57 @@ def course_progress(
                 topics=topic_nodes,
             )
         )
+    load = _review_load(db, course_id, utc_offset_minutes)
     return CourseProgress(
         course_id=course_id,
+        exam=exam_plan(db, course, load.new_to_learn, utc_offset_minutes),
         curriculum=_curriculum(concepts),
         memory=_memory([state for _, state in trained]),
-        review_load=_review_load(db, course_id, utc_offset_minutes),
+        review_load=load,
         chapters=chapter_nodes,
+    )
+
+
+# The last part of the time before an exam is for reviewing, not for new material: a fifth of
+# the days left, at most a week.
+REVIEW_ONLY_SHARE = 5
+REVIEW_ONLY_MAX_DAYS = 7
+PACE_DAYS = 7
+
+
+def exam_plan(
+    db: Session, course: Course, new_left: int, utc_offset_minutes: int = 0
+) -> ExamPlan | None:
+    """How many new questions a day reach the exam date, against the pace of the last week
+    (questions first learned per day, from the XP ledger)."""
+    if course.exam_date is None:
+        return None
+    now = utc_now()
+    today = now.astimezone(timezone(timedelta(minutes=utc_offset_minutes))).date()
+    days_left = (course.exam_date - today).days
+    learned = db.scalar(
+        select(func.count(func.distinct(XpAward.learning_item_id))).where(
+            XpAward.course_id == course.id,
+            XpAward.reason == XpReason.INITIAL,
+            XpAward.awarded_at >= now - timedelta(days=PACE_DAYS),
+        )
+    )
+    pace = round((learned or 0) / PACE_DAYS, 1)
+    learning_days = max(1, days_left - min(REVIEW_ONLY_MAX_DAYS, days_left // REVIEW_ONLY_SHARE))
+    per_day = -(-new_left // learning_days) if new_left else 0
+    if new_left == 0:
+        status = "done"
+    elif days_left < 0:
+        status = "past"
+    else:
+        status = "on_track" if pace >= per_day else "behind"
+    return ExamPlan(
+        date=course.exam_date,
+        days_left=days_left,
+        new_left=new_left,
+        new_per_day=per_day,
+        pace=pace,
+        status=status,  # type: ignore[arg-type]
     )
 
 

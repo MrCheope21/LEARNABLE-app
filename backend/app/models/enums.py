@@ -69,7 +69,12 @@ class LearningItemRole(StrEnum):
 
 # How much a question matters, set by the user to decide what to concentrate on: 1 Essential,
 # 2 Important, 3 Extra (addendum). Labels and filters only: it doesn't change the study order.
+# 1 Essential, 2 Important, 3 Useful, 4 Accessory (a detail worth knowing, not central),
+# 5 In depth (optional). 4 and 5 were added on 2026-11-10: three levels left no place for
+# questions that are neither central nor pointless.
 PRIORITY_ESSENTIAL, PRIORITY_IMPORTANT, PRIORITY_EXTRA = 1, 2, 3
+PRIORITY_ACCESSORY, PRIORITY_IN_DEPTH = 4, 5
+PRIORITY_MAX = PRIORITY_IN_DEPTH
 
 
 def default_priority(role: "LearningItemRole") -> int:

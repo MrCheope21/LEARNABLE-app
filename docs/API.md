@@ -418,7 +418,7 @@ topic_id, concept_ids, total, position, xp_earned, started_at, ended_at`.
 **`GET /next`** → `{session, done, card}`. `card`: `learning_item_id, concept_id,
 concept_title, question {id, question_type, text}, introduction (LEARN only: title,
 objective, expected_knowledge, essential_points, sources), pending_answer_id, round,
-rounds_total (CONSOLIDATION: "Round 2 of 3"), potential_xp {eligible, ordinal, xp,
+rounds_total (CONSOLIDATION: "Round 2 of 3"), potential_xp {eligible, level, xp,
 xp_with_hint}, hint {available, revealed, text}`. The same card comes back until it has an
 outcome or is skipped. Wording rotates across sessions (least asked formulation first).
 
@@ -463,7 +463,7 @@ resolver_version, override_outcome, final_outcome, needs_self_grade, schedule, r
 session, consolidation_round, hint_used, xp`.
 
 - `xp` (null when the attempt isn't XP-eligible or has no outcome yet): `reason (INITIAL |
-  SCHEDULED_REVIEW), correct, ordinal, base_xp, hint_used, xp`. Decided once, when the answer is
+  SCHEDULED_REVIEW), correct, ordinal, level, base_xp, hint_used, xp`. Decided once, when the answer is
   first finalized, from the AI classification and the resolver's outcome; a self-grade or a
   later override never creates or removes XP (docs/XP_AND_ACTIVITY.md).
 
@@ -603,6 +603,7 @@ PATCH  /api/v1/auth/me          # {"timezone"?, "daily_goal"? (1-500)}
 POST   /api/v1/auth/password-reset/request   # {"email"} → 202, same answer for any email
 POST   /api/v1/auth/password-reset/confirm   # {"token", "new_password"} → 204
 POST   /api/v1/auth/change-password          # {"current_password", "new_password"} → Token
+POST   /api/v1/auth/delete-account           # {"password"} → 204; deletes the account and all it owns
 POST   /api/v1/auth/refresh     # not yet implemented
 POST   /api/v1/auth/logout      # not yet implemented (sign-out is client-side)
 ```
@@ -626,3 +627,39 @@ POST   /api/v1/auth/logout      # not yet implemented (sign-out is client-side)
   user's calendar day for streaks, goal, XP today and activity; changing it applies from then on.
 
 See DEVELOPMENT.md "Decisions made autonomously → Auth" for the reasoning behind each rule.
+
+## Interests and reports
+
+Described in docs/COMMUNITY.md §6-§7.
+
+```
+GET    /api/v1/interests                       # {tags, suggestions}
+PUT    /api/v1/interests                       # {"tag"}
+DELETE /api/v1/interests?tag=
+POST   /api/v1/reports                         # {"kind": "user"|"message"|"review", "target_id", "reason"}
+GET    /api/v1/admin/reports                   # administrators
+POST   /api/v1/admin/reports/{id}/resolve
+POST   /api/v1/admin/reports/{id}/reopen
+```
+
+## Exam date, data export
+
+```
+PUT /api/v1/courses/{course_id}/exam-date    # {"date": "2027-01-20" | null} → Course
+GET /api/v1/courses/{course_id}/progress     # now with "exam": {date, days_left, new_left, new_per_day, pace, status} | null
+GET /api/v1/auth/export                      # everything held about the account, as a JSON download
+```
+
+`new_per_day` spreads the questions not learned yet over the days left, keeping the last fifth
+(at most a week) for review only; `pace` is the new questions learned per day over the last 7
+days; `status` is `on_track`, `behind`, `done` (nothing new left) or `past`.
+
+## Offline review, imports, "what was missing"
+
+- Offline review: `GET /courses/{id}/offline-pack`, `POST /courses/{id}/offline-sync` (docs/OFFLINE.md).
+- Question banks also accept Anki decks (`.apkg`, exported with "Support older Anki versions"),
+  Excel (`.xlsx`) and CSV/TSV: they are converted to the labelled text format and stored as that
+  (`services/question_banks/converting.py`). Columns are recognised by name (Domanda/Question/
+  Front, Risposta/Answer/Back, Argomento/Topic/Deck, Priorità/Priority) or taken in order.
+- Evaluations carry `gap`: one sentence on what the answer lacked compared with the reference
+  answer (prompt `answer_evaluation_v3`); empty when nothing did and on older evaluations.

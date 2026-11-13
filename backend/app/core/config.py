@@ -81,6 +81,21 @@ class Settings(BaseSettings):
     # The built web client (web/dist). When set, this server also serves it, on the same origin
     # as /api (app/web.py; the production image sets it). Unset in development: Vite serves it.
     web_dist_dir: Path | None = None
+    # true: anyone can sign up. false: only with an invitation from an administrator (existing
+    # accounts sign in as usual).
+    registration_open: bool = True
+    invitation_ttl_days: int = Field(default=7, ge=1, le=90)
+    # --- Daily limits per account (administrators have none), counted per UTC day ---
+    # AI evaluations (answers, repeats, second opinions) and AI generations (curriculum, items,
+    # questions). An account's own override (admin page) wins.
+    ai_daily_evaluations: int = Field(default=100, ge=0)
+    ai_daily_generations: int = Field(default=100, ge=0)
+    # The provider's free quota is shared by everyone: when the day's total reaches this many
+    # requests minus the reserve, only administrators can go on. 0 turns the guard off.
+    ai_shared_daily_cap: int = Field(default=0, ge=0)
+    ai_admin_reserve_percent: int = Field(default=20, ge=0, le=90)
+    # Uploaded material per account, in MB (0: unlimited).
+    storage_limit_mb: int = Field(default=500, ge=0)
     password_reset_ttl_minutes: int = Field(default=30, gt=0, le=24 * 60)
     # Outgoing email (app/email/sender.py). console: written to the server log (development).
     email_backend: Literal["console", "smtp"] = "console"
@@ -88,9 +103,29 @@ class Settings(BaseSettings):
     smtp_port: int = Field(default=587, gt=0)
     smtp_username: str = ""
     smtp_password: SecretStr = SecretStr("")
-    # The From address, e.g. "LEARNABLE <no-reply@example.com>".
+    # The From address, e.g. "Recallable <no-reply@example.com>".
     smtp_from: str = ""
     smtp_starttls: bool = True
+
+    # Push notifications for review reminders (app/services/push.py). Off unless all three are
+    # set. The key pair comes from `python scripts/make_vapid_keys.py`; the contact is what the
+    # browser vendors' push services ask for ("mailto:you@example.com" or an https address).
+    push_vapid_public_key: str = ""
+    push_vapid_private_key: SecretStr = SecretStr("")
+    push_contact: str = ""
+    # How often the reminder pass runs, in seconds. 0 disables it.
+    push_reminder_interval_seconds: float = Field(default=600, ge=0)
+
+    # Paid courses on the marketplace (docs/MARKETPLACE.md §8). none: every course is free.
+    # stripe: buyers pay through Stripe Checkout and the money goes to the author's own Stripe
+    # account (Connect), minus the platform's fee.
+    payments_provider: Literal["none", "stripe"] = "none"
+    stripe_secret_key: SecretStr = SecretStr("")
+    stripe_webhook_secret: SecretStr = SecretStr("")
+    # The platform's share of each sale, in percent.
+    platform_fee_percent: int = Field(default=10, ge=0, le=50)
+    price_min_cents: int = Field(default=100, ge=50)
+    price_max_cents: int = Field(default=50_000, ge=100)
 
     # Runtime AI provider (see docs/AI.md) — intentionally provider-agnostic, never hard-coded.
     # Empty means AI features are off: the server runs, and AI endpoints answer 503.
@@ -250,6 +285,21 @@ class Settings(BaseSettings):
             ]
             if missing:
                 raise ValueError(f"EMAIL_BACKEND=smtp requires {' and '.join(missing)}")
+        return self
+
+    @model_validator(mode="after")
+    def _require_stripe_settings(self) -> Self:
+        if self.payments_provider == "stripe":
+            missing = [
+                name
+                for name, value in (
+                    ("STRIPE_SECRET_KEY", self.stripe_secret_key),
+                    ("STRIPE_WEBHOOK_SECRET", self.stripe_webhook_secret),
+                )
+                if not value.get_secret_value().strip()
+            ]
+            if missing:
+                raise ValueError(f"PAYMENTS_PROVIDER=stripe requires {' and '.join(missing)}")
         return self
 
     @model_validator(mode="after")

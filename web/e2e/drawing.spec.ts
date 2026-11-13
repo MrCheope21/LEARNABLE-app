@@ -34,7 +34,7 @@ test("a drawing question is answered by drawing and compared with its reference"
 
   await page.goto("/");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
   await page.goto(`/courses/${course}/concepts/${concept}`);

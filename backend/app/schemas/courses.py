@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
@@ -63,6 +64,7 @@ class CourseRead(BaseModel):
     marketplace_listing_id: UUID | None
     marketplace_version: int | None
     archived_at: UTCTimestamp | None
+    exam_date: date | None = None
     created_at: UTCTimestamp
     updated_at: UTCTimestamp
 

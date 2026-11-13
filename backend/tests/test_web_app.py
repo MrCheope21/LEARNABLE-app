@@ -8,7 +8,7 @@ from app.core.config import Settings, get_settings
 from app.web import web_response
 
 STRONG_SECRET = "s" * 40
-INDEX = "<!doctype html><title>LEARNABLE</title>"
+INDEX = "<!doctype html><title>Recallable</title>"
 
 
 @pytest.fixture

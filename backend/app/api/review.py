@@ -19,14 +19,21 @@ from app.schemas.review import (
     ConsolidationPlan,
     DisputeCreate,
     HintState,
+    OfflinePack,
+    OfflineSync,
+    OfflineSyncResult,
     OverrideCreate,
+    PickCreate,
+    RepeatCreate,
+    ReviewQueue,
     ReviewRead,
     SessionCard,
     SessionCreate,
     SessionRead,
 )
 from app.services import drawings
-from app.services.review import consolidation, service
+from app.services.quota import EVALUATION, ai_quota
+from app.services.review import consolidation, offline, service
 from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(tags=["review"])
@@ -91,7 +98,7 @@ def next_card(session_id: uuid.UUID, db: Session = DB, user: User = CurrentUser)
     "/review-sessions/{session_id}/answers",
     response_model=AnswerResult,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(per_user("answers", 600, 3600))],
+    dependencies=[Depends(per_user("answers", 600, 3600)), Depends(ai_quota(EVALUATION))],
 )
 def submit_answer(
     session_id: uuid.UUID,
@@ -105,6 +112,26 @@ def submit_answer(
     the answer is stored, even if evaluation failed (`needs_self_grade`). A drawing question
     takes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`."""
     return service.submit_answer(db, provider, storage, user.id, session_id, payload)
+
+
+@router.get("/courses/{course_id}/review-queue", response_model=ReviewQueue)
+def review_queue(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> ReviewQueue:
+    """Every question due now, in the order they were added to the course, to choose from."""
+    return service.due_queue(db, user.id, course_id)
+
+
+@router.get("/review-sessions/{session_id}/queue", response_model=ReviewQueue)
+def session_queue(session_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> ReviewQueue:
+    """The questions still to come in this session, the one on screen first."""
+    return service.session_queue(db, user.id, session_id)
+
+
+@router.post("/review-sessions/{session_id}/pick", response_model=SessionCard)
+def pick(
+    session_id: uuid.UUID, payload: PickCreate, db: Session = DB, user: User = CurrentUser
+) -> SessionCard:
+    """Makes a question still to come the next one (the one that was next moves back a slot)."""
+    return service.pick(db, user.id, session_id, payload.learning_item_id)
 
 
 @router.post("/review-sessions/{session_id}/skip", response_model=SessionCard)
@@ -125,7 +152,7 @@ def get_answer(answer_id: uuid.UUID, db: Session = DB, user: User = CurrentUser)
 @router.post(
     "/answers/{answer_id}/evaluate",
     response_model=AnswerResult,
-    dependencies=[Depends(per_user("evaluate", 60, 3600))],
+    dependencies=[Depends(per_user("evaluate", 60, 3600)), Depends(ai_quota(EVALUATION))],
 )
 def retry_evaluation(
     answer_id: uuid.UUID,
@@ -139,9 +166,28 @@ def retry_evaluation(
 
 
 @router.post(
+    "/answers/{answer_id}/repeat",
+    response_model=AnswerResult,
+    dependencies=[Depends(per_user("evaluate", 60, 3600)), Depends(ai_quota(EVALUATION))],
+)
+def repeat_answer(
+    answer_id: uuid.UUID,
+    payload: RepeatCreate,
+    db: Session = DB,
+    user: User = CurrentUser,
+    provider: AIProvider | None = Provider,
+    storage: DocumentStorage = Storage,
+) -> AnswerResult:
+    """Review the reference answer and repeat it (409 `repeat_not_offered` otherwise). The
+    repeat is evaluated: repeated well, the first answer counts as correct; not well, it is
+    failed and the item goes back to level 0."""
+    return service.repeat_answer(db, provider, storage, user.id, answer_id, payload)
+
+
+@router.post(
     "/answers/{answer_id}/dispute",
     response_model=AnswerResult,
-    dependencies=[Depends(per_user("dispute", 30, 3600))],
+    dependencies=[Depends(per_user("dispute", 30, 3600)), Depends(ai_quota(EVALUATION))],
 )
 def dispute(
     answer_id: uuid.UUID,
@@ -178,3 +224,24 @@ def override(
 @router.get("/learning-items/{item_id}/reviews", response_model=list[ReviewRead])
 def list_reviews(item_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> list[Review]:
     return service.list_item_reviews(db, user.id, item_id)
+
+
+# --- Offline review (services/review/offline.py) ---
+
+
+@router.get("/courses/{course_id}/offline-pack", response_model=OfflinePack)
+def offline_pack(course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser) -> OfflinePack:
+    """The questions due in the next 7 days with their reference answers, to review offline."""
+    return offline.pack(db, user.id, course_id)
+
+
+@router.post(
+    "/courses/{course_id}/offline-sync",
+    response_model=OfflineSyncResult,
+    dependencies=[Depends(per_user("offline_sync", 120, 3600))],
+)
+def offline_sync(
+    course_id: uuid.UUID, payload: OfflineSync, db: Session = DB, user: User = CurrentUser
+) -> OfflineSyncResult:
+    """Self-graded answers given offline, each applied as a review at the moment it was given."""
+    return offline.sync(db, user, course_id, payload.answers)

@@ -8,7 +8,7 @@ policies (FSRS, adaptive) implement the same protocol later.
 Chessable-style rules (owner decisions, 2026-09-24):
 - encoding (LEARN) that isn't AGAIN puts the item on level 1 (EASY: level 2);
 - GOOD and HARD advance one level; HARD also marks the item hard; EASY advances two;
-- AGAIN returns to level 1 (a lapse if the item had been learned);
+- AGAIN returns to level 1 (a lapse if the item had been learned); from v3, to level 0;
 - the next due date counts from the moment of the review, late or not; lateness is recorded.
 """
 
@@ -22,6 +22,7 @@ from app.services.scheduling.config import (
     CHESSABLE_POLICY_VERSION,
     CHESSABLE_V1_LADDER,
     CHESSABLE_V1_VERSION,
+    CHESSABLE_V2_VERSION,
     GENTLE_LAPSE_DROP,
     MASTERY_LAPSE_DISCOUNT,
 )
@@ -96,6 +97,7 @@ class ChessableStyleSchedulingPolicy:
         version: str = CHESSABLE_POLICY_VERSION,
         hard_holds_level: bool = True,
         gentle_first_lapse: bool = True,
+        lapse_to_zero: bool = True,
     ) -> None:
         if not ladder:
             raise ValueError("the ladder needs at least one level")
@@ -105,6 +107,8 @@ class ChessableStyleSchedulingPolicy:
         self._hard_holds_level = hard_holds_level
         # v2: a learned item's first slip drops GENTLE_LAPSE_DROP levels; v1 always went to 1.
         self._gentle_first_lapse = gentle_first_lapse
+        # v3: a failed review goes back to level 0, due at once, until it is answered well.
+        self._lapse_to_zero = lapse_to_zero
 
     @property
     def max_level(self) -> int:
@@ -136,6 +140,17 @@ class ChessableStyleSchedulingPolicy:
             # A lapse is forgetting something already learned; failing again while relearning,
             # or at level 1, isn't a new one.
             lapse = snapshot.state in (MemoryState.REVIEW, MemoryState.MASTERED)
+            if self._lapse_to_zero:
+                return Transition(
+                    snapshot,
+                    self._restart(
+                        replace(counted, lapse_count=counted.lapse_count + (1 if lapse else 0)),
+                        now,
+                    ),
+                    outcome,
+                    now,
+                    lateness,
+                )
             learned_before = lapse or snapshot.state is MemoryState.RELEARNING
             # Failing again while relearning (a second slip in a row) always restarts at 1.
             level = (
@@ -156,6 +171,9 @@ class ChessableStyleSchedulingPolicy:
         else:
             step = 1
         level = min(snapshot.level + step, self.max_level)
+        if level == 0:
+            # HARD while relearning: still not answered well, so still at level 0.
+            return Transition(snapshot, self._restart(counted, now), outcome, now, lateness)
         return Transition(snapshot, self._place(counted, level, now), outcome, now, lateness)
 
     def pause(self, snapshot: MemorySnapshot, now: datetime) -> MemorySnapshot:
@@ -176,6 +194,11 @@ class ChessableStyleSchedulingPolicy:
         return (snapshot.level / self.max_level) / (
             1 + MASTERY_LAPSE_DISCOUNT * snapshot.lapse_count
         )
+
+    def _restart(self, snapshot: MemorySnapshot, now: datetime) -> MemorySnapshot:
+        """Level 0: relearning, no interval, due now (the session asks it again, and so does the
+        next one until it has been answered well)."""
+        return replace(snapshot, state=MemoryState.RELEARNING, level=0, interval=None, due_at=now)
 
     def _place(self, snapshot: MemorySnapshot, level: int, now: datetime) -> MemorySnapshot:
         interval = self.interval_for(level)
@@ -204,8 +227,14 @@ def _count(snapshot: MemorySnapshot, outcome: ReviewOutcome, now: datetime) -> M
 
 _POLICIES: dict[tuple[str, str], SchedulingPolicy] = {
     (CHESSABLE_POLICY_NAME, CHESSABLE_POLICY_VERSION): ChessableStyleSchedulingPolicy(),
+    (CHESSABLE_POLICY_NAME, CHESSABLE_V2_VERSION): ChessableStyleSchedulingPolicy(
+        version=CHESSABLE_V2_VERSION, lapse_to_zero=False
+    ),
     (CHESSABLE_POLICY_NAME, CHESSABLE_V1_VERSION): ChessableStyleSchedulingPolicy(
-        version=CHESSABLE_V1_VERSION, hard_holds_level=False, gentle_first_lapse=False
+        version=CHESSABLE_V1_VERSION,
+        hard_holds_level=False,
+        gentle_first_lapse=False,
+        lapse_to_zero=False,
     ),
 }
 

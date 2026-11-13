@@ -1,6 +1,23 @@
 {
   "components": {
     "schemas": {
+      "AccountDelete": {
+        "additionalProperties": false,
+        "description": "Deleting your own account: the password again, so a session left open can't do it.",
+        "properties": {
+          "password": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "AccountDelete",
+        "type": "object"
+      },
       "Acquired": {
         "properties": {
           "course_id": {
@@ -72,6 +89,268 @@
           "xp"
         ],
         "title": "ActivityDay",
+        "type": "object"
+      },
+      "AdminSummary": {
+        "properties": {
+          "active_users": {
+            "title": "Active Users",
+            "type": "integer"
+          },
+          "ai_requests_today": {
+            "title": "Ai Requests Today",
+            "type": "integer"
+          },
+          "default_evaluations": {
+            "title": "Default Evaluations",
+            "type": "integer"
+          },
+          "default_generations": {
+            "title": "Default Generations",
+            "type": "integer"
+          },
+          "default_storage_mb": {
+            "title": "Default Storage Mb",
+            "type": "integer"
+          },
+          "email_enabled": {
+            "title": "Email Enabled",
+            "type": "boolean"
+          },
+          "open_reports": {
+            "default": 0,
+            "title": "Open Reports",
+            "type": "integer"
+          },
+          "registration_open": {
+            "title": "Registration Open",
+            "type": "boolean"
+          },
+          "shared_daily_cap": {
+            "title": "Shared Daily Cap",
+            "type": "integer"
+          },
+          "users": {
+            "title": "Users",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "users",
+          "active_users",
+          "ai_requests_today",
+          "shared_daily_cap",
+          "registration_open",
+          "email_enabled",
+          "default_evaluations",
+          "default_generations",
+          "default_storage_mb"
+        ],
+        "title": "AdminSummary",
+        "type": "object"
+      },
+      "AdminUser": {
+        "properties": {
+          "answer_count": {
+            "title": "Answer Count",
+            "type": "integer"
+          },
+          "course_count": {
+            "title": "Course Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "custom_limits": {
+            "title": "Custom Limits",
+            "type": "boolean"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "evaluations_limit": {
+            "title": "Evaluations Limit",
+            "type": "integer"
+          },
+          "evaluations_today": {
+            "title": "Evaluations Today",
+            "type": "integer"
+          },
+          "generations_limit": {
+            "title": "Generations Limit",
+            "type": "integer"
+          },
+          "generations_today": {
+            "title": "Generations Today",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_active": {
+            "title": "Is Active",
+            "type": "boolean"
+          },
+          "is_admin": {
+            "title": "Is Admin",
+            "type": "boolean"
+          },
+          "last_active_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active At"
+          },
+          "storage_bytes": {
+            "title": "Storage Bytes",
+            "type": "integer"
+          },
+          "storage_limit_bytes": {
+            "title": "Storage Limit Bytes",
+            "type": "integer"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "username",
+          "display_name",
+          "created_at",
+          "last_active_at",
+          "is_admin",
+          "is_active",
+          "course_count",
+          "answer_count",
+          "storage_bytes",
+          "evaluations_today",
+          "generations_today",
+          "evaluations_limit",
+          "generations_limit",
+          "storage_limit_bytes",
+          "custom_limits"
+        ],
+        "title": "AdminUser",
+        "type": "object"
+      },
+      "AdminUserUpdate": {
+        "additionalProperties": false,
+        "description": "Omitted: unchanged. A limit set to null goes back to the server default.",
+        "properties": {
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          },
+          "limit_evaluations": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Evaluations"
+          },
+          "limit_generations": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Generations"
+          },
+          "limit_storage_mb": {
+            "anyOf": [
+              {
+                "maximum": 1000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit Storage Mb"
+          }
+        },
+        "title": "AdminUserUpdate",
+        "type": "object"
+      },
+      "Announced": {
+        "properties": {
+          "recipients": {
+            "title": "Recipients",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "recipients"
+        ],
+        "title": "Announced",
+        "type": "object"
+      },
+      "Announcement": {
+        "additionalProperties": false,
+        "description": "A message from the author to everyone who has the course, without a new version.",
+        "properties": {
+          "message": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "Announcement",
         "type": "object"
       },
       "AnswerCreate": {
@@ -178,6 +457,11 @@
             "title": "Learning Item Id",
             "type": "string"
           },
+          "needs_repeat": {
+            "default": false,
+            "title": "Needs Repeat",
+            "type": "boolean"
+          },
           "needs_self_grade": {
             "title": "Needs Self Grade",
             "type": "boolean"
@@ -221,6 +505,16 @@
           },
           "reference": {
             "$ref": "#/components/schemas/Reference"
+          },
+          "repeat": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvaluationRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "resolved_outcome": {
             "anyOf": [
@@ -368,6 +662,11 @@
             "title": "Learning Item Id",
             "type": "string"
           },
+          "needs_repeat": {
+            "default": false,
+            "title": "Needs Repeat",
+            "type": "boolean"
+          },
           "needs_self_grade": {
             "title": "Needs Self Grade",
             "type": "boolean"
@@ -389,6 +688,16 @@
           },
           "reference": {
             "$ref": "#/components/schemas/Reference"
+          },
+          "repeat": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvaluationRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "resolved_outcome": {
             "anyOf": [
@@ -583,6 +892,25 @@
         "title": "ApplyTopic",
         "type": "object"
       },
+      "BlockedPerson": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "name"
+        ],
+        "title": "BlockedPerson",
+        "type": "object"
+      },
       "Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put": {
         "properties": {
           "file": {
@@ -660,7 +988,7 @@
           "priority": {
             "anyOf": [
               {
-                "maximum": 3.0,
+                "maximum": 5.0,
                 "minimum": 1.0,
                 "type": "integer"
               },
@@ -1080,6 +1408,53 @@
         "title": "ChapterUpdate",
         "type": "object"
       },
+      "ChatMessage": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mine": {
+            "title": "Mine",
+            "type": "boolean"
+          },
+          "read": {
+            "title": "Read",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "mine",
+          "body",
+          "created_at",
+          "read"
+        ],
+        "title": "ChatMessage",
+        "type": "object"
+      },
+      "CheckoutStart": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "default": "",
+            "maxLength": 40,
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "title": "CheckoutStart",
+        "type": "object"
+      },
       "ChunkRead": {
         "description": "A source passage for \"View source\" (docs/PROJECT_SPEC.md \u00a766).",
         "properties": {
@@ -1413,6 +1788,51 @@
         "title": "ConsolidationPlan",
         "type": "object"
       },
+      "Conversation": {
+        "description": "A chat with one friend, in the list of chats.",
+        "properties": {
+          "can_send": {
+            "title": "Can Send",
+            "type": "boolean"
+          },
+          "last_at": {
+            "title": "Last At",
+            "type": "string"
+          },
+          "last_message": {
+            "title": "Last Message",
+            "type": "string"
+          },
+          "last_mine": {
+            "title": "Last Mine",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "unread": {
+            "title": "Unread",
+            "type": "integer"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "last_message",
+          "last_mine",
+          "last_at",
+          "unread",
+          "can_send"
+        ],
+        "title": "Conversation",
+        "type": "object"
+      },
       "CourseCard": {
         "description": "One course in the library. Every figure is a count with its own denominator; none of\nthem is mastery (docs/XP_AND_ACTIVITY.md \u00a77).",
         "properties": {
@@ -1551,6 +1971,63 @@
         "title": "CourseCreate",
         "type": "object"
       },
+      "CourseLeaderboard": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "me": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeaderboardEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "me_hidden": {
+            "title": "Me Hidden",
+            "type": "boolean"
+          },
+          "participants": {
+            "title": "Participants",
+            "type": "integer"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/Scope"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          }
+        },
+        "required": [
+          "period",
+          "scope",
+          "since",
+          "entries",
+          "me",
+          "me_hidden",
+          "participants"
+        ],
+        "title": "CourseLeaderboard",
+        "type": "object"
+      },
       "CourseMarketplace": {
         "properties": {
           "listing": {
@@ -1623,6 +2100,16 @@
           "curriculum": {
             "$ref": "#/components/schemas/CurriculumProgress"
           },
+          "exam": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExamPlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "memory": {
             "$ref": "#/components/schemas/MemoryProgress"
           },
@@ -1660,6 +2147,18 @@
           "description": {
             "title": "Description",
             "type": "string"
+          },
+          "exam_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exam Date"
           },
           "id": {
             "format": "uuid",
@@ -2266,6 +2765,138 @@
         "title": "Dashboard",
         "type": "object"
       },
+      "DiscountCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 40,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Code",
+            "type": "string"
+          },
+          "days": {
+            "anyOf": [
+              {
+                "maximum": 365.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days"
+          },
+          "max_uses": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Uses"
+          },
+          "percent_off": {
+            "maximum": 90.0,
+            "minimum": 1.0,
+            "title": "Percent Off",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "percent_off"
+        ],
+        "title": "DiscountCreate",
+        "type": "object"
+      },
+      "DiscountQuote": {
+        "description": "What a code does to a listing's price, before paying.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "percent_off": {
+            "title": "Percent Off",
+            "type": "integer"
+          },
+          "price_cents": {
+            "title": "Price Cents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "percent_off",
+          "price_cents",
+          "currency"
+        ],
+        "title": "DiscountQuote",
+        "type": "object"
+      },
+      "DiscountRead": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_uses": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Uses"
+          },
+          "percent_off": {
+            "title": "Percent Off",
+            "type": "integer"
+          },
+          "used_count": {
+            "title": "Used Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "percent_off",
+          "max_uses",
+          "used_count",
+          "expires_at"
+        ],
+        "title": "DiscountRead",
+        "type": "object"
+      },
       "DisputeCreate": {
         "additionalProperties": false,
         "properties": {
@@ -2615,6 +3246,11 @@
             "title": "Feedback",
             "type": "string"
           },
+          "gap": {
+            "default": "",
+            "title": "Gap",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -2713,6 +3349,97 @@
         "title": "EvaluationStatus",
         "type": "string"
       },
+      "ExamDate": {
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "ExamDate",
+        "type": "object"
+      },
+      "ExamPlan": {
+        "description": "With an exam date on the course: what it takes to get there.",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "days_left": {
+            "title": "Days Left",
+            "type": "integer"
+          },
+          "new_left": {
+            "title": "New Left",
+            "type": "integer"
+          },
+          "new_per_day": {
+            "title": "New Per Day",
+            "type": "integer"
+          },
+          "pace": {
+            "title": "Pace",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "on_track",
+              "behind",
+              "done",
+              "past"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "days_left",
+          "new_left",
+          "new_per_day",
+          "pace",
+          "status"
+        ],
+        "title": "ExamPlan",
+        "type": "object"
+      },
+      "FriendRequests": {
+        "properties": {
+          "incoming": {
+            "items": {
+              "$ref": "#/components/schemas/Person"
+            },
+            "title": "Incoming",
+            "type": "array"
+          },
+          "outgoing": {
+            "items": {
+              "$ref": "#/components/schemas/Person"
+            },
+            "title": "Outgoing",
+            "type": "array"
+          }
+        },
+        "required": [
+          "incoming",
+          "outgoing"
+        ],
+        "title": "FriendRequests",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2732,9 +3459,28 @@
             "title": "Available",
             "type": "boolean"
           },
+          "point_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Point Count"
+          },
           "revealed": {
             "title": "Revealed",
             "type": "boolean"
+          },
+          "terms": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Terms",
+            "type": "array"
           },
           "text": {
             "anyOf": [
@@ -2775,6 +3521,54 @@
           "courses"
         ],
         "title": "HomeSummary",
+        "type": "object"
+      },
+      "Inbox": {
+        "description": "The counts behind the badges, polled by the app.",
+        "properties": {
+          "friend_requests": {
+            "title": "Friend Requests",
+            "type": "integer"
+          },
+          "messages": {
+            "title": "Messages",
+            "type": "integer"
+          },
+          "notifications": {
+            "title": "Notifications",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notifications",
+          "messages",
+          "friend_requests"
+        ],
+        "title": "Inbox",
+        "type": "object"
+      },
+      "Interests": {
+        "properties": {
+          "suggestions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tags",
+          "suggestions"
+        ],
+        "title": "Interests",
         "type": "object"
       },
       "Introduction": {
@@ -2822,6 +3616,212 @@
         "title": "Introduction",
         "type": "object"
       },
+      "InvitationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Note",
+            "type": "string"
+          },
+          "send_email": {
+            "default": true,
+            "title": "Send Email",
+            "type": "boolean"
+          }
+        },
+        "title": "InvitationCreate",
+        "type": "object"
+      },
+      "InvitationCreated": {
+        "description": "Returned once, at creation: the code can't be read back afterwards.",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "emailed": {
+            "default": false,
+            "title": "Emailed",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "link": {
+            "title": "Link",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "used",
+              "revoked",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "used_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used At"
+          },
+          "used_by_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used By Email"
+          }
+        },
+        "required": [
+          "id",
+          "note",
+          "email",
+          "status",
+          "created_at",
+          "expires_at",
+          "used_at",
+          "used_by_email",
+          "link"
+        ],
+        "title": "InvitationCreated",
+        "type": "object"
+      },
+      "InvitationRead": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "used",
+              "revoked",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "used_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used At"
+          },
+          "used_by_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used By Email"
+          }
+        },
+        "required": [
+          "id",
+          "note",
+          "email",
+          "status",
+          "created_at",
+          "expires_at",
+          "used_at",
+          "used_by_email"
+        ],
+        "title": "InvitationRead",
+        "type": "object"
+      },
       "ItemGenerationStatus": {
         "description": "Learning Item generation for one Concept (background job, like curriculum proposals).",
         "enum": [
@@ -2833,6 +3833,96 @@
         ],
         "title": "ItemGenerationStatus",
         "type": "string"
+      },
+      "Leaderboard": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "me": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeaderboardEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "me_hidden": {
+            "title": "Me Hidden",
+            "type": "boolean"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/Scope"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          }
+        },
+        "required": [
+          "period",
+          "scope",
+          "since",
+          "entries",
+          "me",
+          "me_hidden"
+        ],
+        "title": "Leaderboard",
+        "type": "object"
+      },
+      "LeaderboardEntry": {
+        "properties": {
+          "is_me": {
+            "title": "Is Me",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/Relation"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          },
+          "xp": {
+            "title": "Xp",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rank",
+          "user_id",
+          "name",
+          "xp",
+          "is_me",
+          "relation"
+        ],
+        "title": "LeaderboardEntry",
+        "type": "object"
       },
       "LearnAction": {
         "description": "What the course's Learn button does. resume: an unfinished consolidation batch;\nstudy: open the next concept with material waiting (\"I have studied this concept\" is\nthere); activate: the next concept needs activating first; setup: the course has no\nconcepts yet (add material or questions); none: everything has been learned.",
@@ -2915,7 +4005,7 @@
           "priority": {
             "anyOf": [
               {
-                "maximum": 3.0,
+                "maximum": 5.0,
                 "minimum": 1.0,
                 "type": "integer"
               },
@@ -3200,7 +4290,7 @@
           "priority": {
             "anyOf": [
               {
-                "maximum": 3.0,
+                "maximum": 5.0,
                 "minimum": 1.0,
                 "type": "integer"
               },
@@ -3260,6 +4350,10 @@
           "author": {
             "title": "Author",
             "type": "string"
+          },
+          "can_buy": {
+            "title": "Can Buy",
+            "type": "boolean"
           },
           "category": {
             "$ref": "#/components/schemas/Category"
@@ -3326,6 +4420,14 @@
             "title": "Outcomes",
             "type": "array"
           },
+          "preview": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PreviewQuestion"
+            },
+            "title": "Preview",
+            "type": "array"
+          },
           "price_cents": {
             "title": "Price Cents",
             "type": "integer"
@@ -3340,6 +4442,21 @@
               }
             ],
             "title": "Published At"
+          },
+          "rating_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Average"
+          },
+          "rating_count": {
+            "title": "Rating Count",
+            "type": "integer"
           },
           "status": {
             "title": "Status",
@@ -3364,6 +4481,13 @@
             "title": "Updated At",
             "type": "string"
           },
+          "updates": {
+            "items": {
+              "$ref": "#/components/schemas/UpdateRead"
+            },
+            "title": "Updates",
+            "type": "array"
+          },
           "version": {
             "title": "Version",
             "type": "integer"
@@ -3387,13 +4511,17 @@
           "chapter_count",
           "item_count",
           "acquisition_count",
+          "rating_count",
+          "rating_average",
           "published_at",
           "updated_at",
           "status",
           "course_id",
           "chapters",
           "is_mine",
-          "has_access"
+          "has_access",
+          "can_buy",
+          "updates"
         ],
         "title": "ListingDetail",
         "type": "object"
@@ -3430,6 +4558,20 @@
             "maxItems": 8,
             "title": "Outcomes",
             "type": "array"
+          },
+          "preview_count": {
+            "default": 0,
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Preview Count",
+            "type": "integer"
+          },
+          "price_cents": {
+            "default": 0,
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Price Cents",
+            "type": "integer"
           },
           "subtitle": {
             "default": "",
@@ -3494,6 +4636,20 @@
             "title": "Outcomes",
             "type": "array"
           },
+          "preview_count": {
+            "default": 0,
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Preview Count",
+            "type": "integer"
+          },
+          "price_cents": {
+            "default": 0,
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Price Cents",
+            "type": "integer"
+          },
           "rights_confirmed": {
             "const": true,
             "title": "Rights Confirmed",
@@ -3520,6 +4676,12 @@
             "minLength": 1,
             "title": "Title",
             "type": "string"
+          },
+          "update_note": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Update Note",
+            "type": "string"
           }
         },
         "required": [
@@ -3531,11 +4693,130 @@
         "title": "ListingPublish",
         "type": "object"
       },
+      "ListingReview": {
+        "properties": {
+          "author": {
+            "title": "Author",
+            "type": "string"
+          },
+          "comment": {
+            "title": "Comment",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_mine": {
+            "title": "Is Mine",
+            "type": "boolean"
+          },
+          "rating": {
+            "title": "Rating",
+            "type": "integer"
+          },
+          "replied_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replied At"
+          },
+          "reply": {
+            "title": "Reply",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "author",
+          "rating",
+          "comment",
+          "created_at",
+          "updated_at",
+          "is_mine",
+          "reply",
+          "replied_at"
+        ],
+        "title": "ListingReview",
+        "type": "object"
+      },
+      "ListingReviews": {
+        "properties": {
+          "average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
+          },
+          "can_review": {
+            "title": "Can Review",
+            "type": "boolean"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "distribution": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Distribution",
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ListingReview"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "mine": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingReview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "count",
+          "average",
+          "distribution",
+          "mine",
+          "can_review",
+          "items"
+        ],
+        "title": "ListingReviews",
+        "type": "object"
+      },
       "ListingSort": {
         "enum": [
           "popular",
           "newest",
-          "largest"
+          "largest",
+          "best_rated"
         ],
         "title": "ListingSort",
         "type": "string"
@@ -3619,6 +4900,21 @@
             ],
             "title": "Published At"
           },
+          "rating_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Average"
+          },
+          "rating_count": {
+            "title": "Rating Count",
+            "type": "integer"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -3665,12 +4961,36 @@
           "chapter_count",
           "item_count",
           "acquisition_count",
+          "rating_count",
+          "rating_average",
           "published_at",
           "updated_at",
           "status",
           "course_id"
         ],
         "title": "ListingSummary",
+        "type": "object"
+      },
+      "MarkRead": {
+        "additionalProperties": false,
+        "properties": {
+          "ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ids"
+          }
+        },
+        "title": "MarkRead",
         "type": "object"
       },
       "MemoryProgress": {
@@ -3813,6 +5133,22 @@
         "title": "MemoryState",
         "type": "string"
       },
+      "MessageCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "MessageCreate",
+        "type": "object"
+      },
       "MessageRead": {
         "properties": {
           "detail": {
@@ -3890,6 +5226,11 @@
             "title": "Outcomes",
             "type": "array"
           },
+          "preview_count": {
+            "default": 0,
+            "title": "Preview Count",
+            "type": "integer"
+          },
           "price_cents": {
             "title": "Price Cents",
             "type": "integer"
@@ -3904,6 +5245,21 @@
               }
             ],
             "title": "Published At"
+          },
+          "rating_average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating Average"
+          },
+          "rating_count": {
+            "title": "Rating Count",
+            "type": "integer"
           },
           "source_course_id": {
             "anyOf": [
@@ -3963,6 +5319,8 @@
           "chapter_count",
           "item_count",
           "acquisition_count",
+          "rating_count",
+          "rating_average",
           "published_at",
           "updated_at",
           "status",
@@ -4108,6 +5466,271 @@
         "title": "NextStep",
         "type": "object"
       },
+      "NotificationRead": {
+        "properties": {
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "link": {
+            "title": "Link",
+            "type": "string"
+          },
+          "read": {
+            "title": "Read",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "actor",
+          "data",
+          "link",
+          "created_at",
+          "read"
+        ],
+        "title": "NotificationRead",
+        "type": "object"
+      },
+      "Notifications": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "unread": {
+            "title": "Unread",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "unread"
+        ],
+        "title": "Notifications",
+        "type": "object"
+      },
+      "OfflineAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "answered_at": {
+            "format": "date-time",
+            "title": "Answered At",
+            "type": "string"
+          },
+          "client_id": {
+            "maxLength": 64,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Client Id",
+            "type": "string"
+          },
+          "learning_item_id": {
+            "format": "uuid",
+            "title": "Learning Item Id",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/ReviewOutcome"
+          },
+          "question_formulation_id": {
+            "format": "uuid",
+            "title": "Question Formulation Id",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 10000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "learning_item_id",
+          "question_formulation_id",
+          "outcome",
+          "answered_at"
+        ],
+        "title": "OfflineAnswer",
+        "type": "object"
+      },
+      "OfflineCard": {
+        "properties": {
+          "drawing": {
+            "title": "Drawing",
+            "type": "boolean"
+          },
+          "due_at": {
+            "title": "Due At",
+            "type": "string"
+          },
+          "essential_points": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Essential Points",
+            "type": "array"
+          },
+          "expected_knowledge": {
+            "title": "Expected Knowledge",
+            "type": "string"
+          },
+          "learning_item_id": {
+            "format": "uuid",
+            "title": "Learning Item Id",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "question_formulation_id": {
+            "format": "uuid",
+            "title": "Question Formulation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learning_item_id",
+          "question_formulation_id",
+          "question",
+          "expected_knowledge",
+          "essential_points",
+          "due_at",
+          "drawing"
+        ],
+        "title": "OfflineCard",
+        "type": "object"
+      },
+      "OfflinePack": {
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/OfflineCard"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "course_id": {
+            "format": "uuid",
+            "title": "Course Id",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "until": {
+            "title": "Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "course_id",
+          "title",
+          "created_at",
+          "until",
+          "cards"
+        ],
+        "title": "OfflinePack",
+        "type": "object"
+      },
+      "OfflineSync": {
+        "additionalProperties": false,
+        "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/OfflineAnswer"
+            },
+            "maxItems": 500,
+            "title": "Answers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "answers"
+        ],
+        "title": "OfflineSync",
+        "type": "object"
+      },
+      "OfflineSyncResult": {
+        "properties": {
+          "applied": {
+            "title": "Applied",
+            "type": "integer"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "applied",
+          "skipped"
+        ],
+        "title": "OfflineSyncResult",
+        "type": "object"
+      },
+      "OrderStatus": {
+        "properties": {
+          "course_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "course_id"
+        ],
+        "title": "OrderStatus",
+        "type": "object"
+      },
       "OrderUpdate": {
         "additionalProperties": false,
         "description": "A parent's children in their new order (drag and drop): every child exactly once.",
@@ -4215,6 +5838,127 @@
         "title": "PasswordResetRequest",
         "type": "object"
       },
+      "PayoutStatus": {
+        "description": "Whether the viewer can sell paid courses.",
+        "properties": {
+          "account": {
+            "title": "Account",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "fee_percent": {
+            "title": "Fee Percent",
+            "type": "integer"
+          },
+          "price_max_cents": {
+            "title": "Price Max Cents",
+            "type": "integer"
+          },
+          "price_min_cents": {
+            "title": "Price Min Cents",
+            "type": "integer"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "account",
+          "ready",
+          "fee_percent",
+          "price_min_cents",
+          "price_max_cents"
+        ],
+        "title": "PayoutStatus",
+        "type": "object"
+      },
+      "Period": {
+        "enum": [
+          "day",
+          "week",
+          "month",
+          "all"
+        ],
+        "title": "Period",
+        "type": "string"
+      },
+      "Person": {
+        "description": "A listed person: a friend, someone in a friend request, or a search result.",
+        "properties": {
+          "last_active": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/Relation"
+          },
+          "requested_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested At"
+          },
+          "streak": {
+            "title": "Streak",
+            "type": "integer"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          },
+          "xp_today": {
+            "title": "Xp Today",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "xp_today",
+          "streak",
+          "last_active",
+          "relation"
+        ],
+        "title": "Person",
+        "type": "object"
+      },
+      "PickCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "learning_item_id": {
+            "format": "uuid",
+            "title": "Learning Item Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learning_item_id"
+        ],
+        "title": "PickCreate",
+        "type": "object"
+      },
       "Planner": {
         "properties": {
           "as_of": {
@@ -4274,8 +6018,8 @@
             "title": "Eligible",
             "type": "boolean"
           },
-          "ordinal": {
-            "title": "Ordinal",
+          "level": {
+            "title": "Level",
             "type": "integer"
           },
           "xp": {
@@ -4289,11 +6033,87 @@
         },
         "required": [
           "eligible",
-          "ordinal",
+          "level",
           "xp",
           "xp_with_hint"
         ],
         "title": "PotentialXp",
+        "type": "object"
+      },
+      "PreviewQuestion": {
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "PreviewQuestion",
+        "type": "object"
+      },
+      "Profile": {
+        "properties": {
+          "blocked": {
+            "title": "Blocked",
+            "type": "boolean"
+          },
+          "friends": {
+            "title": "Friends",
+            "type": "integer"
+          },
+          "is_me": {
+            "title": "Is Me",
+            "type": "boolean"
+          },
+          "member_since": {
+            "title": "Member Since",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "relation": {
+            "$ref": "#/components/schemas/Relation"
+          },
+          "streak": {
+            "title": "Streak",
+            "type": "integer"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          },
+          "xp_total": {
+            "title": "Xp Total",
+            "type": "integer"
+          },
+          "xp_week": {
+            "title": "Xp Week",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "member_since",
+          "xp_total",
+          "xp_week",
+          "streak",
+          "friends",
+          "is_me",
+          "relation",
+          "blocked"
+        ],
+        "title": "Profile",
         "type": "object"
       },
       "ProposalChapter": {
@@ -4459,6 +6279,115 @@
         "title": "ProposalTopic",
         "type": "object"
       },
+      "PushKeys": {
+        "additionalProperties": false,
+        "properties": {
+          "auth": {
+            "maxLength": 100,
+            "minLength": 4,
+            "title": "Auth",
+            "type": "string"
+          },
+          "p256dh": {
+            "maxLength": 200,
+            "minLength": 10,
+            "title": "P256Dh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "p256dh",
+          "auth"
+        ],
+        "title": "PushKeys",
+        "type": "object"
+      },
+      "PushStatus": {
+        "properties": {
+          "devices": {
+            "title": "Devices",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "public_key": {
+            "title": "Public Key",
+            "type": "string"
+          },
+          "reminder_hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Hour"
+          }
+        },
+        "required": [
+          "enabled",
+          "public_key",
+          "devices",
+          "reminder_hour"
+        ],
+        "title": "PushStatus",
+        "type": "object"
+      },
+      "PushSubscribe": {
+        "additionalProperties": false,
+        "description": "What the browser's `pushManager.subscribe()` returns.",
+        "properties": {
+          "endpoint": {
+            "maxLength": 1000,
+            "minLength": 10,
+            "pattern": "^https://",
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/PushKeys"
+          }
+        },
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "title": "PushSubscribe",
+        "type": "object"
+      },
+      "PushTest": {
+        "properties": {
+          "sent": {
+            "title": "Sent",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sent"
+        ],
+        "title": "PushTest",
+        "type": "object"
+      },
+      "PushUnsubscribe": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint": {
+            "maxLength": 1000,
+            "minLength": 10,
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint"
+        ],
+        "title": "PushUnsubscribe",
+        "type": "object"
+      },
       "QuestionCreate": {
         "additionalProperties": false,
         "properties": {
@@ -4602,6 +6531,92 @@
         "title": "QuestionUpdate",
         "type": "object"
       },
+      "QueueItem": {
+        "properties": {
+          "chapter_id": {
+            "format": "uuid",
+            "title": "Chapter Id",
+            "type": "string"
+          },
+          "chapter_title": {
+            "title": "Chapter Title",
+            "type": "string"
+          },
+          "concept_id": {
+            "format": "uuid",
+            "title": "Concept Id",
+            "type": "string"
+          },
+          "concept_title": {
+            "title": "Concept Title",
+            "type": "string"
+          },
+          "current": {
+            "default": false,
+            "title": "Current",
+            "type": "boolean"
+          },
+          "learning_item_id": {
+            "format": "uuid",
+            "title": "Learning Item Id",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "marked_hard": {
+            "title": "Marked Hard",
+            "type": "boolean"
+          },
+          "overdue_days": {
+            "title": "Overdue Days",
+            "type": "integer"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "topic_id": {
+            "format": "uuid",
+            "title": "Topic Id",
+            "type": "string"
+          },
+          "topic_title": {
+            "title": "Topic Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learning_item_id",
+          "question",
+          "chapter_id",
+          "chapter_title",
+          "topic_id",
+          "topic_title",
+          "concept_id",
+          "concept_title",
+          "level",
+          "marked_hard",
+          "overdue_days"
+        ],
+        "title": "QueueItem",
+        "type": "object"
+      },
+      "Redirect": {
+        "description": "An address on the payment provider's site to send the browser to.",
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "Redirect",
+        "type": "object"
+      },
       "Reference": {
         "description": "The correct answer and where it comes from, shown with the feedback (spec \u00a741, \u00a766).",
         "properties": {
@@ -4635,6 +6650,204 @@
           "sources"
         ],
         "title": "Reference",
+        "type": "object"
+      },
+      "Relation": {
+        "description": "What another person is to the viewer.",
+        "enum": [
+          "none",
+          "friends",
+          "request_sent",
+          "request_received"
+        ],
+        "title": "Relation",
+        "type": "string"
+      },
+      "ReminderUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "hour": {
+            "anyOf": [
+              {
+                "maximum": 23.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hour"
+          }
+        },
+        "required": [
+          "hour"
+        ],
+        "title": "ReminderUpdate",
+        "type": "object"
+      },
+      "RepeatCreate": {
+        "additionalProperties": false,
+        "description": "The answer written again after reviewing the reference.",
+        "properties": {
+          "text": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "RepeatCreate",
+        "type": "object"
+      },
+      "ReportCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ReportKind"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Reason",
+            "type": "string"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "target_id"
+        ],
+        "title": "ReportCreate",
+        "type": "object"
+      },
+      "ReportKind": {
+        "enum": [
+          "user",
+          "message",
+          "review"
+        ],
+        "title": "ReportKind",
+        "type": "string"
+      },
+      "ReportRead": {
+        "description": "What the administrator sees: who reported, about whom, and the reported text itself\n(copied when the report was made).",
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "excerpt": {
+            "title": "Excerpt",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ReportKind"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "reporter": {
+            "title": "Reporter",
+            "type": "string"
+          },
+          "reporter_email": {
+            "title": "Reporter Email",
+            "type": "string"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "RESOLVED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "subject_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Email"
+          },
+          "subject_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Id"
+          },
+          "subject_reports": {
+            "title": "Subject Reports",
+            "type": "integer"
+          },
+          "target_id": {
+            "format": "uuid",
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "target_id",
+          "reporter",
+          "reporter_email",
+          "subject_id",
+          "subject",
+          "subject_email",
+          "reason",
+          "excerpt",
+          "status",
+          "created_at",
+          "resolved_at",
+          "subject_reports"
+        ],
+        "title": "ReportRead",
         "type": "object"
       },
       "ReviewLoad": {
@@ -4691,6 +6904,27 @@
         ],
         "title": "ReviewOutcome",
         "type": "string"
+      },
+      "ReviewQueue": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QueueItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "ReviewQueue",
+        "type": "object"
       },
       "ReviewRead": {
         "properties": {
@@ -4806,6 +7040,140 @@
         "title": "ReviewRead",
         "type": "object"
       },
+      "ReviewReply": {
+        "additionalProperties": false,
+        "properties": {
+          "reply": {
+            "maxLength": 2000,
+            "title": "Reply",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reply"
+        ],
+        "title": "ReviewReply",
+        "type": "object"
+      },
+      "ReviewWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "comment": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Comment",
+            "type": "string"
+          },
+          "rating": {
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Rating",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rating"
+        ],
+        "title": "ReviewWrite",
+        "type": "object"
+      },
+      "Sale": {
+        "properties": {
+          "amount_cents": {
+            "title": "Amount Cents",
+            "type": "integer"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "discount_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Code"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "listing_id": {
+            "format": "uuid",
+            "title": "Listing Id",
+            "type": "string"
+          },
+          "net_cents": {
+            "title": "Net Cents",
+            "type": "integer"
+          },
+          "paid_at": {
+            "title": "Paid At",
+            "type": "string"
+          },
+          "refunded": {
+            "title": "Refunded",
+            "type": "boolean"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "listing_id",
+          "title",
+          "amount_cents",
+          "net_cents",
+          "currency",
+          "paid_at",
+          "refunded"
+        ],
+        "title": "Sale",
+        "type": "object"
+      },
+      "Sales": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "gross_cents": {
+            "title": "Gross Cents",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Sale"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "net_cents": {
+            "title": "Net Cents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "gross_cents",
+          "net_cents",
+          "currency",
+          "items"
+        ],
+        "title": "Sales",
+        "type": "object"
+      },
       "ScheduleChange": {
         "properties": {
           "lateness_seconds": {
@@ -4860,6 +7228,14 @@
         ],
         "title": "ScheduleChange",
         "type": "object"
+      },
+      "Scope": {
+        "enum": [
+          "everyone",
+          "friends"
+        ],
+        "title": "Scope",
+        "type": "string"
       },
       "SelectionMode": {
         "description": "How a session's pool is chosen (docs/PROJECT_SPEC.md \u00a749), independent of intent.",
@@ -5173,6 +7549,72 @@
         "title": "StudyState",
         "type": "string"
       },
+      "TagFollow": {
+        "additionalProperties": false,
+        "properties": {
+          "tag": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Tag",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag"
+        ],
+        "title": "TagFollow",
+        "type": "object"
+      },
+      "TemporaryPassword": {
+        "properties": {
+          "password": {
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "title": "TemporaryPassword",
+        "type": "object"
+      },
+      "Thread": {
+        "properties": {
+          "can_send": {
+            "title": "Can Send",
+            "type": "boolean"
+          },
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "can_send",
+          "messages",
+          "has_more"
+        ],
+        "title": "Thread",
+        "type": "object"
+      },
       "Token": {
         "properties": {
           "access_token": {
@@ -5398,6 +7840,42 @@
         "title": "TopicUpdate",
         "type": "object"
       },
+      "UpdateRead": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "note",
+          "created_at"
+        ],
+        "title": "UpdateRead",
+        "type": "object"
+      },
       "UserCreate": {
         "additionalProperties": false,
         "properties": {
@@ -5405,6 +7883,18 @@
             "format": "email",
             "title": "Email",
             "type": "string"
+          },
+          "invite": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite"
           },
           "language": {
             "default": "en",
@@ -5440,6 +7930,19 @@
               }
             ],
             "title": "Timezone"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
           }
         },
         "required": [
@@ -5453,7 +7956,8 @@
         "additionalProperties": false,
         "properties": {
           "email": {
-            "format": "email",
+            "maxLength": 320,
+            "minLength": 1,
             "title": "Email",
             "type": "string"
           },
@@ -5474,6 +7978,17 @@
       "UserPreferencesUpdate": {
         "additionalProperties": false,
         "properties": {
+          "community_visible": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Community Visible"
+          },
           "daily_goal": {
             "anyOf": [
               {
@@ -5498,6 +8013,17 @@
               }
             ],
             "title": "Display Name"
+          },
+          "email_updates": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Updates"
           },
           "language": {
             "anyOf": [
@@ -5533,6 +8059,18 @@
               }
             ],
             "title": "Timezone"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
           }
         },
         "title": "UserPreferencesUpdate",
@@ -5540,6 +8078,10 @@
       },
       "UserRead": {
         "properties": {
+          "community_visible": {
+            "title": "Community Visible",
+            "type": "boolean"
+          },
           "daily_goal": {
             "title": "Daily Goal",
             "type": "integer"
@@ -5560,10 +8102,18 @@
             "title": "Email",
             "type": "string"
           },
+          "email_updates": {
+            "title": "Email Updates",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "is_admin": {
+            "title": "Is Admin",
+            "type": "boolean"
           },
           "language": {
             "enum": [
@@ -5583,15 +8133,30 @@
           "timezone": {
             "title": "Timezone",
             "type": "string"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
           }
         },
         "required": [
           "id",
           "email",
+          "username",
+          "is_admin",
           "timezone",
           "daily_goal",
           "language",
-          "display_name"
+          "display_name",
+          "community_visible",
+          "email_updates"
         ],
         "title": "UserRead",
         "type": "object"
@@ -5700,6 +8265,17 @@
             "title": "Hint Used",
             "type": "boolean"
           },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
           "ordinal": {
             "anyOf": [
               {
@@ -5723,6 +8299,7 @@
           "reason",
           "correct",
           "ordinal",
+          "level",
           "base_xp",
           "hint_used",
           "xp"
@@ -5881,6 +8458,485 @@
         "summary": "Activity",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/invitations": {
+      "get": {
+        "operationId": "list_invitations_api_v1_admin_invitations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationRead"
+                  },
+                  "title": "Response List Invitations Api V1 Admin Invitations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Invitations",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "create_invitation_api_v1_admin_invitations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Invitation",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/invitations/{invitation_id}": {
+      "delete": {
+        "operationId": "revoke_invitation_api_v1_admin_invitations__invitation_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invitation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invitation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Invitation",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reports": {
+      "get": {
+        "description": "What people reported (a person, a message, a review): open ones first.",
+        "operationId": "list_reports_api_v1_admin_reports_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReportRead"
+                  },
+                  "title": "Response List Reports Api V1 Admin Reports Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Reports",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/{report_id}/reopen": {
+      "post": {
+        "operationId": "reopen_report_api_v1_admin_reports__report_id__reopen_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reopen Report",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reports/{report_id}/resolve": {
+      "post": {
+        "operationId": "resolve_report_api_v1_admin_reports__report_id__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Resolve Report",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/reviews/{review_id}": {
+      "delete": {
+        "description": "Moderation: removes a marketplace review (abuse, spam).",
+        "operationId": "delete_review_api_v1_admin_reviews__review_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Review",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/summary": {
+      "get": {
+        "operationId": "summary_api_v1_admin_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Summary",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "list_users_api_v1_admin_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUser"
+                  },
+                  "title": "Response List Users Api V1 Admin Users Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Users",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}": {
+      "delete": {
+        "operationId": "delete_user_api_v1_admin_users__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete User",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "update_user_api_v1_admin_users__user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUserUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUser"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update User",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/password": {
+      "post": {
+        "description": "For someone who lost their password and has no working email link: a new random password,\nshown once. Every session of that account ends. They should change it after signing in.",
+        "operationId": "reset_password_api_v1_admin_users__user_id__password_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporaryPassword"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reset Password",
+        "tags": [
+          "admin"
         ]
       }
     },
@@ -6141,6 +9197,65 @@
         ]
       }
     },
+    "/api/v1/answers/{answer_id}/repeat": {
+      "post": {
+        "description": "Review the reference answer and repeat it (409 `repeat_not_offered` otherwise). The\nrepeat is evaluated: repeated well, the first answer counts as correct; not well, it is\nfailed and the item goes back to level 0.",
+        "operationId": "repeat_answer_api_v1_answers__answer_id__repeat_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "answer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Answer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepeatCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Repeat Answer",
+        "tags": [
+          "review"
+        ]
+      }
+    },
     "/api/v1/auth/change-password": {
       "post": {
         "description": "Needs the current password (422 `wrong_password`). Ends every other session and returns\na fresh token for this one.",
@@ -6183,6 +9298,71 @@
           }
         ],
         "summary": "Change Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/delete-account": {
+      "post": {
+        "description": "Deletes the account for good, with everything it owns: courses, uploaded files, answers,\nXP, friendships, messages, reviews and the courses it published (people who already have\none keep their copy). Needs the password (422 `wrong_password`). The only administrator\ncan't leave (409 `last_admin`): the site would have nobody to run it.",
+        "operationId": "delete_my_account_api_v1_auth_delete_account_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDelete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete My Account",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/export": {
+      "get": {
+        "description": "A copy of everything held about the account, as a JSON file to download.",
+        "operationId": "export_my_data_api_v1_auth_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Export My Data",
         "tags": [
           "auth"
         ]
@@ -6717,6 +9897,568 @@
         "summary": "Create Topic",
         "tags": [
           "courses"
+        ]
+      }
+    },
+    "/api/v1/chats": {
+      "get": {
+        "operationId": "chats_api_v1_chats_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Conversation"
+                  },
+                  "title": "Response Chats Api V1 Chats Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Chats",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/chats/{user_id}": {
+      "get": {
+        "operationId": "chat_thread_api_v1_chats__user_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Thread"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Chat Thread",
+        "tags": [
+          "community"
+        ]
+      },
+      "post": {
+        "operationId": "chat_send_api_v1_chats__user_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Chat Send",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/blocked": {
+      "get": {
+        "operationId": "blocked_api_v1_community_blocked_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BlockedPerson"
+                  },
+                  "title": "Response Blocked Api V1 Community Blocked Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Blocked",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/friend-requests": {
+      "get": {
+        "operationId": "friend_requests_api_v1_community_friend_requests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FriendRequests"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Friend Requests",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/friends": {
+      "get": {
+        "operationId": "friends_api_v1_community_friends_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Person"
+                  },
+                  "title": "Response Friends Api V1 Community Friends Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Friends",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/leaderboard": {
+      "get": {
+        "operationId": "leaderboard_api_v1_community_leaderboard_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Period",
+              "default": "week"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Scope",
+              "default": "everyone"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Leaderboard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Leaderboard",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/people": {
+      "get": {
+        "operationId": "search_people_api_v1_community_people_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Person"
+                  },
+                  "title": "Response Search People Api V1 Community People Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Search People",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/users/{user_id}": {
+      "get": {
+        "operationId": "profile_api_v1_community_users__user_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Profile",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/users/{user_id}/block": {
+      "delete": {
+        "operationId": "unblock_api_v1_community_users__user_id__block_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unblock",
+        "tags": [
+          "community"
+        ]
+      },
+      "put": {
+        "operationId": "block_api_v1_community_users__user_id__block_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Block",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/community/users/{user_id}/friend": {
+      "delete": {
+        "description": "Cancel a request you sent, decline one you received, or remove a friend.",
+        "operationId": "unfriend_api_v1_community_users__user_id__friend_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unfriend",
+        "tags": [
+          "community"
+        ]
+      },
+      "put": {
+        "description": "Ask to be friends, or accept their request.",
+        "operationId": "befriend_api_v1_community_users__user_id__friend_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Befriend",
+        "tags": [
+          "community"
         ]
       }
     },
@@ -8184,6 +11926,131 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/exam-date": {
+      "put": {
+        "description": "The day of the exam (null removes it): the progress page then says how many new\nquestions a day get there.",
+        "operationId": "set_exam_date_api_v1_courses__course_id__exam_date_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExamDate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Exam Date",
+        "tags": [
+          "courses"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/leaderboard": {
+      "get": {
+        "operationId": "course_leaderboard_api_v1_courses__course_id__leaderboard_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Period",
+              "default": "week"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Scope",
+              "default": "everyone"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseLeaderboard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Course Leaderboard",
+        "tags": [
+          "community"
+        ]
+      }
+    },
     "/api/v1/courses/{course_id}/learning-items": {
       "get": {
         "description": "Every Learning Item of the Course with its questions, in course order.",
@@ -8344,6 +12211,224 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/marketplace/announce": {
+      "post": {
+        "description": "The author writes to everyone who has the course (at most 5 a day).",
+        "operationId": "announce_api_v1_courses__course_id__marketplace_announce_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Announcement"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Announced"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Announce",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/marketplace/discounts": {
+      "get": {
+        "operationId": "list_discounts_api_v1_courses__course_id__marketplace_discounts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DiscountRead"
+                  },
+                  "title": "Response List Discounts Api V1 Courses  Course Id  Marketplace Discounts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Discounts",
+        "tags": [
+          "payments"
+        ]
+      },
+      "post": {
+        "operationId": "create_discount_api_v1_courses__course_id__marketplace_discounts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscountCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Discount",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/marketplace/discounts/{discount_id}": {
+      "delete": {
+        "operationId": "delete_discount_api_v1_courses__course_id__marketplace_discounts__discount_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "discount_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Discount Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Discount",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
     "/api/v1/courses/{course_id}/marketplace/info": {
       "put": {
         "operationId": "save_info_api_v1_courses__course_id__marketplace_info_put",
@@ -8457,6 +12542,114 @@
         "summary": "Publish",
         "tags": [
           "marketplace"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/offline-pack": {
+      "get": {
+        "description": "The questions due in the next 7 days with their reference answers, to review offline.",
+        "operationId": "offline_pack_api_v1_courses__course_id__offline_pack_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflinePack"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Offline Pack",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/offline-sync": {
+      "post": {
+        "description": "Self-graded answers given offline, each applied as a review at the moment it was given.",
+        "operationId": "offline_sync_api_v1_courses__course_id__offline_sync_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfflineSync"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflineSyncResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Offline Sync",
+        "tags": [
+          "review"
         ]
       }
     },
@@ -8725,6 +12918,55 @@
         "summary": "Review Load",
         "tags": [
           "progress"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/review-queue": {
+      "get": {
+        "description": "Every question due now, in the order they were added to the course, to choose from.",
+        "operationId": "review_queue_api_v1_courses__course_id__review_queue_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Review Queue",
+        "tags": [
+          "review"
         ]
       }
     },
@@ -9503,6 +13745,151 @@
         "summary": "Home",
         "tags": [
           "progress"
+        ]
+      }
+    },
+    "/api/v1/inbox": {
+      "get": {
+        "description": "The counts behind the app's badges.",
+        "operationId": "inbox_api_v1_inbox_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inbox"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Inbox",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/interests": {
+      "delete": {
+        "operationId": "unfollow_tag_api_v1_interests_delete",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tag",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "Tag",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Interests"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unfollow Tag",
+        "tags": [
+          "community"
+        ]
+      },
+      "get": {
+        "description": "The tags the user follows, and tags of published courses they could follow.",
+        "operationId": "list_interests_api_v1_interests_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Interests"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Interests",
+        "tags": [
+          "community"
+        ]
+      },
+      "put": {
+        "description": "Follow a tag: a notification when a course carrying it is first published.",
+        "operationId": "follow_tag_api_v1_interests_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagFollow"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Interests"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Follow Tag",
+        "tags": [
+          "community"
         ]
       }
     },
@@ -10306,6 +14693,26 @@
           },
           {
             "in": "query",
+            "name": "price",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "free",
+                    "paid"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price"
+            }
+          },
+          {
+            "in": "query",
             "name": "sort",
             "required": false,
             "schema": {
@@ -10459,6 +14866,277 @@
         ]
       }
     },
+    "/api/v1/marketplace/listings/{listing_id}/checkout": {
+      "post": {
+        "description": "Starts buying a paid course: the address of the payment page.",
+        "operationId": "checkout_api_v1_marketplace_listings__listing_id__checkout_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/CheckoutStart"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Checkout",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/marketplace/listings/{listing_id}/discount": {
+      "get": {
+        "description": "What a discount code makes the price (422 `invalid_code` when it can't be used).",
+        "operationId": "discount_quote_api_v1_marketplace_listings__listing_id__discount_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "Code",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountQuote"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Discount Quote",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/marketplace/listings/{listing_id}/review": {
+      "delete": {
+        "operationId": "delete_review_api_v1_marketplace_listings__listing_id__review_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Review",
+        "tags": [
+          "marketplace"
+        ]
+      },
+      "put": {
+        "description": "Stars and a comment, from someone who has the course; writing again edits it.",
+        "operationId": "write_review_api_v1_marketplace_listings__listing_id__review_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingReviews"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Write Review",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/listings/{listing_id}/reviews": {
+      "get": {
+        "operationId": "reviews_api_v1_marketplace_listings__listing_id__reviews_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingReviews"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reviews",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
     "/api/v1/marketplace/listings/{listing_id}/unpublish": {
       "post": {
         "operationId": "unpublish_api_v1_marketplace_listings__listing_id__unpublish_post",
@@ -10534,6 +15212,522 @@
         "summary": "Mine",
         "tags": [
           "marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/orders/{order_id}": {
+      "get": {
+        "description": "Polled by the buyer's browser after the payment page, until the provider confirmed.",
+        "operationId": "order_api_v1_marketplace_orders__order_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Order",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/marketplace/orders/{order_id}/refund": {
+      "post": {
+        "description": "The author gives the buyer their money back; the course leaves the buyer's courses.",
+        "operationId": "refund_order_api_v1_marketplace_orders__order_id__refund_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Refund Order",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/marketplace/reviews/{review_id}/reply": {
+      "put": {
+        "description": "The course's author answers a review.",
+        "operationId": "reply_to_review_api_v1_marketplace_reviews__review_id__reply_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Review Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewReply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reply To Review",
+        "tags": [
+          "marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/sales": {
+      "get": {
+        "operationId": "sales_api_v1_marketplace_sales_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sales"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sales",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "list_notifications_api_v1_notifications_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notifications"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Notifications",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/notifications/read": {
+      "post": {
+        "operationId": "read_notifications_api_v1_notifications_read_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkRead"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Notifications",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/payments/payout": {
+      "get": {
+        "description": "Whether the viewer can sell paid courses, checked with the provider when pending.",
+        "operationId": "payout_api_v1_payments_payout_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Payout",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/payments/payout/onboarding": {
+      "post": {
+        "operationId": "onboarding_api_v1_payments_payout_onboarding_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Redirect"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Onboarding",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/payments/stripe/webhook": {
+      "post": {
+        "description": "Called by Stripe, not by a browser: no session, the signature is the proof.",
+        "operationId": "stripe_webhook_api_v1_payments_stripe_webhook_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "stripe-signature",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Stripe-Signature",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stripe Webhook",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/push": {
+      "get": {
+        "operationId": "push_status_api_v1_push_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Status",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/push/reminder": {
+      "put": {
+        "description": "The hour of the daily review reminder (null: no reminder).",
+        "operationId": "push_reminder_api_v1_push_reminder_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReminderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Reminder",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/push/subscribe": {
+      "post": {
+        "description": "This browser agreed to notifications: remember where to send them.",
+        "operationId": "push_subscribe_api_v1_push_subscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscribe"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Subscribe",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/push/test": {
+      "post": {
+        "operationId": "push_test_api_v1_push_test_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTest"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Test",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/push/unsubscribe": {
+      "post": {
+        "operationId": "push_unsubscribe_api_v1_push_unsubscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushUnsubscribe"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Unsubscribe",
+        "tags": [
+          "community"
         ]
       }
     },
@@ -10633,6 +15827,46 @@
         "summary": "Update Question",
         "tags": [
           "learning-items"
+        ]
+      }
+    },
+    "/api/v1/reports": {
+      "post": {
+        "description": "Tell the administrator about a person, a message you received or a review.",
+        "operationId": "report_api_v1_reports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Report",
+        "tags": [
+          "community"
         ]
       }
     },
@@ -10884,6 +16118,114 @@
           }
         ],
         "summary": "Next Card",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/v1/review-sessions/{session_id}/pick": {
+      "post": {
+        "description": "Makes a question still to come the next one (the one that was next moves back a slot).",
+        "operationId": "pick_api_v1_review_sessions__session_id__pick_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PickCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Pick",
+        "tags": [
+          "review"
+        ]
+      }
+    },
+    "/api/v1/review-sessions/{session_id}/queue": {
+      "get": {
+        "description": "The questions still to come in this session, the one on screen first.",
+        "operationId": "session_queue_api_v1_review_sessions__session_id__queue_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Session Queue",
         "tags": [
           "review"
         ]

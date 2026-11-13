@@ -10,7 +10,11 @@ CHESSABLE_POLICY_NAME = "chessable"
 # v2 (2026-10-04, owner decision): same ladder; HARD keeps the level instead of advancing, and the
 # first slip of a learned item drops two levels instead of to level 1 (a second slip in a row
 # still goes to level 1). v1 stays registered for the history rows it produced.
-CHESSABLE_POLICY_VERSION = "2"
+# v3 (2026-10-17, owner decision): a failed review sends the item back to level 0 (the timer is
+# reset and the item is due at once); it must then be answered well once before it moves on, and
+# that good answer puts it on level 1. v2 and v1 stay registered for the history they produced.
+CHESSABLE_POLICY_VERSION = "3"
+CHESSABLE_V2_VERSION = "2"
 CHESSABLE_V1_VERSION = "1"
 # How far a first slip drops a learned item under v2.
 GENTLE_LAPSE_DROP = 2

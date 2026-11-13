@@ -58,6 +58,31 @@ class AuthenticationError(AppError):
     error_type = "authentication_failed"
 
 
+class AccountSuspendedError(AppError):
+    status_code = 403
+    error_type = "account_suspended"
+
+
+class ForbiddenError(AppError):
+    status_code = 403
+    error_type = "forbidden"
+
+
+class InvitationInvalidError(AppError):
+    status_code = 403
+    error_type = "invitation_invalid"
+
+
+class QuotaExceededError(AppError):
+    status_code = 429
+    error_type = "quota_exceeded"
+
+
+class StorageQuotaExceededError(AppError):
+    status_code = 413
+    error_type = "storage_quota_exceeded"
+
+
 class PayloadTooLargeError(AppError):
     status_code = 413
     error_type = "payload_too_large"

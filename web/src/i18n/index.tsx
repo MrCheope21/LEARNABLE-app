@@ -2,15 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { auth } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
-import { ar } from "./messages/ar";
-import { de } from "./messages/de";
 import { en, type MessageKey, type Messages } from "./messages/en";
-import { es } from "./messages/es";
-import { fr } from "./messages/fr";
-import { hi } from "./messages/hi";
-import { it } from "./messages/it";
-import { ja } from "./messages/ja";
-import { zh } from "./messages/zh";
 
 /** The interface languages, each named in its own language. Codes match the API's. */
 export const LANGUAGES = [
@@ -26,12 +18,35 @@ export const LANGUAGES = [
 ] as const;
 export type Language = (typeof LANGUAGES)[number]["code"];
 
-const CATALOGS: Record<Language, Messages> = { en, it, es, fr, de, zh, ja, ar, hi };
+// English ships with the app; every other language is fetched when it is first needed, so a
+// phone downloads one catalog instead of nine.
+const CATALOGS: Partial<Record<Language, Messages>> = { en };
+const LOADERS: Record<Exclude<Language, "en">, () => Promise<Messages>> = {
+  it: () => import("./messages/it").then((m) => m.it),
+  es: () => import("./messages/es").then((m) => m.es),
+  fr: () => import("./messages/fr").then((m) => m.fr),
+  de: () => import("./messages/de").then((m) => m.de),
+  zh: () => import("./messages/zh").then((m) => m.zh),
+  ja: () => import("./messages/ja").then((m) => m.ja),
+  ar: () => import("./messages/ar").then((m) => m.ar),
+  hi: () => import("./messages/hi").then((m) => m.hi),
+};
+
+/** Fetches a language's texts (once). Until then its texts show in English. */
+export async function loadCatalog(language: Language): Promise<void> {
+  if (language === "en" || CATALOGS[language]) return;
+  CATALOGS[language] = await LOADERS[language]();
+}
+
+/** Tests: every language at once. */
+export async function loadAllCatalogs(): Promise<void> {
+  await Promise.all(LANGUAGES.map((l) => loadCatalog(l.code)));
+}
 const RIGHT_TO_LEFT: ReadonlySet<Language> = new Set(["ar"]);
 const STORAGE_KEY = "learnable.language";
 
 function isLanguage(value: unknown): value is Language {
-  return typeof value === "string" && value in CATALOGS;
+  return typeof value === "string" && LANGUAGES.some((l) => l.code === value);
 }
 
 /** Before sign-in: the last language used in this browser, else the browser's own, else English. */
@@ -50,7 +65,7 @@ export function detectLanguage(): Language {
 }
 
 export function translate(language: Language, key: MessageKey, vars?: Record<string, string | number>): string {
-  const text = CATALOGS[language][key] ?? en[key];
+  const text = CATALOGS[language]?.[key] ?? en[key];
   return vars ? text.replace(/\{(\w+)\}/g, (match, name: string) => (name in vars ? String(vars[name]) : match)) : text;
 }
 
@@ -92,7 +107,25 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }
   }, [language, dir]);
 
-  const t = useCallback((key: MessageKey, vars?: Record<string, string | number>) => translate(language, key, vars), [language]);
+  // Counts the catalogs that arrived, so texts are read again once the language's own is there.
+  const [loaded, setLoaded] = useState(0);
+  useEffect(() => {
+    if (CATALOGS[language]) return;
+    let live = true;
+    void loadCatalog(language).then(
+      () => live && setLoaded((n) => n + 1),
+      () => undefined, // offline: English until the next visit
+    );
+    return () => {
+      live = false;
+    };
+  }, [language]);
+
+  const t = useCallback(
+    (key: MessageKey, vars?: Record<string, string | number>) => translate(language, key, vars),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `loaded` changes what translate() finds
+    [language, loaded],
+  );
   const value = useMemo(() => ({ language, dir, setLocalLanguage: setLocal, t }) satisfies I18n, [language, dir, t]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

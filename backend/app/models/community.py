@@ -1,0 +1,184 @@
+"""Friends, blocks, private messages and notifications (docs/COMMUNITY.md)."""
+
+import uuid
+from datetime import datetime
+from typing import Any
+
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    Uuid,
+)
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.base import Base
+from app.db.types import UTCDateTime, utc_now
+
+PENDING = "PENDING"
+ACCEPTED = "ACCEPTED"
+
+
+def pair_key(a: uuid.UUID, b: uuid.UUID) -> str:
+    """The same key whichever of the two people is named first."""
+    low, high = sorted((a.hex, b.hex))
+    return f"{low}:{high}"
+
+
+class Friendship(Base):
+    """A friend request and, once accepted, the friendship. One row per pair of people
+    (`pair_key` is unique), so two crossing requests can't both exist. Declining, cancelling
+    and removing a friend all delete the row: either may ask again later."""
+
+    __tablename__ = "friendships"
+    __table_args__ = (
+        CheckConstraint("requester_id <> addressee_id", name="not_self"),
+        Index("ix_friendships_addressee_id_status", "addressee_id", "status"),
+        Index("ix_friendships_requester_id_status", "requester_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    pair_key: Mapped[str] = mapped_column(String(65), unique=True)
+    requester_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE")
+    )
+    addressee_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE")
+    )
+    status: Mapped[str] = mapped_column(String(16), default=PENDING)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+    responded_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+
+
+class Block(Base):
+    """`blocker_id` doesn't want to hear from `blocked_id`: no requests, no messages, and
+    neither finds the other. The blocked person isn't told."""
+
+    __tablename__ = "blocks"
+    __table_args__ = (
+        UniqueConstraint("blocker_id", "blocked_id"),
+        CheckConstraint("blocker_id <> blocked_id", name="not_self"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    blocker_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    blocked_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+
+
+class Message(Base):
+    """A private message between two friends. Plain text; kept until either account is
+    deleted."""
+
+    __tablename__ = "messages"
+    __table_args__ = (
+        Index("ix_messages_pair_key_created_at", "pair_key", "created_at"),
+        Index("ix_messages_recipient_id_read_at", "recipient_id", "read_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    pair_key: Mapped[str] = mapped_column(String(65))
+    sender_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    recipient_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE")
+    )
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+    read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+
+
+class Notification(Base):
+    """Something that happened for a user while they weren't looking: a friend request, an
+    accepted request, an update to a course they have, a review of their course, a sale. The
+    text is written by the client from `kind` and `data` (so it's in the reader's language)."""
+
+    __tablename__ = "notifications"
+    __table_args__ = (Index("ix_notifications_user_id_created_at", "user_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(32))
+    # Who caused it, when it was a person (their display name is read when listing).
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), default=None
+    )
+    data: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    # Where clicking it goes, inside the app (e.g. "/community/friends").
+    link: Mapped[str] = mapped_column(String(300), default="")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+    read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+
+
+class TagSubscription(Base):
+    """ "Tell me about new courses on this": a tag the user follows. When a course carrying the
+    tag is published for the first time, they get a notification. Stored lowercased."""
+
+    __tablename__ = "tag_subscriptions"
+    __table_args__ = (UniqueConstraint("user_id", "tag"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    tag: Mapped[str] = mapped_column(String(40), index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+
+
+class PushSubscription(Base):
+    """A browser (or installed app) that agreed to receive push notifications for a user."""
+
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # The push service's address for that browser, and the keys to encrypt for it.
+    endpoint: Mapped[str] = mapped_column(String(1000), unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))
+    auth: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+
+
+REPORT_OPEN = "OPEN"
+REPORT_RESOLVED = "RESOLVED"
+
+
+class Report(Base):
+    """Someone tells the administrator about a person, a message or a review. `excerpt` is
+    what was reported, copied at that moment (the reported name, message or review text), so
+    the administrator sees exactly that and nothing else of anyone's conversations."""
+
+    __tablename__ = "reports"
+    __table_args__ = (
+        UniqueConstraint("reporter_id", "kind", "target_id"),
+        Index("ix_reports_status_created_at", "status", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    reporter_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # "user", "message" or "review".
+    kind: Mapped[str] = mapped_column(String(16))
+    # The user's, message's or review's id (no foreign key: the report outlives its target).
+    target_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    # The person the report is about: the user, the message's sender, the review's author.
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), default=None
+    )
+    reason: Mapped[str] = mapped_column(Text, default="")
+    excerpt: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(16), default=REPORT_OPEN)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+    resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)

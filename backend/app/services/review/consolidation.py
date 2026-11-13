@@ -1,8 +1,10 @@
 """Consolidation: "I have studied this concept" (docs/SCHEDULING.md §4a).
 
 Reading a Concept isn't studying it until the user says so; activating it isn't either. When
-they say so, its NEW Learning Items are consolidated in batches: each item's question three
-times in a row, feedback after each round. A batch is a stored CONSOLIDATION session, so an
+they say so, its NEW Learning Items are consolidated in batches: each item's question is asked
+until it has been answered well three times (GOOD or EASY, in a row or not), with feedback after
+each answer. Only then is the item learned and its spaced repetition starts. A batch is a
+stored CONSOLIDATION session, so an
 interruption resumes exactly where it stopped, and asking again resumes the unfinished batch
 instead of starting over (rewarded rounds are never replayed).
 """
@@ -42,6 +44,7 @@ def plan(db: Session, user_id: uuid.UUID, concept_id: uuid.UUID) -> Consolidatio
         new_items=len(waiting),
         batch_items=batch,
         rounds_per_item=ROUNDS_PER_ITEM,
+        # At least: every answer that isn't good adds one.
         answers_in_batch=batch * ROUNDS_PER_ITEM,
         remaining_after_batch=len(waiting) - batch,
     )
@@ -74,7 +77,8 @@ def start(db: Session, user_id: uuid.UUID, concept_id: uuid.UUID) -> ReviewSessi
         chapter_id=concept.chapter_id,
         topic_id=concept.topic_id,
         concept_ids=[str(concept.id)],
-        # Three consecutive slots per item: its rounds in immediate succession.
+        # Three consecutive slots per item: the first tries in immediate succession. Every answer
+        # that isn't good adds a slot at the end (services/review/service.py).
         item_ids=[str(item_id) for item_id in items for _ in range(ROUNDS_PER_ITEM)],
         started_at=utc_now(),
     )

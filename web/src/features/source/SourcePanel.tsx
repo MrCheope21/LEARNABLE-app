@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import type { Schemas } from "../../api/client";
 import { documents } from "../../api/endpoints";
 import { QueryState } from "../../components/QueryState";
-import { pageLabel, sourceSummary } from "../../components/labels";
+import { useLabels } from "../../components/useLabels";
+import { useI18n } from "../../i18n";
 
 export type SourceRef = Schemas["ProposalSource"];
 
@@ -11,6 +12,8 @@ export type SourceRef = Schemas["ProposalSource"];
  * evaluation relies on. Shows only what the backend provides; nothing is inferred.
  */
 export function SourcePanel({ source, onClose }: { source: SourceRef; onClose: () => void }) {
+  const { t } = useI18n();
+  const { pageLabel } = useLabels();
   const passage = useQuery({
     queryKey: ["passage", source.document_id, source.chunk_id],
     queryFn: () => documents.passage(source.document_id, source.chunk_id),
@@ -18,7 +21,7 @@ export function SourcePanel({ source, onClose }: { source: SourceRef; onClose: (
   });
 
   return (
-    <aside className="source-panel" aria-label="Source passage">
+    <aside className="source-panel" aria-label={t("source.aria")}>
       <header>
         <div>
           <h3>{source.document_name}</h3>
@@ -26,11 +29,11 @@ export function SourcePanel({ source, onClose }: { source: SourceRef; onClose: (
             {[pageLabel(source.page_number, source.page_end), source.section].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <button type="button" className="link" onClick={onClose} aria-label="Close source">
-          Close
+        <button type="button" className="link" onClick={onClose} aria-label={t("source.closeAria")}>
+          {t("common.close")}
         </button>
       </header>
-      <QueryState query={passage} label="Loading passage…">
+      <QueryState query={passage} label={t("source.loading")}>
         {(chunk) => <blockquote className="passage">{chunk.text}</blockquote>}
       </QueryState>
     </aside>
@@ -39,8 +42,10 @@ export function SourcePanel({ source, onClose }: { source: SourceRef; onClose: (
 
 /** A clickable source line ("banca.pdf · p. 3 · Contratti"). */
 export function SourceLink({ source, onOpen }: { source: SourceRef; onOpen: (source: SourceRef) => void }) {
+  const { t } = useI18n();
+  const { sourceSummary } = useLabels();
   return (
-    <button type="button" className="source-link" onClick={() => onOpen(source)} title="Open the source passage">
+    <button type="button" className="source-link" onClick={() => onOpen(source)} title={t("source.open")}>
       <span aria-hidden="true">📄</span> {sourceSummary(source)}
     </button>
   );

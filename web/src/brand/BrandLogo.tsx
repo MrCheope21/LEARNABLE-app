@@ -6,7 +6,7 @@ type Tone = "blue" | "white" | "mono";
 const COLORS: Record<Tone, string> = { blue: BRAND_BLUE, white: "#FFFFFF", mono: "currentColor" };
 
 /**
- * The LEARNABLE identity, drawn as inline SVG from src/brand/geometry.ts (no font, no image
+ * The Recallable identity, drawn as inline SVG from src/brand/geometry.ts (no font, no image
  * request). `form`: the horizontal wordmark or the compact mark. `tone`: blue on light
  * backgrounds, white on the blue navigation, mono inherits the text color.
  * Decorative by default (the surrounding link names it); pass `label` to make it an image.

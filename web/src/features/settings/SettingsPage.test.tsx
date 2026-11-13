@@ -80,9 +80,13 @@ describe("guide", () => {
   it("explains every step and the glossary, in the chosen language", async () => {
     backend({ ...me, language: "es" });
     renderApp("/guide");
-    expect(await screen.findByRole("heading", { level: 1, name: "Cómo funciona LEARNABLE" })).toBeInTheDocument();
-    expect(screen.getAllByRole("region")).toHaveLength(12);
-    expect(screen.getByRole("link", { name: "Repasa a tiempo" })).toHaveAttribute("href", "#guide-review");
+    expect(await screen.findByRole("heading", { level: 1, name: "Cómo funciona Recallable" })).toBeInTheDocument();
+    // One step at a time: the first one, with a button for each of the 11 steps.
+    expect(screen.getByRole("heading", { level: 2, name: "Cómo se organiza un curso" })).toBeInTheDocument();
+    expect(screen.getByText("Paso 1 de 11")).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "7. Repasa a tiempo" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "Repasa a tiempo" })).toBeInTheDocument();
+    expect(screen.getByText("Paso 7 de 11")).toBeInTheDocument();
   });
 });
 
@@ -93,7 +97,7 @@ describe("sign-in page", () => {
     const { requests } = mockApi([["POST", /\/auth\/register$/, ok({ ...me, language: "fr" })], ["POST", /\/auth\/login$/, ok({ access_token: "t", token_type: "bearer" })]]);
     renderApp("/", { signedIn: false });
     await user.selectOptions(screen.getByLabelText(en["signin.language"]), "fr");
-    expect(screen.getByRole("heading", { name: "Connexion à LEARNABLE" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Connexion à Recallable" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Créer un compte" }));
     await user.type(screen.getByLabelText("E-mail"), "new@example.com");
     await user.type(screen.getByLabelText("Mot de passe"), "a-long-enough-password");

@@ -3,6 +3,7 @@ import { HelpTip } from "../../components/HelpTip";
 import { Link, useNavigate } from "react-router-dom";
 import { concepts, courses } from "../../api/endpoints";
 import { ErrorBanner } from "../../components/QueryState";
+import { useI18n } from "../../i18n";
 import { outlineKey } from "./CourseLayout";
 
 export const consolidationKey = (conceptId: string) => ["consolidation", conceptId] as const;
@@ -14,6 +15,7 @@ export const consolidationKey = (conceptId: string) => ["consolidation", concept
  * starting over.
  */
 export function ConsolidatePanel({ courseId, conceptId, active }: { courseId: string; conceptId: string; active: boolean }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const plan = useQuery({ queryKey: consolidationKey(conceptId), queryFn: () => concepts.consolidationPlan(conceptId) });
@@ -30,16 +32,15 @@ export function ConsolidatePanel({ courseId, conceptId, active }: { courseId: st
 
   if (p.unfinished) {
     const left = p.unfinished.total - p.unfinished.position;
+    const items = t(p.unfinished_items === 1 ? "unit.item.one" : "unit.item.other", { n: p.unfinished_items });
+    const answersLeft = t(left === 1 ? "unit.answer.one" : "unit.answer.other", { n: left });
     return (
       <section className="card consolidate" aria-labelledby="consolidate-title">
-        <h2 id="consolidate-title">Continue consolidation</h2>
-        <p>
-          Your batch of {p.unfinished_items} {p.unfinished_items === 1 ? "item" : "items"} is unfinished: {left}{" "}
-          {left === 1 ? "answer" : "answers"} left. Rounds you've already answered are kept.
-        </p>
+        <h2 id="consolidate-title">{t("consolidate.continue")}</h2>
+        <p>{t("consolidate.unfinished", { items, left: answersLeft })}</p>
         <div className="actions">
           <button type="button" className="learn" disabled={start.isPending} onClick={() => start.mutate()}>
-            Resume
+            {t("consolidate.resume")}
           </button>
         </div>
         <ErrorBanner error={start.error} />
@@ -49,31 +50,28 @@ export function ConsolidatePanel({ courseId, conceptId, active }: { courseId: st
   if (p.new_items === 0) {
     return (
       <section className="card consolidate" aria-labelledby="consolidate-title">
-        <h2 id="consolidate-title">Consolidated</h2>
-        <p className="hint">
-          Every item in this concept has had its consolidation rounds. They come back in your reviews when they're due.
-        </p>
+        <h2 id="consolidate-title">{t("consolidate.doneTitle")}</h2>
+        <p className="hint">{t("consolidate.doneBody")}</p>
       </section>
     );
   }
   return (
     <section className="card consolidate" aria-labelledby="consolidate-title">
       <div className="title-row">
-        <h2 id="consolidate-title">Studied this concept?</h2>
-        <HelpTip text="help.consolidate" topic="Studied this concept?" guide="study" />
+        <h2 id="consolidate-title">{t("consolidate.title")}</h2>
+        <HelpTip text="help.consolidate" topic={t("consolidate.title")} guide="study" />
       </div>
-      <p>
-        Read what to study above first. When you're ready, each question is asked <strong>{p.rounds_per_item} times in a row</strong>,
-        with feedback after every round.
-      </p>
+      <p>{t("consolidate.body", { n: p.rounds_per_item })}</p>
       <p className="hint">
-        This batch: {p.batch_items} {p.batch_items === 1 ? "item" : "items"} · {p.answers_in_batch} answers
-        {p.remaining_after_batch > 0 &&
-          ` · ${p.remaining_after_batch} more ${p.remaining_after_batch === 1 ? "item waits" : "items wait"} for a later batch`}
+        {t("consolidate.batch", {
+          items: t(p.batch_items === 1 ? "unit.item.one" : "unit.item.other", { n: p.batch_items }),
+          answers: t(p.answers_in_batch === 1 ? "unit.answer.one" : "unit.answer.other", { n: p.answers_in_batch }),
+        })}
+        {p.remaining_after_batch > 0 && ` · ${t(p.remaining_after_batch === 1 ? "consolidate.more.one" : "consolidate.more.other", { n: p.remaining_after_batch })}`}
       </p>
       <div className="actions">
         <button type="button" className="learn" disabled={start.isPending} onClick={() => start.mutate()}>
-          I have studied this concept
+          {t("consolidate.button")}
         </button>
       </div>
       <ErrorBanner error={start.error} />
@@ -93,15 +91,16 @@ export function Breadcrumbs({
   topicId?: string;
   current: string;
 }) {
+  const { t } = useI18n();
   const course = useQuery({ queryKey: ["course", courseId], queryFn: () => courses.get(courseId) });
   const outline = useQuery({ queryKey: outlineKey(courseId), queryFn: () => courses.outline(courseId) });
   const chapter = outline.data?.find((c) => c.id === chapterId || c.topics.some((t) => t.id === topicId));
   const topic = chapter?.topics.find((t) => t.id === topicId);
   return (
-    <nav aria-label="Breadcrumb">
+    <nav aria-label={t("breadcrumb.aria")}>
       <ol className="breadcrumb">
         <li>
-          <Link to={`/courses/${courseId}`}>{course.data?.title ?? "Course"}</Link>
+          <Link to={`/courses/${courseId}`}>{course.data?.title ?? t("course.fallback")}</Link>
         </li>
         {chapter && (
           <li>

@@ -36,6 +36,10 @@ export const auth = {
         body: { current_password: currentPassword, new_password: newPassword },
       }),
     ),
+  /** Everything held about the account, as one JSON document. */
+  exportData: () => call(api.GET("/api/v1/auth/export")),
+  /** Deletes the signed-in account and everything it owns. */
+  deleteAccount: (password: string) => call(api.POST("/api/v1/auth/delete-account", { body: { password } })),
 };
 
 export const dashboard = {
@@ -52,6 +56,9 @@ export const courses = {
   get: (courseId: Id) =>
     call(api.GET("/api/v1/courses/{course_id}", { params: { path: { course_id: courseId } } })),
   create: (body: Schemas["CourseCreate"]) => call(api.POST("/api/v1/courses", { body })),
+  /** The day of the exam ("2027-01-20"), or null to remove it. */
+  setExamDate: (courseId: Id, date: string | null) =>
+    call(api.PUT("/api/v1/courses/{course_id}/exam-date", { params: { path: { course_id: courseId } }, body: { date } })),
   update: (courseId: Id, body: Schemas["CourseUpdate"]) =>
     call(api.PATCH("/api/v1/courses/{course_id}", { params: { path: { course_id: courseId } }, body })),
   setPaused: (courseId: Id, paused: boolean) =>
@@ -264,6 +271,14 @@ export const documents = {
     ),
 };
 
+/** Reviewing offline: the pack to keep on the device, and the answers given without a network. */
+export const review = {
+  offlinePack: (courseId: Id) =>
+    call(api.GET("/api/v1/courses/{course_id}/offline-pack", { params: { path: { course_id: courseId } } })),
+  offlineSync: (courseId: Id, answers: Schemas["OfflineAnswer"][]) =>
+    call(api.POST("/api/v1/courses/{course_id}/offline-sync", { params: { path: { course_id: courseId } }, body: { answers } })),
+};
+
 export const study = {
   start: (courseId: Id, body: Schemas["SessionCreate"]) =>
     call(
@@ -297,6 +312,20 @@ export const study = {
         body: { question_formulation_id: questionId, text, method, ...(drawing ? { drawing } : {}) },
       }),
     ),
+  /** The questions still to come in this session, the one on screen first. */
+  queue: (sessionId: Id) =>
+    call(api.GET("/api/v1/review-sessions/{session_id}/queue", { params: { path: { session_id: sessionId } } })),
+  /** Makes a question still to come the next one. */
+  pick: (sessionId: Id, learningItemId: Id) =>
+    call(
+      api.POST("/api/v1/review-sessions/{session_id}/pick", {
+        params: { path: { session_id: sessionId } },
+        body: { learning_item_id: learningItemId },
+      }),
+    ),
+  /** Every question due now in a course, in the order they were added. */
+  dueQueue: (courseId: Id) =>
+    call(api.GET("/api/v1/courses/{course_id}/review-queue", { params: { path: { course_id: courseId } } })),
   skip: (sessionId: Id) =>
     call(
       api.POST("/api/v1/review-sessions/{session_id}/skip", {
@@ -325,6 +354,9 @@ export const study = {
         body: { argument },
       }),
     ),
+  /** After reviewing the reference: repeat a mostly green answer, which then counts as correct. */
+  repeat: (answerId: Id, text: string) =>
+    call(api.POST("/api/v1/answers/{answer_id}/repeat", { params: { path: { answer_id: answerId } }, body: { text } })),
   override: (answerId: Id, outcome: Schemas["ReviewOutcome"]) =>
     call(
       api.POST("/api/v1/answers/{answer_id}/override", {
@@ -351,6 +383,7 @@ export type ListingFilters = {
   language?: string;
   size?: "small" | "medium" | "large";
   level?: Schemas["Level"];
+  price?: "free" | "paid";
   sort?: Schemas["ListingSort"];
 };
 
@@ -372,4 +405,112 @@ export const marketplace = {
     call(
       api.POST("/api/v1/courses/{course_id}/marketplace/publish", { params: { path: { course_id: courseId } }, body }),
     ),
+  announce: (courseId: Id, message: string) =>
+    call(
+      api.POST("/api/v1/courses/{course_id}/marketplace/announce", { params: { path: { course_id: courseId } }, body: { message } }),
+    ),
+  reviews: (listingId: Id) =>
+    call(api.GET("/api/v1/marketplace/listings/{listing_id}/reviews", { params: { path: { listing_id: listingId } } })),
+  writeReview: (listingId: Id, body: Schemas["ReviewWrite"]) =>
+    call(api.PUT("/api/v1/marketplace/listings/{listing_id}/review", { params: { path: { listing_id: listingId } }, body })),
+  deleteReview: (listingId: Id) =>
+    call(api.DELETE("/api/v1/marketplace/listings/{listing_id}/review", { params: { path: { listing_id: listingId } } })),
+  replyToReview: (reviewId: Id, reply: string) =>
+    call(api.PUT("/api/v1/marketplace/reviews/{review_id}/reply", { params: { path: { review_id: reviewId } }, body: { reply } })),
+};
+
+export type Period = Schemas["Period"];
+export type Scope = Schemas["Scope"];
+
+export const community = {
+  leaderboard: (period: Period, scope: Scope) =>
+    call(api.GET("/api/v1/community/leaderboard", { params: { query: { period, scope } } })),
+  courseLeaderboard: (courseId: Id, period: Period, scope: Scope) =>
+    call(api.GET("/api/v1/courses/{course_id}/leaderboard", { params: { path: { course_id: courseId }, query: { period, scope } } })),
+  people: (q: string) => call(api.GET("/api/v1/community/people", { params: { query: { q } } })),
+  friends: () => call(api.GET("/api/v1/community/friends")),
+  requests: () => call(api.GET("/api/v1/community/friend-requests")),
+  blocked: () => call(api.GET("/api/v1/community/blocked")),
+  profile: (userId: Id) => call(api.GET("/api/v1/community/users/{user_id}", { params: { path: { user_id: userId } } })),
+  /** Ask to be friends, or accept their request. */
+  befriend: (userId: Id) => call(api.PUT("/api/v1/community/users/{user_id}/friend", { params: { path: { user_id: userId } } })),
+  /** Cancel a request you sent, decline one you received, or remove a friend. */
+  unfriend: (userId: Id) => call(api.DELETE("/api/v1/community/users/{user_id}/friend", { params: { path: { user_id: userId } } })),
+  block: (userId: Id) => call(api.PUT("/api/v1/community/users/{user_id}/block", { params: { path: { user_id: userId } } })),
+  unblock: (userId: Id) => call(api.DELETE("/api/v1/community/users/{user_id}/block", { params: { path: { user_id: userId } } })),
+};
+
+export const chat = {
+  list: () => call(api.GET("/api/v1/chats")),
+  thread: (userId: Id, before?: Id) =>
+    call(api.GET("/api/v1/chats/{user_id}", { params: { path: { user_id: userId }, query: { before } } })),
+  send: (userId: Id, body: string) =>
+    call(api.POST("/api/v1/chats/{user_id}", { params: { path: { user_id: userId } }, body: { body } })),
+};
+
+export const notifications = {
+  inbox: () => call(api.GET("/api/v1/inbox")),
+  list: () => call(api.GET("/api/v1/notifications")),
+  markRead: (ids?: Id[]) => call(api.POST("/api/v1/notifications/read", { body: { ids } })),
+};
+
+/** Push notifications: the daily review reminder. */
+export const push = {
+  status: () => call(api.GET("/api/v1/push")),
+  subscribe: (body: Schemas["PushSubscribe"]) => call(api.POST("/api/v1/push/subscribe", { body })),
+  unsubscribe: (endpoint: string) => call(api.POST("/api/v1/push/unsubscribe", { body: { endpoint } })),
+  reminder: (hour: number | null) => call(api.PUT("/api/v1/push/reminder", { body: { hour } })),
+  test: () => call(api.POST("/api/v1/push/test")),
+};
+
+/** Tags to hear about: a notification when a course carrying one is first published. */
+export const interests = {
+  get: () => call(api.GET("/api/v1/interests")),
+  follow: (tag: string) => call(api.PUT("/api/v1/interests", { body: { tag } })),
+  unfollow: (tag: string) => call(api.DELETE("/api/v1/interests", { params: { query: { tag } } })),
+};
+
+export type ReportKind = Schemas["ReportKind"];
+
+/** Tell the administrator about a person, a message you received or a review. */
+export const reports = {
+  send: (kind: ReportKind, targetId: Id, reason: string) =>
+    call(api.POST("/api/v1/reports", { body: { kind, target_id: targetId, reason } })),
+};
+
+export const payments = {
+  payout: () => call(api.GET("/api/v1/payments/payout")),
+  onboarding: () => call(api.POST("/api/v1/payments/payout/onboarding")),
+  checkout: (listingId: Id, code = "") =>
+    call(api.POST("/api/v1/marketplace/listings/{listing_id}/checkout", { params: { path: { listing_id: listingId } }, body: { code } })),
+  /** What a discount code makes the price. */
+  quote: (listingId: Id, code: string) =>
+    call(api.GET("/api/v1/marketplace/listings/{listing_id}/discount", { params: { path: { listing_id: listingId }, query: { code } } })),
+  discounts: (courseId: Id) => call(api.GET("/api/v1/courses/{course_id}/marketplace/discounts", { params: { path: { course_id: courseId } } })),
+  createDiscount: (courseId: Id, body: Schemas["DiscountCreate"]) =>
+    call(api.POST("/api/v1/courses/{course_id}/marketplace/discounts", { params: { path: { course_id: courseId } }, body })),
+  deleteDiscount: (courseId: Id, discountId: Id) =>
+    call(api.DELETE("/api/v1/courses/{course_id}/marketplace/discounts/{discount_id}", { params: { path: { course_id: courseId, discount_id: discountId } } })),
+  refund: (orderId: Id) => call(api.POST("/api/v1/marketplace/orders/{order_id}/refund", { params: { path: { order_id: orderId } } })),
+  order: (orderId: Id) => call(api.GET("/api/v1/marketplace/orders/{order_id}", { params: { path: { order_id: orderId } } })),
+  sales: () => call(api.GET("/api/v1/marketplace/sales")),
+};
+
+export const admin = {
+  summary: () => call(api.GET("/api/v1/admin/summary")),
+  users: () => call(api.GET("/api/v1/admin/users")),
+  updateUser: (id: Id, body: Schemas["AdminUserUpdate"]) =>
+    call(api.PATCH("/api/v1/admin/users/{user_id}", { params: { path: { user_id: id } }, body })),
+  deleteUser: (id: Id) =>
+    call(api.DELETE("/api/v1/admin/users/{user_id}", { params: { path: { user_id: id } } })),
+  resetPassword: (id: Id) =>
+    call(api.POST("/api/v1/admin/users/{user_id}/password", { params: { path: { user_id: id } } })),
+  invitations: () => call(api.GET("/api/v1/admin/invitations")),
+  createInvitation: (body: Schemas["InvitationCreate"]) => call(api.POST("/api/v1/admin/invitations", { body })),
+  revokeInvitation: (id: Id) =>
+    call(api.DELETE("/api/v1/admin/invitations/{invitation_id}", { params: { path: { invitation_id: id } } })),
+  deleteReview: (id: Id) => call(api.DELETE("/api/v1/admin/reviews/{review_id}", { params: { path: { review_id: id } } })),
+  reports: () => call(api.GET("/api/v1/admin/reports")),
+  resolveReport: (id: Id) => call(api.POST("/api/v1/admin/reports/{report_id}/resolve", { params: { path: { report_id: id } } })),
+  reopenReport: (id: Id) => call(api.POST("/api/v1/admin/reports/{report_id}/reopen", { params: { path: { report_id: id } } })),
 };

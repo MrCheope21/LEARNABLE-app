@@ -21,10 +21,10 @@ function hidden(): boolean {
   }
 }
 
-/** "How LEARNABLE works" in four illustrated steps, on the dashboard until the user hides it. */
-export function QuickStart({ forceOpen = false }: { forceOpen?: boolean }) {
+/** "How Recallable works" in four illustrated steps, on the dashboard until the user hides it. */
+export function QuickStart({ forceOpen = false, defaultHidden = false }: { forceOpen?: boolean; defaultHidden?: boolean }) {
   const { t } = useI18n();
-  const [isHidden, setHidden] = useState(() => !forceOpen && hidden());
+  const [isHidden, setHidden] = useState(() => !forceOpen && (hidden() || defaultHidden));
   const toggle = (value: boolean) => {
     setHidden(value);
     try {

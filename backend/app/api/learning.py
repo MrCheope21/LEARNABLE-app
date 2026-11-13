@@ -32,6 +32,7 @@ from app.schemas.learning import (
 )
 from app.services import drawings
 from app.services.learning import manage, service
+from app.services.quota import GENERATION, ai_quota
 from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(tags=["learning-items"])
@@ -44,7 +45,7 @@ DB = Depends(get_db)
     "/concepts/{concept_id}/learning-items/generate",
     response_model=ConceptRead,
     status_code=status.HTTP_202_ACCEPTED,
-    dependencies=[Depends(per_user("generation", 30, 3600))],
+    dependencies=[Depends(per_user("generation", 30, 3600)), Depends(ai_quota(GENERATION))],
 )
 def generate_learning_items(
     concept_id: uuid.UUID,
@@ -156,7 +157,7 @@ def add_question(
     "/learning-items/{item_id}/questions/generate",
     response_model=list[QuestionRead],
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(per_user("generation", 30, 3600))],
+    dependencies=[Depends(per_user("generation", 30, 3600)), Depends(ai_quota(GENERATION))],
 )
 def generate_questions(
     item_id: uuid.UUID,

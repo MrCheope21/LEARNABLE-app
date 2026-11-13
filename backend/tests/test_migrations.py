@@ -29,9 +29,11 @@ def migration_engine(database_url: str, engine: Engine, tmp_path):
         fresh.dispose()
     else:
         yield engine
+        # Not metadata.drop_all: it drops constraints by the models' names, and a constraint
+        # created by a migration may be named differently. Empty the schema instead.
         with engine.begin() as conn:
-            conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
-        Base.metadata.drop_all(engine)
+            conn.execute(text("DROP SCHEMA public CASCADE"))
+            conn.execute(text("CREATE SCHEMA public"))
 
 
 def _alembic_config(connection) -> Config:
@@ -96,3 +98,41 @@ def test_migrations_keep_existing_data(migration_engine: Engine):
         # when the connection closes and the fixture's cleanup then fails.
         connection.commit()
     assert titles == ["Diritto commerciale"]
+
+
+def test_follows_become_friendships(migration_engine: Engine):
+    """Two people who followed each other are friends; a one-way follow is a pending request."""
+    ada, bob, eve = (uuid.uuid4() for _ in range(3))
+    with migration_engine.connect() as connection:
+        command.upgrade(_alembic_config(connection), "4d9e1a6f8b32")
+        connection.commit()
+        for user, email in ((ada, "ada"), (bob, "bob"), (eve, "eve")):
+            connection.execute(
+                text(
+                    "INSERT INTO users (id, email, hashed_password, created_at) "
+                    "VALUES (:id, :email, 'x', '2026-10-01 10:00:00')"
+                ),
+                {"id": user.hex, "email": f"{email}@example.com"},
+            )
+        for minute, (follower, followee) in enumerate(((ada, bob), (bob, ada), (ada, eve))):
+            connection.execute(
+                text(
+                    "INSERT INTO follows (id, follower_id, followee_id, created_at) "
+                    "VALUES (:id, :a, :b, :at)"
+                ),
+                {
+                    "id": uuid.uuid4().hex,
+                    "a": follower.hex,
+                    "b": followee.hex,
+                    "at": f"2026-10-02 10:0{minute}:00",
+                },
+            )
+        connection.commit()
+    with migration_engine.connect() as connection:
+        command.upgrade(_alembic_config(connection), "head")
+        rows = connection.execute(
+            text("SELECT requester_id, addressee_id, status FROM friendships")
+        ).all()
+        connection.commit()
+    found = {(uuid.UUID(str(r[0])), uuid.UUID(str(r[1]))): r[2] for r in rows}
+    assert found == {(ada, bob): "ACCEPTED", (ada, eve): "PENDING"}

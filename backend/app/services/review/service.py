@@ -26,6 +26,7 @@ The first final outcome of an answer also records its XP and the day's activity
 import logging
 import uuid
 from dataclasses import replace
+from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -44,13 +45,14 @@ from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, Topic
 from app.models.document import Document, DocumentChunk
 from app.models.enums import (
+    AnswerMethod,
     EvaluationClassification,
     EvaluationStatus,
     MemoryState,
     ReviewOutcome,
     SessionIntent,
 )
-from app.models.learning import LearningItem, LearningItemSource, QuestionFormulation
+from app.models.learning import LearningItem, LearningItemSource, QuestionFormulation, ReviewState
 from app.models.review import Answer, Evaluation, Review, ReviewSession
 from app.models.rewards import HintReveal
 from app.models.user import User
@@ -67,7 +69,10 @@ from app.schemas.review import (
     Introduction,
     OverrideCreate,
     PotentialXp,
+    QueueItem,
     Reference,
+    RepeatCreate,
+    ReviewQueue,
     ScheduleChange,
     SessionCard,
     SessionCreate,
@@ -76,10 +81,10 @@ from app.schemas.review import (
 )
 from app.services import drawings
 from app.services.courses.service import get_owned_course
-from app.services.evaluation.resolver import RESOLVER_VERSION, resolve_outcome
-from app.services.review import pool
+from app.services.evaluation.resolver import RESOLVER_VERSION, repeat_offered, resolve_outcome
+from app.services.review import pool, progress
 from app.services.rewards import service as rewards
-from app.services.rewards.hints import build_hint
+from app.services.rewards.hints import build_cues
 from app.services.scheduling.policy import SchedulingError, Transition
 from app.services.scheduling.store import (
     policy_for,
@@ -224,7 +229,7 @@ def next_card(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> Session
             sources=_item_sources(db, item),
             drawing=item.answer_format == "DRAWING",
         )
-    round_number, rounds_total = _round(session, item)
+    round_number, rounds_total = _round(db, session, item)
     potential = rewards.potential(db, session, item, utc_now())
     hint = _hint_state(db, session, item, question)
     db.commit()
@@ -245,7 +250,7 @@ def next_card(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> Session
             rounds_total=rounds_total,
             potential_xp=PotentialXp(
                 eligible=potential.eligible,
-                ordinal=potential.ordinal,
+                level=potential.level,
                 xp=potential.xp,
                 xp_with_hint=potential.xp_with_hint,
             ),
@@ -254,24 +259,33 @@ def next_card(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> Session
     )
 
 
-def _round(session: ReviewSession, item: LearningItem) -> tuple[int | None, int | None]:
-    """CONSOLIDATION: which of the item's consecutive slots is current ("Round 2 of 3")."""
+def _round(
+    db: Session, session: ReviewSession, item: LearningItem
+) -> tuple[int | None, int | None]:
+    """CONSOLIDATION: which good answer the item is on ("Good answer 2 of 3"): it needs three,
+    in a row or not, so a wrong answer doesn't move this on."""
     if session.intent is not SessionIntent.CONSOLIDATION:
         return None, None
-    key = str(item.id)
-    done = session.item_ids[: session.position + 1].count(key)
-    return done, session.item_ids.count(key)
+    needed = progress.GOOD_ANSWERS_NEEDED
+    return min(progress.good_answers(db, session.id, item.id) + 1, needed), needed
 
 
 def _hint_state(
     db: Session, session: ReviewSession, item: LearningItem, question: QuestionFormulation
 ) -> HintState:
+    cues = build_cues(list(item.essential_points), item.expected_knowledge, question.text)
     revealed = rewards.hint_for_slot(db, session.id, session.position)
     if revealed is not None:
-        return HintState(available=True, revealed=True, text=revealed.text)
-    available = session.intent is not SessionIntent.LEARN and bool(
-        question.hint or build_hint(list(item.essential_points), item.expected_knowledge)
-    )
+        return HintState(
+            available=True,
+            revealed=True,
+            text=revealed.text,
+            point_count=cues.point_count if cues else None,
+            terms=cues.terms
+            if cues
+            else [t.strip() for t in revealed.text.split(",") if t.strip()],
+        )
+    available = session.intent is not SessionIntent.LEARN and cues is not None
     return HintState(available=available, revealed=False, text=None)
 
 
@@ -286,7 +300,7 @@ def reveal_hint(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> HintS
         raise ConflictError("This session is finished.", details={"reason": "session_finished"})
     existing = rewards.hint_for_slot(db, session.id, session.position)
     if existing is not None:
-        return HintState(available=True, revealed=True, text=existing.text)
+        return _hint_state(db, session, item, _pick_question(item))
     if _pending_answer(db, session, item) is not None:
         raise ConflictError(
             "This question has already been answered.", details={"reason": "answer_pending"}
@@ -298,12 +312,12 @@ def reveal_hint(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> HintS
             details={"reason": "hint_unavailable"},
         )
     question = _pick_question(item)
-    text = question.hint or build_hint(list(item.essential_points), item.expected_knowledge)
-    if not text:
+    cues = build_cues(list(item.essential_points), item.expected_knowledge, question.text)
+    if cues is None:
         raise ConflictError(
             "There's no hint for this question.", details={"reason": "hint_unavailable"}
         )
-    question.hint = text
+    text = cues.text
     db.add(
         HintReveal(
             user_id=user_id,
@@ -320,11 +334,9 @@ def reveal_hint(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> HintS
     except IntegrityError:
         # A concurrent reveal of the same slot won: show that one.
         db.rollback()
-        existing = rewards.hint_for_slot(db, session.id, session.position)
-        if existing is None:
+        if rewards.hint_for_slot(db, session.id, session.position) is None:
             raise
-        return HintState(available=True, revealed=True, text=existing.text)
-    return HintState(available=True, revealed=True, text=text)
+    return _hint_state(db, session, item, question)
 
 
 def current_item(db: Session, session: ReviewSession) -> LearningItem | None:
@@ -373,11 +385,114 @@ def _pending_answer(db: Session, session: ReviewSession, item: LearningItem) -> 
             Answer.session_id == session.id,
             Answer.learning_item_id == item.id,
             Answer.final_outcome.is_(None),
+            Answer.repeat_of_id.is_(None),
             Answer.created_at >= session.started_at,
         )
         .order_by(Answer.created_at.desc())
         .limit(1)
     )
+
+
+def _queue_item(
+    db: Session, item: LearningItem, state: ReviewState | None, now: datetime, current: bool = False
+) -> QueueItem:
+    question = _pick_question(item)
+    chapter = db.get(Chapter, item.chapter_id)
+    topic = db.get(Topic, item.topic_id)
+    concept = db.get(Concept, item.concept_id)
+    overdue = 0
+    if state is not None and state.due_at is not None and state.due_at < now:
+        overdue = (now - state.due_at).days
+    return QueueItem(
+        learning_item_id=item.id,
+        question=question.text,
+        chapter_id=item.chapter_id,
+        chapter_title=chapter.title if chapter else "",
+        topic_id=item.topic_id,
+        topic_title=topic.title if topic else "",
+        concept_id=item.concept_id,
+        concept_title=concept.title if concept else "",
+        level=state.level if state else 0,
+        marked_hard=bool(state and state.marked_hard),
+        overdue_days=overdue,
+        current=current,
+    )
+
+
+def due_queue(db: Session, user_id: uuid.UUID, course_id: uuid.UUID) -> ReviewQueue:
+    """Every question due for review now, in the order they were added to the course (chapter,
+    topic, concept, question): what a scheduled review would ask, to choose from."""
+    get_owned_course(db, user_id, course_id)
+    now = utc_now()
+    stmt = pool.eligible_items(course_id).where(
+        ReviewState.state != MemoryState.NEW,
+        ReviewState.due_at <= now,
+        ReviewState.paused_at.is_(None),
+    )
+    items = db.scalars(stmt).all()
+    states = {
+        state.learning_item_id: state
+        for state in db.scalars(
+            select(ReviewState).where(ReviewState.learning_item_id.in_([i.id for i in items]))
+        )
+    }
+    return ReviewQueue(
+        total=len(items), items=[_queue_item(db, i, states.get(i.id), now) for i in items]
+    )
+
+
+def session_queue(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> ReviewQueue:
+    """The questions still to come in a running session (the one on screen first), to pick from."""
+    session = get_owned_session(db, user_id, session_id)
+    _check_pickable(session)
+    now = utc_now()
+    shown: set[uuid.UUID] = set()
+    items: list[QueueItem] = []
+    current = current_item(db, session)
+    db.commit()
+    for raw in session.item_ids[session.position :]:
+        item_id = uuid.UUID(raw)
+        if item_id in shown:
+            continue
+        item = db.get(LearningItem, item_id)
+        if item is None or not _still_askable(session, item):
+            continue
+        shown.add(item_id)
+        items.append(
+            _queue_item(
+                db,
+                item,
+                item.review_state,
+                now,
+                current=current is not None and item.id == current.id,
+            )
+        )
+    return ReviewQueue(total=len(items), items=items)
+
+
+def _check_pickable(session: ReviewSession) -> None:
+    if session.intent is SessionIntent.CONSOLIDATION:
+        raise ConflictError(
+            "Consolidation asks each question in a fixed order.",
+            details={"reason": "pick_not_available"},
+        )
+    if session.ended_at is not None:
+        raise ConflictError("This session is finished.", details={"reason": "session_finished"})
+
+
+def pick(db: Session, user_id: uuid.UUID, session_id: uuid.UUID, item_id: uuid.UUID) -> SessionCard:
+    """Makes a question that is still to come the next one. The question that was next moves
+    to the following slot: nothing is dropped, nothing is answered or skipped."""
+    session = get_owned_session(db, user_id, session_id)
+    _check_pickable(session)
+    remaining = list(session.item_ids[session.position :])
+    wanted = str(item_id)
+    if wanted not in remaining:
+        raise NotFoundError("That question isn't left in this session")
+    remaining.remove(wanted)
+    session.item_ids = [*session.item_ids[: session.position], wanted, *remaining]
+    db.commit()
+    return next_card(db, user_id, session_id)
 
 
 def skip(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> SessionCard:
@@ -428,7 +543,7 @@ def submit_answer(
 
     drawing = _drawn_answer(item, payload)
     now = utc_now()
-    round_number, _ = _round(session, item)
+    round_number, _ = _round(db, session, item)
     answer = Answer(
         id=uuid.uuid4(),
         user_id=user_id,
@@ -590,6 +705,71 @@ def override(
     return _result(db, answer, session, item, transition)
 
 
+def repeat_answer(
+    db: Session,
+    provider: AIProvider | None,
+    storage: DocumentStorage,
+    user_id: uuid.UUID,
+    answer_id: uuid.UUID,
+    payload: RepeatCreate,
+) -> AnswerResult:
+    """The student reviewed the reference answer and repeated it, and the repeat is evaluated
+    like any answer. Repeated well (GOOD): the first answer counts as correct, with the full XP,
+    and the schedule moves forward. Not well: the first answer is failed (AGAIN), the item goes
+    back to level 0 and must be answered well again. The AI's own evaluation of the first answer
+    and its resolved outcome stay as they were, for the record. If the repeat can't be judged,
+    the student grades the first answer themselves."""
+    answer, session, item = _owned_answer(db, user_id, answer_id)
+    if not answer.repeat_offered:
+        raise ConflictError(
+            "This answer can't be repeated.", details={"reason": "repeat_not_offered"}
+        )
+    if answer.final_outcome is not None:
+        raise ConflictError(
+            "This answer already has its grade.", details={"reason": "already_graded"}
+        )
+    question = _question_of(db, answer)
+    now = utc_now()
+    answer.repeat_text = payload.text
+    answer.repeated_at = now
+    repeat = Answer(
+        id=uuid.uuid4(),
+        user_id=user_id,
+        course_id=answer.course_id,
+        session_id=answer.session_id,
+        learning_item_id=answer.learning_item_id,
+        question_formulation_id=answer.question_formulation_id,
+        intent=answer.intent,
+        method=AnswerMethod.TEXT,
+        text=payload.text,
+        created_at=now,
+        repeat_of_id=answer.id,
+    )
+    db.add(repeat)
+    db.commit()
+
+    evaluation = _evaluate(db, provider, storage, item, repeat, question)
+    db.add(evaluation)
+    judged = (
+        resolve_outcome(_evidence(evaluation))
+        if evaluation.status is EvaluationStatus.COMPLETED
+        else None
+    )
+    repeat.resolved_outcome = judged
+    repeat.resolver_version = RESOLVER_VERSION
+    if judged is None:
+        # Can't tell how well it was repeated: the first answer waits for the student's grade.
+        _commit_finalization(db)
+        return _result(db, answer, session, item, None)
+    outcome = ReviewOutcome.GOOD if judged is ReviewOutcome.GOOD else ReviewOutcome.AGAIN
+    answer.final_outcome = outcome
+    # classification=None credits the attempt like a grade the student gave: a GOOD earns XP as
+    # a correct answer, an AGAIN earns none.
+    transition = _apply_outcome(db, session, item, answer, outcome, classification=None)
+    _commit_finalization(db)
+    return _result(db, answer, session, item, transition)
+
+
 def _set_override(answer: Answer, payload: OverrideCreate) -> None:
     answer.override_outcome = payload.outcome
     answer.override_note = payload.note
@@ -610,11 +790,21 @@ def _evaluate_and_apply(
     db.add(evaluation)
     if evaluation.status is not EvaluationStatus.COMPLETED:
         return None
-    outcome = resolve_outcome(_evidence(evaluation))
+    evidence = _evidence(evaluation)
+    outcome = resolve_outcome(evidence)
     answer.resolved_outcome = outcome
     answer.resolver_version = RESOLVER_VERSION
     if outcome is None:
         return None  # inconclusive: the user grades it
+    if (
+        session.intent is not SessionIntent.PRACTICE
+        and answer.drawing_type is None
+        and repeat_offered(evidence, outcome)
+    ):
+        # Green on 3 of 4 scores but not a GOOD: not graded yet. The student reviews the
+        # reference and repeats the answer (repeat_answer), and it then counts as correct.
+        answer.repeat_offered = True
+        return None
     answer.final_outcome = outcome
     return _apply_outcome(
         db, session, item, answer, outcome, classification=evaluation.classification
@@ -678,6 +868,7 @@ def _evaluate(
     base.source_corrections = list(out.source_corrections)
     base.context_sufficient = out.context_sufficient
     base.feedback = out.feedback
+    base.gap = out.gap.strip()
     base.ai_provider = info.provider[:50]
     base.ai_model = info.model[:200]
     base.ai_model_version = info.model_version[:200]
@@ -742,8 +933,9 @@ def _apply_outcome(
     now = utc_now()
     answer.finalized_at = now
     state_before, due_before = item.review_state.state, item.review_state.due_at
+    level_before = item.review_state.level
     transition = None
-    if session.affects_schedule and _moves_schedule(session, item):
+    if session.affects_schedule and _moves_schedule(db, session, item, outcome):
         transition = _schedule(db, item, answer, outcome, session.intent)
     user = db.get(User, session.user_id)
     if user is not None:
@@ -761,16 +953,13 @@ def _apply_outcome(
             occasion=occasion,
             classification=classification,
             at=now,
+            level=level_before,
             self_grade=outcome if classification is None else None,
         )
     current = current_item(db, session)
     if current is not None and current.id == item.id:
-        if (
-            session.intent is SessionIntent.LEARN
-            and item.review_state.state is MemoryState.NEW
-            and session.item_ids.count(str(item.id)) < MAX_LEARN_ATTEMPTS
-        ):
-            # Not encoded yet: ask again after the rest (initial retrieval until it sticks).
+        if _comes_back(db, session, item, outcome, transition):
+            # Not done with it yet: ask again after the rest of the session.
             session.item_ids = [*session.item_ids, str(item.id)]
         session.position += 1
         if session.position >= len(session.item_ids):
@@ -778,14 +967,52 @@ def _apply_outcome(
     return transition
 
 
-def _moves_schedule(session: ReviewSession, item: LearningItem) -> bool:
-    """CONSOLIDATION: three answers seconds apart are one act of encoding, not three reviews.
-    Only the item's last round goes through the policy (process_learning with that round's
-    outcome), so the item starts at level 1 (4 hours) at most, like any first success; failing
-    the last round leaves it NEW for the next batch. Earlier rounds are kept as answers."""
+def _moves_schedule(
+    db: Session, session: ReviewSession, item: LearningItem, outcome: ReviewOutcome
+) -> bool:
+    """CONSOLIDATION (the first study of an item): it must be answered well three times, in a
+    row or not, before it counts as learned. Only the answer that completes the third goes
+    through the policy (process_learning), so the item starts at level 1 (4 hours) at most, like
+    any first success. Until then it stays NEW; the answers before are kept as answers."""
     if session.intent is not SessionIntent.CONSOLIDATION:
         return True
-    return str(item.id) not in session.item_ids[session.position + 1 :]
+    return (
+        progress.is_good(outcome)
+        and progress.good_answers(db, session.id, item.id) >= progress.GOOD_ANSWERS_NEEDED
+    )
+
+
+def _comes_back(
+    db: Session,
+    session: ReviewSession,
+    item: LearningItem,
+    outcome: ReviewOutcome,
+    transition: Transition | None,
+) -> bool:
+    """Whether the item is asked again later in this same session.
+
+    - LEARN: until it is encoded (a few attempts at most).
+    - CONSOLIDATION: after an answer that wasn't good. Each good answer uses up one of the
+      item's three slots and each other answer adds one, so the slots left are always the good
+      answers still needed.
+    - SCHEDULED_REVIEW: a failed item is back at level 0 and must be answered well once before
+      it is no longer required in this session (and not forever: see MAX_RELEARN_ATTEMPTS).
+    """
+    state = item.review_state
+    if session.intent is SessionIntent.LEARN:
+        return (
+            state.state is MemoryState.NEW
+            and session.item_ids.count(str(item.id)) < MAX_LEARN_ATTEMPTS
+        )
+    if session.intent is SessionIntent.CONSOLIDATION:
+        return session.affects_schedule and not progress.is_good(outcome)
+    if session.intent is SessionIntent.SCHEDULED_REVIEW and transition is not None:
+        return (
+            state.state is MemoryState.RELEARNING
+            and state.level == 0
+            and progress.attempts(db, session.id, item.id) < progress.MAX_RELEARN_ATTEMPTS
+        )
+    return False
 
 
 def _schedule(
@@ -933,6 +1160,17 @@ def _latest_evaluation(
     )
 
 
+def _repeat_evaluation(db: Session, answer: Answer) -> Evaluation | None:
+    """The evaluation of the student's repeat of this answer, if they repeated it."""
+    return db.scalar(
+        select(Evaluation)
+        .join(Answer, Answer.id == Evaluation.answer_id)
+        .where(Answer.repeat_of_id == answer.id)
+        .order_by(Evaluation.created_at.desc())
+        .limit(1)
+    )
+
+
 def _question_of(db: Session, answer: Answer) -> QuestionFormulation:
     question = db.get(QuestionFormulation, answer.question_formulation_id)
     if question is None:
@@ -949,6 +1187,7 @@ def _result(
 ) -> AnswerResult:
     latest = _latest_evaluation(db, answer)
     second = _latest_evaluation(db, answer, second_opinion=True)
+    repeat = _repeat_evaluation(db, answer)
     schedule = None
     if transition is not None:
         schedule = ScheduleChange(
@@ -968,11 +1207,15 @@ def _result(
         text=answer.text,
         evaluation=EvaluationRead.model_validate(latest) if latest else None,
         second_opinion=EvaluationRead.model_validate(second) if second else None,
+        repeat=EvaluationRead.model_validate(repeat) if repeat else None,
         resolved_outcome=answer.resolved_outcome,
         resolver_version=answer.resolver_version,
         override_outcome=answer.override_outcome,
         final_outcome=answer.final_outcome,
         needs_self_grade=answer.final_outcome is None,
+        needs_repeat=answer.repeat_offered
+        and answer.repeated_at is None
+        and answer.final_outcome is None,
         schedule=schedule,
         reference=Reference(
             expected_knowledge=item.expected_knowledge,
@@ -998,6 +1241,7 @@ def _xp_result(db: Session, answer: Answer) -> XpResult | None:
         reason=award.reason,
         correct=award.correct,
         ordinal=award.ordinal,
+        level=award.level,
         base_xp=award.base_xp,
         hint_used=award.hint_used,
         xp=award.xp,

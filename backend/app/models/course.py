@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Uuid, false
+from sqlalchemy import Boolean, Date, ForeignKey, Integer, String, Uuid, false
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -43,6 +43,9 @@ class Course(Base):
     # Archived: put away. Hidden from the dashboard's main list, and paused (so out of reviews
     # and the planner) until restored. Nothing is deleted.
     archived_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    # The day of the exam, when the user set one: the progress page says how many new
+    # questions a day get them there (services/mastery `exam_plan`).
+    exam_date: Mapped[date | None] = mapped_column(Date, default=None)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now, onupdate=utc_now)
 

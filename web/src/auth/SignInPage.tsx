@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { userMessage } from "../api/client";
 import { BrandLogo } from "../brand/BrandLogo";
+import { Icon } from "../components/Icon";
 import { LANGUAGES, useI18n, type Language } from "../i18n";
 import { useAuth } from "./AuthContext";
 import { ForgotPasswordForm } from "./PasswordPages";
@@ -8,11 +9,17 @@ import { ForgotPasswordForm } from "./PasswordPages";
 export function SignInPage() {
   const { signIn, register } = useAuth();
   const { t, language, setLocalLanguage } = useI18n();
-  const [mode, setMode] = useState<"signIn" | "register" | "forgot">("signIn");
+  // An invitation link (/?invite=CODE) opens the sign-up form with the code filled in.
+  const inviteFromLink = new URLSearchParams(window.location.search).get("invite") ?? "";
+  const [mode, setMode] = useState<"signIn" | "register" | "forgot">(inviteFromLink ? "register" : "signIn");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [invite, setInvite] = useState(inviteFromLink);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const passwordId = useId();
 
   const tooShort = mode === "register" && password.length < 12;
 
@@ -26,7 +33,9 @@ export function SignInPage() {
     setError(null);
     try {
       if (mode === "signIn") await signIn(email.trim(), password);
-      else await register(email.trim(), password, language);
+      else await register(email.trim(), password, language, username.trim() || undefined, invite.trim() || undefined);
+      // The code is spent: drop it from the address so signing out later opens the sign-in form.
+      window.history.replaceState(null, "", window.location.pathname);
       setPassword("");
     } catch (e) {
       setError(userMessage(e));
@@ -50,20 +59,71 @@ export function SignInPage() {
           <BrandLogo height={36} />
         </a>
         <h1 id="signin-title">{mode === "signIn" ? t("signin.title") : t("signin.registerTitle")}</h1>
+        <p className="hint signin-tagline">{t("signin.tagline")}</p>
         <label>
-          {t("signin.email")}
-          <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <label>
-          {t("signin.password")}
+          {mode === "signIn" ? t("signin.emailOrUsername") : t("signin.email")}
           <input
-            type="password"
-            autoComplete={mode === "register" ? "new-password" : "current-password"}
+            type={mode === "signIn" ? "text" : "email"}
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </label>
+        {mode === "register" && (
+          <label>
+            {t("signin.username")}
+            <input
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              minLength={3}
+              maxLength={30}
+              pattern="[A-Za-z0-9._\-]+"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </label>
+        )}
+        {mode === "register" && <p className="hint">{t("signin.usernameHint")}</p>}
+        {mode === "register" && (
+          <p className="hint">
+            <a href="/privacy">{t("privacy.title")}</a>
+          </p>
+        )}
+        {mode === "register" && (
+          <>
+            <label>
+              {t("signin.invite")}
+              <input autoComplete="off" autoCapitalize="none" spellCheck={false} value={invite} onChange={(e) => setInvite(e.target.value)} />
+            </label>
+            <p className="hint">{t("signin.inviteHint")}</p>
+          </>
+        )}
+        <div className="field">
+          <label htmlFor={passwordId}>{t("signin.password")}</label>
+          <span className="password-field">
+            <input
+              id={passwordId}
+              type={showPassword ? "text" : "password"}
+              autoComplete={mode === "register" ? "new-password" : "current-password"}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="icon-button"
+              aria-pressed={showPassword}
+              aria-label={showPassword ? t("signin.hidePassword") : t("signin.showPassword")}
+              onClick={() => setShowPassword((v) => !v)}
+            >
+              <Icon name={showPassword ? "eyeOff" : "eye"} size={18} />
+            </button>
+          </span>
+        </div>
         {mode === "register" && <p className="hint">{t("signin.passwordRule")}</p>}
         {error && (
           <p role="alert" className="error">
