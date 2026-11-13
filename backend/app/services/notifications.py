@@ -8,6 +8,7 @@ transaction, and read by the bell in the app. Kinds and their `data`:
     course_review       {listing_id, title, rating}          actor = the reviewer
     review_reply        {listing_id, title}                  actor = the author
     course_sold         {listing_id, title, amount_cents, currency}   actor = the buyer
+    order_refunded      {listing_id, title, amount_cents, currency}   actor = the author
     course_new          {listing_id, title, tag}             actor = the author; `tag` is the
                         followed tag that matched (services/interests.py)
 """
@@ -73,11 +74,12 @@ def listed(db: Session, user: User) -> Notifications:
     actor_ids = {row.actor_id for row in rows if row.actor_id}
     names: dict[uuid.UUID, str | None] = {}
     if actor_ids:
-        names = dict(
-            db.execute(select(User.id, User.display_name).where(User.id.in_(actor_ids)))
-            .tuples()
-            .all()
-        )
+        names = {
+            user_id: display_name or (f"@{username}" if username else None)
+            for user_id, display_name, username in db.execute(
+                select(User.id, User.display_name, User.username).where(User.id.in_(actor_ids))
+            ).all()
+        }
     _trim(db, user.id)
     return Notifications(
         items=[

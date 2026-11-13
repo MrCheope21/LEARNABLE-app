@@ -12,7 +12,7 @@ week (since Monday), month (since the 1st), or all time.
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import and_, delete, func, or_, select
+from sqlalchemy import ColumnElement, and_, delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -42,7 +42,7 @@ from app.services.rewards.service import local_day
 
 LIST_LIMIT = 50
 SEARCH_LIMIT = 20
-ANONYMOUS = "A LEARNABLE user"
+ANONYMOUS = "A Recallable user"
 
 
 def window_start(period: Period, now: datetime | None = None) -> datetime | None:
@@ -57,8 +57,24 @@ def window_start(period: Period, now: datetime | None = None) -> datetime | None
     return None
 
 
+def shown_name(display_name: str | None, username: str | None) -> str:
+    """How someone is shown to others: their display name, else their @username."""
+    return display_name or (f"@{username}" if username else ANONYMOUS)
+
+
 def _name(user: User) -> str:
-    return user.display_name or ANONYMOUS
+    return shown_name(user.display_name, user.username)
+
+
+def reachable() -> ColumnElement[bool]:
+    """People others can find, ask to be friends and write to: whoever joined the community,
+    and whoever has a username (found only by typing it exactly, or from their own link).
+    Leaderboards stay for those who joined."""
+    return or_(User.community_visible.is_(True), User.username.is_not(None))
+
+
+def _is_reachable(user: User) -> bool:
+    return user.community_visible or user.username is not None
 
 
 def _relations(db: Session, user_id: uuid.UUID) -> dict[uuid.UUID, Relation]:
@@ -230,7 +246,7 @@ def course_leaderboard(
 def _visible_user(db: Session, viewer: User, user_id: uuid.UUID) -> User:
     user = db.get(User, user_id)
     # Someone who hasn't opted in doesn't exist for others (404, like any private resource).
-    if user is None or (user.id != viewer.id and not user.community_visible):
+    if user is None or (user.id != viewer.id and not _is_reachable(user)):
         raise NotFoundError("Profile not found")
     return user
 
@@ -274,9 +290,7 @@ def profile(db: Session, viewer: User, user_id: uuid.UUID) -> Profile:
 def _visible_ids(db: Session, ids: set[uuid.UUID]) -> set[uuid.UUID]:
     if not ids:
         return set()
-    return set(
-        db.scalars(select(User.id).where(User.id.in_(ids), User.community_visible.is_(True)))
-    )
+    return set(db.scalars(select(User.id).where(User.id.in_(ids), reachable())))
 
 
 # --- Friends: ask, accept, decline, cancel, remove ---
@@ -291,9 +305,9 @@ def befriend(db: Session, viewer: User, user_id: uuid.UUID) -> Profile:
     Asking twice, or asking a friend, changes nothing."""
     if user_id == viewer.id:
         raise ConflictError("You can't add yourself.", details={"reason": "self_friend"})
-    if not viewer.community_visible:
+    if not _is_reachable(viewer):
         raise ConflictError(
-            "Join the community first: people need to see who is asking.",
+            "Choose a username or join the community first: people need to see who is asking.",
             details={"reason": "not_visible"},
         )
     other = _visible_user(db, viewer, user_id)
@@ -369,12 +383,12 @@ def unblock(db: Session, viewer: User, user_id: uuid.UUID) -> None:
 
 def blocked(db: Session, viewer: User) -> list[BlockedPerson]:
     rows = db.execute(
-        select(User.id, User.display_name)
+        select(User.id, User.display_name, User.username)
         .join(Block, Block.blocked_id == User.id)
         .where(Block.blocker_id == viewer.id)
         .order_by(User.display_name)
     ).all()
-    return [BlockedPerson(user_id=row[0], name=row[1] or ANONYMOUS) for row in rows]
+    return [BlockedPerson(user_id=row[0], name=shown_name(row[1], row[2])) for row in rows]
 
 
 def _people(
@@ -450,7 +464,7 @@ def pending_requests(db: Session, user_id: uuid.UUID) -> int:
             .where(
                 Friendship.addressee_id == user_id,
                 Friendship.status == PENDING,
-                User.community_visible.is_(True),
+                reachable(),
             )
         )
         or 0
@@ -467,8 +481,8 @@ def _listed(
         return []
     users = db.scalars(
         select(User)
-        .where(User.id.in_(ids), User.community_visible.is_(True))
-        .order_by(func.lower(User.display_name))
+        .where(User.id.in_(ids), reachable())
+        .order_by(func.lower(func.coalesce(User.display_name, User.username)))
     ).all()
     return _people(db, viewer, list(users), requested_at)
 
@@ -482,10 +496,15 @@ def search(db: Session, viewer: User, query: str) -> list[Person]:
     stmt = (
         select(User)
         .where(
-            User.community_visible.is_(True),
             User.id != viewer.id,
+            User.is_active,
             or_(
-                func.lower(User.display_name).like(f"%{escaped}%", escape="\\"),
+                # Part of the name: only people who joined the community.
+                and_(
+                    User.community_visible.is_(True),
+                    func.lower(User.display_name).like(f"%{escaped}%", escape="\\"),
+                ),
+                # The exact username finds its owner, in the community or not.
                 func.lower(User.username) == needle.removeprefix("@"),
             ),
         )

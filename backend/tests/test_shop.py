@@ -29,6 +29,10 @@ class FakeGateway:
     def __init__(self):
         self.ready = False
         self.checkouts = []
+        self.refunds = []
+
+    def refund(self, payment_id):
+        self.refunds.append(payment_id)
 
     def create_seller_account(self, email):
         return "acct_test_1"
@@ -485,3 +489,92 @@ def test_the_author_announces_to_everyone_who_has_the_course(client, auth_header
         ).status_code
         == 404
     )
+
+
+def test_free_sample_refund_from_the_app_and_discount_codes(
+    client, auth_headers, author, gateway, db_session
+):
+    onboard(client, author["headers"], gateway)
+    listing = publish(client, author, {**PUBLISH, "price_cents": 1000, "preview_count": 1}).json()
+    buyer = auth_headers("buyer@example.com")
+    other = auth_headers("other@example.com")
+    course = author["course"]["id"]
+
+    # The free sample: the first question with its answer, and no more than the author chose.
+    shown = client.get(f"{API}/marketplace/listings/{listing['id']}", headers=buyer).json()
+    assert len(shown["preview"]) == 1
+    assert shown["preview"][0]["question"]
+    assert shown["preview"][0]["answer"]
+
+    # A code from the author: 40% off, usable once.
+    made = client.post(
+        f"{API}/courses/{course}/marketplace/discounts",
+        json={"code": "amici40", "percent_off": 40, "max_uses": 1},
+        headers=author["headers"],
+    )
+    assert made.status_code == 201
+    assert made.json()["code"] == "AMICI40"
+    again = client.post(
+        f"{API}/courses/{course}/marketplace/discounts",
+        json={"code": "AMICI40", "percent_off": 10},
+        headers=author["headers"],
+    )
+    assert again.status_code == 409
+    # Only the author manages the codes of a course.
+    assert (
+        client.get(f"{API}/courses/{course}/marketplace/discounts", headers=buyer).status_code
+        == 404
+    )
+    quote = client.get(
+        f"{API}/marketplace/listings/{listing['id']}/discount",
+        params={"code": "amici40"},
+        headers=buyer,
+    ).json()
+    assert (quote["percent_off"], quote["price_cents"]) == (40, 600)
+    wrong = client.post(
+        f"{API}/marketplace/listings/{listing['id']}/checkout", json={"code": "NOPE"}, headers=buyer
+    )
+    assert wrong.status_code == 422
+    assert wrong.json()["details"]["reason"] == "invalid_code"
+
+    client.post(
+        f"{API}/marketplace/listings/{listing['id']}/checkout",
+        json={"code": "Amici40"},
+        headers=buyer,
+    )
+    assert gateway.checkouts[-1]["amount_cents"] == 600
+    assert gateway.checkouts[-1]["fee_cents"] == 60
+    webhook(client, kind="paid", session_id="cs_1", payment_id="pi_1")
+    codes = client.get(f"{API}/courses/{course}/marketplace/discounts", headers=author["headers"])
+    assert codes.json()[0]["used_count"] == 1
+    # Used up: the next person pays the full price or gets told.
+    spent = client.post(
+        f"{API}/marketplace/listings/{listing['id']}/checkout",
+        json={"code": "AMICI40"},
+        headers=other,
+    )
+    assert spent.status_code == 422
+
+    # The author refunds the sale from the app.
+    sale = client.get(f"{API}/marketplace/sales", headers=author["headers"]).json()["items"][0]
+    assert (sale["amount_cents"], sale["discount_code"]) == (600, "AMICI40")
+    assert (
+        client.post(f"{API}/marketplace/orders/{sale['id']}/refund", headers=other).status_code
+        == 404
+    )
+    done = client.post(f"{API}/marketplace/orders/{sale['id']}/refund", headers=author["headers"])
+    assert done.status_code == 204
+    assert gateway.refunds == ["pi_1"]
+    assert client.get(f"{API}/courses", headers=buyer).json() == []
+    told = client.get(f"{API}/notifications", headers=buyer).json()["items"]
+    assert told[0]["kind"] == "order_refunded"
+    assert told[0]["data"]["amount_cents"] == 600
+    twice = client.post(f"{API}/marketplace/orders/{sale['id']}/refund", headers=author["headers"])
+    assert twice.status_code == 409
+    # Stripe's own notice of the same refund changes nothing more.
+    assert webhook(client, kind="refunded", payment_id="pi_1").status_code == 204
+    removed = client.delete(
+        f"{API}/courses/{course}/marketplace/discounts/{made.json()['id']}",
+        headers=author["headers"],
+    )
+    assert removed.status_code == 204

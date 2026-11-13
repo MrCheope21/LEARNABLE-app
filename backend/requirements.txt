@@ -23,3 +23,5 @@ python-pptx>=1.0
 boto3>=1.35
 # IANA timezone data for zoneinfo, for images without a system tz database (user calendar days).
 tzdata>=2024.1
+# Push notifications for review reminders (VAPID signing and payload encryption).
+pywebpush>=2.0

@@ -641,3 +641,15 @@ GET    /api/v1/admin/reports                   # administrators
 POST   /api/v1/admin/reports/{id}/resolve
 POST   /api/v1/admin/reports/{id}/reopen
 ```
+
+## Exam date, data export
+
+```
+PUT /api/v1/courses/{course_id}/exam-date    # {"date": "2027-01-20" | null} → Course
+GET /api/v1/courses/{course_id}/progress     # now with "exam": {date, days_left, new_left, new_per_day, pace, status} | null
+GET /api/v1/auth/export                      # everything held about the account, as a JSON download
+```
+
+`new_per_day` spreads the questions not learned yet over the days left, keeping the last fifth
+(at most a week) for review only; `pace` is the new questions learned per day over the last 7
+days; `status` is `on_track`, `behind`, `done` (nothing new left) or `past`.

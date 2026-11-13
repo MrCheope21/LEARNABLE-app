@@ -531,3 +531,36 @@ def test_leaderboard_xp_matches_the_dashboard_total(client, auth_headers, db_ses
     user = make_learner(client, auth_headers, db_session, "same@example.com", "Same")
     shown = client.get(f"{API}/dashboard", headers=user["headers"]).json()["xp"]["total"]
     assert board(client, user["headers"], period="all")["entries"][0]["xp"] == shown == 30
+
+
+def test_a_username_makes_you_findable_and_addable_without_joining(
+    client, auth_headers, db_session
+):
+    """Someone outside the community is found by their exact username only, shown as
+    @username, and can be friends and exchange messages; leaderboards stay opt-in."""
+    seen = make_learner(client, auth_headers, db_session, "seen@example.com", "Seen")
+    quiet = make_learner(client, auth_headers, db_session, "quiet@example.com", "", visible=False)
+    client.patch(f"{API}/auth/me", json={"username": "quiet_one"}, headers=quiet["headers"])
+
+    def find(q):
+        return client.get(
+            f"{API}/community/people", params={"q": q}, headers=seen["headers"]
+        ).json()
+
+    assert find("quiet") == []  # part of a username finds nobody
+    found = find("@Quiet_One")
+    assert [p["name"] for p in found] == ["@quiet_one"]
+    quiet_id = found[0]["user_id"]
+    assert ask(client, seen, quiet_id).json()["relation"] == "request_sent"
+    assert inbox(client, quiet)["friend_requests"] == 1
+    assert ask(client, quiet, uid(client, seen)).json()["relation"] == "friends"
+    names = [
+        p["name"] for p in client.get(f"{API}/community/friends", headers=seen["headers"]).json()
+    ]
+    assert names == ["@quiet_one"]
+    sent = client.post(f"{API}/chats/{quiet_id}", json={"body": "Ciao"}, headers=seen["headers"])
+    assert sent.status_code == 201
+    board = client.get(
+        f"{API}/community/leaderboard", params={"period": "all"}, headers=seen["headers"]
+    ).json()
+    assert [e["name"] for e in board["entries"]] == ["Seen"]

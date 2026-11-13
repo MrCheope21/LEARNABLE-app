@@ -2,13 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import type { Schemas } from "../../api/client";
-import { auth, community } from "../../api/endpoints";
+import { auth, community, push } from "../../api/endpoints";
 import { dashboardKey, meKey, TimezoneForm } from "../../app/AppShell";
 import { useAuth } from "../../auth/AuthContext";
 import { ChangePasswordForm } from "../../auth/PasswordPages";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
 import { Icon } from "../../components/Icon";
-import { isStandalone, platform, useInstallPrompt } from "../../pwa";
+import { currentPush, isStandalone, platform, pushSupported, subscribePush, useInstallPrompt } from "../../pwa";
 import { getTheme, setTheme, type Theme } from "../../theme";
 import { LANGUAGES, useI18n, type Language } from "../../i18n";
 
@@ -116,11 +116,105 @@ function NotificationsSection({ user }: { user: User }) {
       </label>
       <p className="hint">{t("settings.emailUpdatesHint")}</p>
       <ErrorBanner error={save.error} />
+      <Reminders />
     </section>
   );
 }
 
-/** LEARNABLE as an app on the phone or computer: one button where the browser allows it,
+/** The daily review reminder, as a push notification on this device. */
+function Reminders() {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const key = ["push"] as const;
+  const status = useQuery({ queryKey: key, queryFn: push.status });
+  // Whether THIS browser is subscribed (the server only knows how many devices are).
+  const here = useQuery({ queryKey: ["push", "here"], queryFn: async () => (await currentPush())?.endpoint ?? null });
+  const [message, setMessage] = useState<string | null>(null);
+  const done = (data: Schemas["PushStatus"]) => {
+    queryClient.setQueryData(key, data);
+    void queryClient.invalidateQueries({ queryKey: ["push", "here"] });
+  };
+  const turnOn = useMutation({
+    mutationFn: async () => {
+      const result = await subscribePush(status.data?.public_key ?? "");
+      if (result === "denied" || result === "unavailable") return result;
+      const json = result.toJSON();
+      return push.subscribe({ endpoint: json.endpoint ?? "", keys: { p256dh: json.keys?.p256dh ?? "", auth: json.keys?.auth ?? "" } });
+    },
+    onSuccess: (result) => {
+      if (result === "denied") setMessage(t("remind.denied"));
+      else if (result === "unavailable") setMessage(t("remind.unavailable"));
+      else {
+        setMessage(null);
+        done(result);
+      }
+    },
+  });
+  const turnOff = useMutation({
+    mutationFn: async () => {
+      const subscription = await currentPush();
+      if (!subscription) return push.status();
+      await subscription.unsubscribe();
+      return push.unsubscribe(subscription.endpoint);
+    },
+    onSuccess: done,
+  });
+  const setHour = useMutation({ mutationFn: (hour: number) => push.reminder(hour), onSuccess: done });
+  const test = useMutation({ mutationFn: push.test, onSuccess: () => setMessage(t("remind.testSent")) });
+  if (!status.data) return null;
+  if (!status.data.enabled) return <p className="hint">{t("remind.off")}</p>;
+  const supported = pushSupported();
+  const on = Boolean(here.data);
+  const busy = turnOn.isPending || turnOff.isPending;
+  return (
+    <div className="reminders">
+      <h3>{t("remind.title")}</h3>
+      <p className="hint">{t("remind.hint")}</p>
+      {!supported ? (
+        <p className="banner info">{platform() === "ios" ? t("remind.ios") : t("remind.unavailable")}</p>
+      ) : (
+        <>
+          <div className="actions">
+            {on ? (
+              <button type="button" disabled={busy} onClick={() => turnOff.mutate()}>
+                {t("remind.turnOff")}
+              </button>
+            ) : (
+              <button type="button" className="primary" disabled={busy} onClick={() => turnOn.mutate()}>
+                {t("remind.turnOn")}
+              </button>
+            )}
+            {on && (
+              <button type="button" className="link" disabled={test.isPending} onClick={() => test.mutate()}>
+                {t("remind.test")}
+              </button>
+            )}
+          </div>
+          {on && (
+            <label className="inline-form">
+              {t("remind.hour")}
+              <select value={status.data.reminder_hour ?? 18} disabled={setHour.isPending} onChange={(e) => setHour.mutate(Number(e.target.value))}>
+                {Array.from({ length: 24 }, (_, h) => (
+                  <option key={h} value={h}>
+                    {String(h).padStart(2, "0")}:00
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </>
+      )}
+      {message && (
+        <p className="hint" role="status">
+          {message}
+        </p>
+      )}
+      <ErrorBanner error={turnOn.error ?? turnOff.error ?? setHour.error ?? test.error} />
+    </div>
+  );
+}
+
+/** Recallable as an app on the phone or computer: one button where the browser allows it,
  * the three taps to follow on iPhone and iPad, where it doesn't. */
 function InstallSection() {
   const { t } = useI18n();
@@ -370,8 +464,34 @@ function SecuritySection() {
       <p>
         <Link to="/privacy">{t("privacy.title")}</Link>
       </p>
+      <ExportData />
       <DeleteAccount />
     </section>
+  );
+}
+
+/** "Download my data": everything held about the account, as one file. */
+function ExportData() {
+  const { t } = useI18n();
+  const download = useMutation({
+    mutationFn: auth.exportData,
+    onSuccess: (data) => {
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "learnable-data.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+  });
+  return (
+    <div>
+      <button type="button" disabled={download.isPending} onClick={() => download.mutate()}>
+        <Icon name="download" size={16} /> {download.isPending ? t("common.pleaseWait") : t("account.export")}
+      </button>
+      <p className="hint">{t("account.exportHint")}</p>
+      <ErrorBanner error={download.error} />
+    </div>
   );
 }
 

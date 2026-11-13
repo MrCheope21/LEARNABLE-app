@@ -58,6 +58,7 @@ const detail: Schemas["ListingDetail"] = {
     { title: "L'imprenditore", questions: 70 },
     { title: "L'azienda", questions: 50 },
   ],
+  preview: [],
   is_mine: false,
   has_access: false,
   can_buy: false,

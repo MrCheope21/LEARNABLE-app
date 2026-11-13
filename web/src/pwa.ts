@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * Installing LEARNABLE as an app (a "progressive web app"): the same site, opened from an icon
+ * Installing Recallable as an app (a "progressive web app"): the same site, opened from an icon
  * on the home screen, full screen, and able to open without a network.
  *
  * Android and desktop Chrome/Edge offer an install prompt the page can trigger; iPhone and iPad
@@ -90,4 +90,40 @@ export function useOffline(): boolean {
     };
   }, []);
   return offline;
+}
+
+/** Push notifications need a service worker (the built app) and a browser that has them; on
+ * iPhone and iPad, only the app added to the Home Screen does. */
+export function pushSupported(): boolean {
+  return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+}
+
+function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
+  const padded = base64url.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(base64url.length / 4) * 4, "=");
+  const raw = atob(padded);
+  const bytes = new Uint8Array(new ArrayBuffer(raw.length));
+  for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
+  return bytes;
+}
+
+async function registration(): Promise<ServiceWorkerRegistration | null> {
+  if (!pushSupported()) return null;
+  return (await navigator.serviceWorker.getRegistration()) ?? null;
+}
+
+/** This browser's subscription, if it has one. */
+export async function currentPush(): Promise<PushSubscription | null> {
+  const reg = await registration();
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+
+/**
+ * Asks for permission and subscribes this browser. "denied": the person (or the browser's
+ * settings) said no; "unavailable": no service worker here.
+ */
+export async function subscribePush(publicKey: string): Promise<PushSubscription | "denied" | "unavailable"> {
+  const reg = await registration();
+  if (!reg) return "unavailable";
+  if ((await Notification.requestPermission()) !== "granted") return "denied";
+  return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) });
 }

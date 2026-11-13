@@ -105,7 +105,7 @@ describe("dashboard", () => {
     expect(screen.getByRole("link", { name: "See more" })).toHaveAttribute("href", "/activity");
 
     // Navigation: the logo goes home; streak and XP are in the bar.
-    expect(screen.getByRole("link", { name: "LEARNABLE home" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Recallable home" })).toHaveAttribute("href", "/");
     expect(screen.getByLabelText("XP earned today: 60")).toBeInTheDocument();
   });
 

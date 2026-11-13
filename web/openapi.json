@@ -1442,6 +1442,19 @@
         "title": "ChatMessage",
         "type": "object"
       },
+      "CheckoutStart": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "default": "",
+            "maxLength": 40,
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "title": "CheckoutStart",
+        "type": "object"
+      },
       "ChunkRead": {
         "description": "A source passage for \"View source\" (docs/PROJECT_SPEC.md \u00a766).",
         "properties": {
@@ -2087,6 +2100,16 @@
           "curriculum": {
             "$ref": "#/components/schemas/CurriculumProgress"
           },
+          "exam": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExamPlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "memory": {
             "$ref": "#/components/schemas/MemoryProgress"
           },
@@ -2124,6 +2147,18 @@
           "description": {
             "title": "Description",
             "type": "string"
+          },
+          "exam_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exam Date"
           },
           "id": {
             "format": "uuid",
@@ -2730,6 +2765,138 @@
         "title": "Dashboard",
         "type": "object"
       },
+      "DiscountCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 40,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Code",
+            "type": "string"
+          },
+          "days": {
+            "anyOf": [
+              {
+                "maximum": 365.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days"
+          },
+          "max_uses": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Uses"
+          },
+          "percent_off": {
+            "maximum": 90.0,
+            "minimum": 1.0,
+            "title": "Percent Off",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "percent_off"
+        ],
+        "title": "DiscountCreate",
+        "type": "object"
+      },
+      "DiscountQuote": {
+        "description": "What a code does to a listing's price, before paying.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "percent_off": {
+            "title": "Percent Off",
+            "type": "integer"
+          },
+          "price_cents": {
+            "title": "Price Cents",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "percent_off",
+          "price_cents",
+          "currency"
+        ],
+        "title": "DiscountQuote",
+        "type": "object"
+      },
+      "DiscountRead": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_uses": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Uses"
+          },
+          "percent_off": {
+            "title": "Percent Off",
+            "type": "integer"
+          },
+          "used_count": {
+            "title": "Used Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "percent_off",
+          "max_uses",
+          "used_count",
+          "expires_at"
+        ],
+        "title": "DiscountRead",
+        "type": "object"
+      },
       "DisputeCreate": {
         "additionalProperties": false,
         "properties": {
@@ -3176,6 +3343,73 @@
         ],
         "title": "EvaluationStatus",
         "type": "string"
+      },
+      "ExamDate": {
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "ExamDate",
+        "type": "object"
+      },
+      "ExamPlan": {
+        "description": "With an exam date on the course: what it takes to get there.",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "days_left": {
+            "title": "Days Left",
+            "type": "integer"
+          },
+          "new_left": {
+            "title": "New Left",
+            "type": "integer"
+          },
+          "new_per_day": {
+            "title": "New Per Day",
+            "type": "integer"
+          },
+          "pace": {
+            "title": "Pace",
+            "type": "number"
+          },
+          "status": {
+            "enum": [
+              "on_track",
+              "behind",
+              "done",
+              "past"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "days_left",
+          "new_left",
+          "new_per_day",
+          "pace",
+          "status"
+        ],
+        "title": "ExamPlan",
+        "type": "object"
       },
       "FriendRequests": {
         "properties": {
@@ -4181,6 +4415,14 @@
             "title": "Outcomes",
             "type": "array"
           },
+          "preview": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PreviewQuestion"
+            },
+            "title": "Preview",
+            "type": "array"
+          },
           "price_cents": {
             "title": "Price Cents",
             "type": "integer"
@@ -4312,6 +4554,13 @@
             "title": "Outcomes",
             "type": "array"
           },
+          "preview_count": {
+            "default": 0,
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Preview Count",
+            "type": "integer"
+          },
           "price_cents": {
             "default": 0,
             "maximum": 1000000.0,
@@ -4381,6 +4630,13 @@
             "maxItems": 8,
             "title": "Outcomes",
             "type": "array"
+          },
+          "preview_count": {
+            "default": 0,
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Preview Count",
+            "type": "integer"
           },
           "price_cents": {
             "default": 0,
@@ -4964,6 +5220,11 @@
             },
             "title": "Outcomes",
             "type": "array"
+          },
+          "preview_count": {
+            "default": 0,
+            "title": "Preview Count",
+            "type": "integer"
           },
           "price_cents": {
             "title": "Price Cents",
@@ -5608,6 +5869,24 @@
         "title": "PotentialXp",
         "type": "object"
       },
+      "PreviewQuestion": {
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "PreviewQuestion",
+        "type": "object"
+      },
       "Profile": {
         "properties": {
           "blocked": {
@@ -5827,6 +6106,115 @@
           "concepts"
         ],
         "title": "ProposalTopic",
+        "type": "object"
+      },
+      "PushKeys": {
+        "additionalProperties": false,
+        "properties": {
+          "auth": {
+            "maxLength": 100,
+            "minLength": 4,
+            "title": "Auth",
+            "type": "string"
+          },
+          "p256dh": {
+            "maxLength": 200,
+            "minLength": 10,
+            "title": "P256Dh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "p256dh",
+          "auth"
+        ],
+        "title": "PushKeys",
+        "type": "object"
+      },
+      "PushStatus": {
+        "properties": {
+          "devices": {
+            "title": "Devices",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "public_key": {
+            "title": "Public Key",
+            "type": "string"
+          },
+          "reminder_hour": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Hour"
+          }
+        },
+        "required": [
+          "enabled",
+          "public_key",
+          "devices",
+          "reminder_hour"
+        ],
+        "title": "PushStatus",
+        "type": "object"
+      },
+      "PushSubscribe": {
+        "additionalProperties": false,
+        "description": "What the browser's `pushManager.subscribe()` returns.",
+        "properties": {
+          "endpoint": {
+            "maxLength": 1000,
+            "minLength": 10,
+            "pattern": "^https://",
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/PushKeys"
+          }
+        },
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "title": "PushSubscribe",
+        "type": "object"
+      },
+      "PushTest": {
+        "properties": {
+          "sent": {
+            "title": "Sent",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sent"
+        ],
+        "title": "PushTest",
+        "type": "object"
+      },
+      "PushUnsubscribe": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint": {
+            "maxLength": 1000,
+            "minLength": 10,
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint"
+        ],
+        "title": "PushUnsubscribe",
         "type": "object"
       },
       "QuestionCreate": {
@@ -6103,6 +6491,29 @@
         ],
         "title": "Relation",
         "type": "string"
+      },
+      "ReminderUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "hour": {
+            "anyOf": [
+              {
+                "maximum": 23.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hour"
+          }
+        },
+        "required": [
+          "hour"
+        ],
+        "title": "ReminderUpdate",
+        "type": "object"
       },
       "RepeatCreate": {
         "additionalProperties": false,
@@ -6504,6 +6915,17 @@
           "currency": {
             "title": "Currency",
             "type": "string"
+          },
+          "discount_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Code"
           },
           "id": {
             "format": "uuid",
@@ -8745,6 +9167,31 @@
           }
         ],
         "summary": "Delete My Account",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/export": {
+      "get": {
+        "description": "A copy of everything held about the account, as a JSON file to download.",
+        "operationId": "export_my_data_api_v1_auth_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Export My Data",
         "tags": [
           "auth"
         ]
@@ -11308,6 +11755,65 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/exam-date": {
+      "put": {
+        "description": "The day of the exam (null removes it): the progress page then says how many new\nquestions a day get there.",
+        "operationId": "set_exam_date_api_v1_courses__course_id__exam_date_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExamDate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Exam Date",
+        "tags": [
+          "courses"
+        ]
+      }
+    },
     "/api/v1/courses/{course_id}/leaderboard": {
       "get": {
         "operationId": "course_leaderboard_api_v1_courses__course_id__leaderboard_get",
@@ -11590,6 +12096,165 @@
         "summary": "Announce",
         "tags": [
           "marketplace"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/marketplace/discounts": {
+      "get": {
+        "operationId": "list_discounts_api_v1_courses__course_id__marketplace_discounts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DiscountRead"
+                  },
+                  "title": "Response List Discounts Api V1 Courses  Course Id  Marketplace Discounts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Discounts",
+        "tags": [
+          "payments"
+        ]
+      },
+      "post": {
+        "operationId": "create_discount_api_v1_courses__course_id__marketplace_discounts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscountCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Discount",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/marketplace/discounts/{discount_id}": {
+      "delete": {
+        "operationId": "delete_discount_api_v1_courses__course_id__marketplace_discounts__discount_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "discount_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Discount Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Discount",
+        "tags": [
+          "payments"
         ]
       }
     },
@@ -13938,6 +14603,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/CheckoutStart"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -13966,6 +14648,65 @@
           }
         ],
         "summary": "Checkout",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/marketplace/listings/{listing_id}/discount": {
+      "get": {
+        "description": "What a discount code makes the price (422 `invalid_code` when it can't be used).",
+        "operationId": "discount_quote_api_v1_marketplace_listings__listing_id__discount_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Listing Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "Code",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscountQuote"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Discount Quote",
         "tags": [
           "payments"
         ]
@@ -14244,6 +14985,48 @@
         ]
       }
     },
+    "/api/v1/marketplace/orders/{order_id}/refund": {
+      "post": {
+        "description": "The author gives the buyer their money back; the course leaves the buyer's courses.",
+        "operationId": "refund_order_api_v1_marketplace_orders__order_id__refund_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Refund Order",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
     "/api/v1/marketplace/reviews/{review_id}/reply": {
       "put": {
         "description": "The course's author answers a review.",
@@ -14474,6 +15257,198 @@
         "summary": "Stripe Webhook",
         "tags": [
           "payments"
+        ]
+      }
+    },
+    "/api/v1/push": {
+      "get": {
+        "operationId": "push_status_api_v1_push_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Status",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/push/reminder": {
+      "put": {
+        "description": "The hour of the daily review reminder (null: no reminder).",
+        "operationId": "push_reminder_api_v1_push_reminder_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReminderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Reminder",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/push/subscribe": {
+      "post": {
+        "description": "This browser agreed to notifications: remember where to send them.",
+        "operationId": "push_subscribe_api_v1_push_subscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscribe"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Subscribe",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/push/test": {
+      "post": {
+        "operationId": "push_test_api_v1_push_test_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTest"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Test",
+        "tags": [
+          "community"
+        ]
+      }
+    },
+    "/api/v1/push/unsubscribe": {
+      "post": {
+        "operationId": "push_unsubscribe_api_v1_push_unsubscribe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushUnsubscribe"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Unsubscribe",
+        "tags": [
+          "community"
         ]
       }
     },

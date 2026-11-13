@@ -189,3 +189,124 @@ def test_the_only_administrator_cannot_delete_their_account(
         ).status_code
         == 204
     )
+
+
+def test_export_my_data_has_my_things_and_no_secrets(client, auth_headers, db_session):
+    ada = make_learner(client, auth_headers, db_session, "ada@example.com", "Ada")
+    bob = make_learner(client, auth_headers, db_session, "bob@example.com", "Bob", xp=False)
+    make_friends(client, ada, bob)
+    client.post(
+        f"{API}/chats/{uid(client, bob)}", json={"body": "Ciao Bob"}, headers=ada["headers"]
+    )
+    response = client.get(f"{API}/auth/export", headers=ada["headers"])
+    assert response.status_code == 200
+    assert "attachment" in response.headers["content-disposition"]
+    data = response.json()
+    assert data["account"]["email"] == "ada@example.com"
+    assert "hashed_password" not in data["account"]
+    assert [c["title"] for c in data["courses"]] == ["Corso Ada"]
+    assert len(data["learning_items"]) == 1
+    assert len(data["answers"]) == 3
+    assert sum(row["xp"] for row in data["xp"]) == 30
+    assert [m["body"] for m in data["messages"]] == ["Ciao Bob"]
+    assert len(data["friendships"]) == 1
+    assert "bob@example.com" not in response.text
+
+
+def test_exam_date_gives_a_daily_pace(client, auth_headers, db_session):
+    from datetime import timedelta
+
+    from app.db.types import utc_now
+
+    ada = make_learner(client, auth_headers, db_session, "ada@example.com", "Ada")
+    course = ada["course"]
+    assert (
+        client.get(f"{API}/courses/{course}/progress", headers=ada["headers"]).json()["exam"]
+        is None
+    )
+    day = (utc_now() + timedelta(days=10)).date().isoformat()
+    saved = client.put(
+        f"{API}/courses/{course}/exam-date", json={"date": day}, headers=ada["headers"]
+    )
+    assert saved.json()["exam_date"] == day
+    exam = client.get(f"{API}/courses/{course}/progress", headers=ada["headers"]).json()["exam"]
+    # The one question is already learned: nothing new is left.
+    assert (exam["days_left"], exam["new_left"], exam["new_per_day"], exam["status"]) == (
+        10,
+        0,
+        0,
+        "done",
+    )
+    assert exam["pace"] == 0.1
+    cleared = client.put(
+        f"{API}/courses/{course}/exam-date", json={"date": None}, headers=ada["headers"]
+    )
+    assert cleared.json()["exam_date"] is None
+
+
+class FakePush:
+    def __init__(self):
+        self.sent = []
+        self.gone = set()
+
+    def send(self, subscription, payload):
+        if subscription.endpoint in self.gone:
+            return False
+        self.sent.append((subscription.endpoint, payload))
+        return True
+
+
+def test_review_reminder_once_a_day_when_questions_are_due(client, auth_headers, db_session):
+    from datetime import timedelta
+
+    from app.db.types import utc_now
+    from app.main import app
+    from app.models.learning import ReviewState
+    from app.services import push
+
+    fake = FakePush()
+    app.dependency_overrides[push.get_push_sender] = lambda: fake
+    try:
+        ada = make_learner(client, auth_headers, db_session, "ada@example.com", "Ada")
+        client.patch(f"{API}/auth/me", json={"language": "it"}, headers=ada["headers"])
+        sub = {
+            "endpoint": "https://push.example/abc",
+            "keys": {"p256dh": "k" * 40, "auth": "a" * 16},
+        }
+        status = client.post(f"{API}/push/subscribe", json=sub, headers=ada["headers"]).json()
+        assert (status["enabled"], status["devices"], status["reminder_hour"]) == (True, 1, 18)
+        client.post(f"{API}/push/subscribe", json=sub, headers=ada["headers"])  # same browser
+        assert client.get(f"{API}/push", headers=ada["headers"]).json()["devices"] == 1
+        assert client.post(f"{API}/push/test", headers=ada["headers"]).json() == {"sent": 1}
+        fake.sent.clear()
+
+        noon = utc_now().replace(hour=12, minute=0)
+        evening = noon.replace(hour=19)
+        # Nothing due yet, then one question becomes due.
+        assert push.send_reminders(db_session, fake, evening) == 0
+        for state in db_session.scalars(select(ReviewState)):
+            state.due_at = noon - timedelta(hours=1)
+        db_session.commit()
+        client.put(f"{API}/push/reminder", json={"hour": 18}, headers=ada["headers"])
+        db_session.expire_all()
+        assert push.send_reminders(db_session, fake, noon) == 0  # before the hour
+        assert push.send_reminders(db_session, fake, evening) == 1
+        assert fake.sent == [
+            (
+                "https://push.example/abc",
+                {
+                    "title": "È ora di ripassare",
+                    "body": "Hai 1 domande da ripassare.",
+                    "url": "/review",
+                },
+            )
+        ]
+        assert push.send_reminders(db_session, fake, evening) == 0  # once a day
+        # A browser that unsubscribed is forgotten.
+        fake.gone.add("https://push.example/abc")
+        assert push.send_reminders(db_session, fake, evening + timedelta(days=1)) == 0
+        assert client.get(f"{API}/push", headers=ada["headers"]).json()["devices"] == 0
+        off = client.put(f"{API}/push/reminder", json={"hour": None}, headers=ada["headers"])
+        assert off.json()["reminder_hour"] is None
+    finally:
+        app.dependency_overrides.pop(push.get_push_sender, None)

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { auth, payments } from "../../api/endpoints";
 import { meKey } from "../../app/AppShell";
@@ -17,6 +17,11 @@ export function SalesPage() {
   const payout = useQuery({ queryKey: ["payout"], queryFn: payments.payout });
   const sales = useQuery({ queryKey: ["sales"], queryFn: payments.sales });
   const me = useQuery({ queryKey: meKey, queryFn: auth.me });
+  const queryClient = useQueryClient();
+  const refund = useMutation({
+    mutationFn: (orderId: string) => payments.refund(orderId),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["sales"] }),
+  });
   const setup = useMutation({
     mutationFn: payments.onboarding,
     onSuccess: ({ url }) => window.location.assign(url),
@@ -93,6 +98,9 @@ export function SalesPage() {
                         <th scope="col">{t("sell.colDate")}</th>
                         <th scope="col">{t("sell.colPrice")}</th>
                         <th scope="col">{t("sell.colNet")}</th>
+                        <th scope="col">
+                          <span className="sr-only">{t("sell.refund")}</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -101,16 +109,32 @@ export function SalesPage() {
                           <td>
                             <Link to={`/marketplace/${sale.listing_id}`}>{sale.title}</Link>
                             {sale.refunded && <span className="pill"> {t("sell.refunded")}</span>}
+                            {sale.discount_code && <span className="hint"> · {sale.discount_code}</span>}
                           </td>
                           <td>{dateTime(sale.paid_at)}</td>
                           <td>{money(sale.amount_cents, sale.currency)}</td>
                           <td>{sale.refunded ? "—" : money(sale.net_cents, sale.currency)}</td>
+                          <td>
+                            {!sale.refunded && (
+                              <button
+                                type="button"
+                                className="link danger"
+                                disabled={refund.isPending}
+                                onClick={() => {
+                                  if (window.confirm(t("sell.refundConfirm", { price: money(sale.amount_cents, sale.currency) }))) refund.mutate(sale.id);
+                                }}
+                              >
+                                {t("sell.refund")}
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <p className="hint">{t("sell.netNote")}</p>
+                <ErrorBanner error={refund.error} />
               </>
             )}
           </section>

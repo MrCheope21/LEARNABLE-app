@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { marketplace, payments } from "../../api/endpoints";
 import { ErrorBanner, QueryState } from "../../components/QueryState";
@@ -34,8 +34,11 @@ export function ListingPage() {
   });
   // A paid course: the payment happens on the provider's page, then the browser comes back here
   // with ?order=…; access arrives when the provider confirms, usually within seconds.
+  const [code, setCode] = useState("");
+  const quote = useMutation({ mutationFn: () => payments.quote(listingId, code.trim()) });
+  const applied = quote.data && quote.data.code === code.trim().toUpperCase() ? quote.data : null;
   const buy = useMutation({
-    mutationFn: () => payments.checkout(listingId),
+    mutationFn: () => payments.checkout(listingId, applied ? applied.code : ""),
     onSuccess: ({ url }) => window.location.assign(url),
   });
   const [params, setParams] = useSearchParams();
@@ -141,7 +144,26 @@ export function ListingPage() {
                 )}
               </div>
               {!data.is_mine && !data.has_access && data.price_cents > 0 && <p className="hint">{data.can_buy ? t("buy.note") : t("buy.unavailable")}</p>}
-              <ErrorBanner error={acquire.error ?? buy.error} />
+              {!data.is_mine && !data.has_access && data.can_buy && (
+                <form
+                  className="inline-field discount-apply"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (code.trim()) quote.mutate();
+                  }}
+                >
+                  <input value={code} maxLength={40} placeholder={t("discount.have")} aria-label={t("discount.have")} autoCapitalize="characters" onChange={(e) => setCode(e.target.value)} />
+                  <button type="submit" disabled={!code.trim() || quote.isPending}>
+                    {t("discount.apply")}
+                  </button>
+                  {applied && (
+                    <span className="banner success" role="status">
+                      {t("discount.applied", { n: applied.percent_off, price: priceLabel({ price_cents: applied.price_cents, currency: applied.currency }) })}
+                    </span>
+                  )}
+                </form>
+              )}
+              <ErrorBanner error={acquire.error ?? buy.error ?? quote.error} />
             </header>
 
             <section className="card">
@@ -164,6 +186,23 @@ export function ListingPage() {
               <section className="card">
                 <h2>{t("mkt.audience")}</h2>
                 <p className="reading">{data.audience}</p>
+              </section>
+            )}
+
+            {data.preview.length > 0 && (
+              <section className="card" aria-labelledby="preview-title">
+                <h2 id="preview-title">{t("mkt.preview")}</h2>
+                <p className="hint">{t("mkt.previewHint", { n: data.preview.length, total: data.item_count })}</p>
+                <ol className="preview-list">
+                  {data.preview.map((item, i) => (
+                    <li key={i}>
+                      <details>
+                        <summary>{item.question}</summary>
+                        <p className="reading">{item.answer}</p>
+                      </details>
+                    </li>
+                  ))}
+                </ol>
               </section>
             )}
 

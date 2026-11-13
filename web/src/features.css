@@ -321,3 +321,45 @@ summary.know-row .know-name::before { content: "▸"; display: inline-block; wid
 .delete-account { margin-top: 0.6rem; }
 .admin-page .tabs { flex-wrap: wrap; }
 .admin-search input { min-width: 0; flex: 1 1 12rem; }
+
+/* ---------- Progress: the three headline figures; friends: your own link ---------- */
+.headline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; margin: 0 0 1rem; }
+.headline-item { display: grid; gap: 0.15rem; align-content: start; padding: 1rem; border-radius: var(--radius, 14px); background: var(--surface); border: 1px solid var(--border); }
+.headline-item dt { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+.headline-item dd { margin: 0; font-size: 2.1rem; font-weight: 750; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.headline-item.due dd { color: var(--review); }
+.headline-item .hint { font-size: 0.8rem; }
+.mini-bar { display: block; height: 6px; margin-top: 0.4rem; border-radius: 999px; background: var(--track); overflow: hidden; }
+.mini-bar span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.mini-bar.good span { background: var(--good); }
+.progress-details { margin-top: 1rem; }
+.progress-details > summary { cursor: pointer; font-weight: 600; }
+.progress-details[open] > summary { margin-bottom: 1rem; }
+@media (max-width: 600px) { .headline { grid-template-columns: 1fr 1fr; } .headline-item:first-child { grid-column: 1 / -1; } .headline-item dd { font-size: 1.8rem; } }
+.my-link { display: grid; gap: 0.5rem; }
+.my-link h2 { margin: 0; }
+.my-link input { flex: 1 1 12rem; min-width: 0; }
+
+/* ---------- Exam mode, reminders, free sample, discount codes ---------- */
+.exam-card { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
+.exam-card h2 { margin: 0; }
+.exam-count { margin: 0; color: var(--muted); }
+.exam-count strong { font-size: 2rem; font-weight: 750; letter-spacing: -0.03em; color: var(--text); margin-inline-end: 0.3rem; }
+.exam-status { margin: 0; padding: 0.6rem 0.9rem; border-radius: var(--radius-sm, 10px); font-weight: 600; background: var(--surface-2); }
+.exam-status.on_track, .exam-status.done { background: color-mix(in srgb, var(--good) 14%, var(--surface)); }
+.exam-status.behind, .exam-status.past { background: color-mix(in srgb, var(--warn) 16%, var(--surface)); }
+.reminders { display: grid; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.reminders h3 { margin: 0; font-size: 1rem; }
+.preview-list { margin: 0; padding-inline-start: 1.3rem; display: grid; gap: 0.5rem; }
+.preview-list summary { cursor: pointer; font-weight: 600; }
+.preview-list p { margin: 0.4rem 0 0; }
+.discount-apply { margin-top: 0.6rem; flex-wrap: wrap; }
+.discount-apply input { flex: 1 1 10rem; min-width: 0; max-width: 16rem; }
+.discounts { display: grid; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.discounts h3 { margin: 0; font-size: 1rem; }
+.discount-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.discount-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.8rem; }
+.discount-form { display: flex; flex-wrap: wrap; align-items: end; gap: 0.6rem; }
+.discount-form label { display: grid; gap: 0.2rem; font-size: 0.85rem; }
+.discount-form input { width: 9rem; max-width: 100%; }
+.discount-form input[type="number"] { width: 5.5rem; }

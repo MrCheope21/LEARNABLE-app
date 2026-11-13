@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from app.core.config import get_settings
 from app.core.rate_limit import per_user
 from app.db.session import get_db
 from app.models.user import User
@@ -25,12 +26,18 @@ from app.schemas.community import (
     Period,
     Person,
     Profile,
+    PushStatus,
+    PushSubscribe,
+    PushTest,
+    PushUnsubscribe,
+    ReminderUpdate,
     ReportCreate,
     Scope,
     TagFollow,
     Thread,
 )
-from app.services import chat, community, interests, moderation, notifications
+from app.services import chat, community, interests, moderation, notifications, push
+from app.services.push import PushSender, get_push_sender
 
 router = APIRouter(tags=["community"])
 
@@ -171,6 +178,79 @@ def list_notifications(db: Session = DB, user: User = CurrentUser) -> Notificati
 @router.post("/notifications/read", status_code=status.HTTP_204_NO_CONTENT)
 def read_notifications(payload: MarkRead, db: Session = DB, user: User = CurrentUser) -> None:
     notifications.mark_read(db, user.id, payload.ids)
+
+
+# --- Push notifications: review reminders ---
+
+Sender = Depends(get_push_sender)
+
+
+def _push_status(db: Session, user: User, sender: PushSender | None) -> PushStatus:
+    return PushStatus(
+        enabled=sender is not None,
+        public_key=get_settings().push_vapid_public_key if sender is not None else "",
+        devices=push.devices(db, user.id),
+        reminder_hour=user.reminder_hour,
+    )
+
+
+@router.get("/push", response_model=PushStatus)
+def push_status(
+    db: Session = DB, user: User = CurrentUser, sender: PushSender | None = Sender
+) -> PushStatus:
+    return _push_status(db, user, sender)
+
+
+@router.post(
+    "/push/subscribe",
+    response_model=PushStatus,
+    dependencies=[Depends(per_user("push_subscribe", 60, 3600))],
+)
+def push_subscribe(
+    payload: PushSubscribe,
+    db: Session = DB,
+    user: User = CurrentUser,
+    sender: PushSender | None = Sender,
+) -> PushStatus:
+    """This browser agreed to notifications: remember where to send them."""
+    push.subscribe(db, user, payload.endpoint, payload.keys.p256dh, payload.keys.auth)
+    return _push_status(db, user, sender)
+
+
+@router.post("/push/unsubscribe", response_model=PushStatus)
+def push_unsubscribe(
+    payload: PushUnsubscribe,
+    db: Session = DB,
+    user: User = CurrentUser,
+    sender: PushSender | None = Sender,
+) -> PushStatus:
+    push.unsubscribe(db, user, payload.endpoint)
+    return _push_status(db, user, sender)
+
+
+@router.put("/push/reminder", response_model=PushStatus)
+def push_reminder(
+    payload: ReminderUpdate,
+    db: Session = DB,
+    user: User = CurrentUser,
+    sender: PushSender | None = Sender,
+) -> PushStatus:
+    """The hour of the daily review reminder (null: no reminder)."""
+    user.reminder_hour = payload.hour
+    user.last_reminded_on = None
+    db.commit()
+    return _push_status(db, user, sender)
+
+
+@router.post(
+    "/push/test",
+    response_model=PushTest,
+    dependencies=[Depends(per_user("push_test", 10, 3600))],
+)
+def push_test(
+    db: Session = DB, user: User = CurrentUser, sender: PushSender | None = Sender
+) -> PushTest:
+    return PushTest(sent=push.send_test(db, user, sender))
 
 
 # --- Interests: tags to hear about ---

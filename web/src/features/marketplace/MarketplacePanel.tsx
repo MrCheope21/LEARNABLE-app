@@ -14,11 +14,11 @@ export const MARKETPLACE_ANCHOR = "#marketplace-page";
 type Info = Schemas["ListingInfo"];
 type MyListing = Schemas["MyListing"];
 
-const EMPTY: Info = { title: "", subtitle: "", description: "", outcomes: [], audience: "", level: "all", category: "other", tags: [], price_cents: 0 };
+const EMPTY: Info = { title: "", subtitle: "", description: "", outcomes: [], audience: "", level: "all", category: "other", tags: [], price_cents: 0, preview_count: 0 };
 
 function infoOf(listing: MyListing): Info {
-  const { title, subtitle, description, outcomes, audience, level, category, tags, price_cents } = listing;
-  return { title, subtitle, description, outcomes, audience, level, category, tags, price_cents };
+  const { title, subtitle, description, outcomes, audience, level, category, tags, price_cents, preview_count } = listing;
+  return { title, subtitle, description, outcomes, audience, level, category, tags, price_cents, preview_count };
 }
 
 /**
@@ -190,6 +190,16 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
             {t("sales.tags")} <span className="hint">{t("sales.tagsHint")}</span>
             <input value={tags} onChange={(e) => setTags(e.target.value)} />
           </label>
+          <label>
+            {t("sales.preview")} <span className="hint">{t("sales.previewHint")}</span>
+            <select value={info.preview_count ?? 0} onChange={(e) => set({ preview_count: Number(e.target.value) })}>
+              {[0, 1, 2, 3, 4, 5].map((n) => (
+                <option key={n} value={n}>
+                  {n === 0 ? t("sales.previewNone") : n}
+                </option>
+              ))}
+            </select>
+          </label>
           <PriceField payout={payout.data} price={price} onPrice={setPrice} ids={ids} />
           <div className="actions">
             <button type="submit" disabled={!valid || busy}>
@@ -232,6 +242,7 @@ function SalesPage({ courseId, courseTitle, listing }: { courseId: string; cours
           {notice}
         </p>
       )}
+      {listing && listing.price_cents > 0 && <DiscountCodes courseId={courseId} />}
       {listing && status !== "DRAFT" && listing.acquisition_count > 0 && <AnnounceForm courseId={courseId} students={listing.acquisition_count} />}
       <ErrorBanner error={save.error ?? publish.error ?? unpublish.error} />
     </section>
@@ -275,6 +286,71 @@ function PriceField({ payout, price, onPrice, ids }: { payout: Schemas["PayoutSt
       </div>
       <p className="hint">{t("sell.feeNote", { n: payout.fee_percent })}</p>
     </div>
+  );
+}
+
+/** Codes the author gives out: a percentage off this course, optionally limited in uses or days. */
+function DiscountCodes({ courseId }: { courseId: string }) {
+  const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const key = ["discounts", courseId] as const;
+  const list = useQuery({ queryKey: key, queryFn: () => payments.discounts(courseId) });
+  const [code, setCode] = useState("");
+  const [percent, setPercent] = useState("20");
+  const [uses, setUses] = useState("");
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: key });
+  const create = useMutation({
+    mutationFn: () => payments.createDiscount(courseId, { code: code.trim(), percent_off: Number(percent), max_uses: uses ? Number(uses) : null }),
+    onSuccess: () => {
+      setCode("");
+      refresh();
+    },
+  });
+  const remove = useMutation({ mutationFn: (id: string) => payments.deleteDiscount(courseId, id), onSuccess: refresh });
+  const valid = /^[A-Za-z0-9_-]{3,40}$/.test(code.trim()) && Number(percent) >= 1 && Number(percent) <= 90;
+  return (
+    <section className="discounts" aria-labelledby={`discounts-${courseId}`}>
+      <h3 id={`discounts-${courseId}`}>{t("discount.title")}</h3>
+      <p className="hint">{t("discount.hint")}</p>
+      {(list.data?.length ?? 0) > 0 && (
+        <ul className="discount-list">
+          {list.data?.map((d) => (
+            <li key={d.id}>
+              <code>{d.code}</code>
+              <span>−{d.percent_off}%</span>
+              <span className="hint">{d.max_uses ? t("discount.usedOf", { n: d.used_count, max: d.max_uses }) : t("discount.used", { n: d.used_count })}</span>
+              <button type="button" className="link danger" disabled={remove.isPending} onClick={() => remove.mutate(d.id)}>
+                {t("common.delete")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        className="discount-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (valid) create.mutate();
+        }}
+      >
+        <label>
+          {t("discount.code")}
+          <input value={code} maxLength={40} placeholder="AMICI20" autoCapitalize="characters" onChange={(e) => setCode(e.target.value.toUpperCase())} />
+        </label>
+        <label>
+          {t("discount.percent")}
+          <input type="number" min={1} max={90} value={percent} onChange={(e) => setPercent(e.target.value)} />
+        </label>
+        <label>
+          {t("discount.maxUses")}
+          <input type="number" min={1} value={uses} placeholder="∞" onChange={(e) => setUses(e.target.value)} />
+        </label>
+        <button type="submit" disabled={!valid || create.isPending}>
+          {t("discount.create")}
+        </button>
+      </form>
+      <ErrorBanner error={create.error ?? remove.error} />
+    </section>
   );
 }
 

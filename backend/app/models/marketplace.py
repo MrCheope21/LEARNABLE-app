@@ -59,6 +59,9 @@ class MarketplaceListing(Base):
     status: Mapped[str] = mapped_column(String(16), default="DRAFT")
     # Set by the author: 0 is free; a price needs payments (services/payments.py).
     price_cents: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # How many of the first questions (with their answers) anyone may read before getting the
+    # course: a free sample, when the author chooses one. 0 (the default): none.
+    preview_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     currency: Mapped[str] = mapped_column(String(3), default="EUR", server_default="EUR")
     version: Mapped[int] = mapped_column(Integer, default=1)
     snapshot: Mapped[dict[str, Any]] = mapped_column(JSON)
@@ -177,3 +180,28 @@ class MarketplaceOrder(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
     paid_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
     refunded_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    # The discount code used, if any (amount_cents is what was actually paid).
+    discount_code: Mapped[str | None] = mapped_column(String(40), default=None)
+
+
+class MarketplaceDiscount(Base):
+    """A code the author gives out: a percentage off one of their courses."""
+
+    __tablename__ = "marketplace_discounts"
+    __table_args__ = (
+        UniqueConstraint("listing_id", "code"),
+        CheckConstraint("percent_off BETWEEN 1 AND 90", name="percent_range"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    listing_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("marketplace_listings.id", ondelete="CASCADE"), index=True
+    )
+    # Uppercase letters and digits.
+    code: Mapped[str] = mapped_column(String(40))
+    percent_off: Mapped[int] = mapped_column(Integer)
+    # Null: no limit.
+    max_uses: Mapped[int | None] = mapped_column(Integer, default=None)
+    used_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    expires_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)

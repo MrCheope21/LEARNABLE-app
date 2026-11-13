@@ -17,8 +17,8 @@ const concepts: Concept[] = ["concept5", "concept3"];
 
 for (const concept of concepts) {
   for (const [tone, color] of Object.entries(tones)) {
-    writeFileSync(join(brandDir, `${concept}-wordmark-${tone}.svg`), standalone(wordmark(concept), color, "learnable") + "\n");
-    writeFileSync(join(brandDir, `${concept}-mark-${tone}.svg`), standalone(mark(concept), color, "learnable") + "\n");
+    writeFileSync(join(brandDir, `${concept}-wordmark-${tone}.svg`), standalone(wordmark(concept), color, "recallable") + "\n");
+    writeFileSync(join(brandDir, `${concept}-mark-${tone}.svg`), standalone(mark(concept), color, "recallable") + "\n");
   }
   writeFileSync(join(brandDir, `${concept}-app-icon.svg`), appIcon(concept) + "\n");
 }

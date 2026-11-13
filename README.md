@@ -1,5 +1,8 @@
 # Adaptive AI Learning Platform
 
+> The app is now called **Recallable** in its interface (2026-11-11). The repository, the
+> environment variables and the technical identifiers keep the earlier name, LEARNABLE.
+
 A structured knowledge curriculum combined with an adaptive memory engine, for iPhone. Not a
 chatbot, not a flashcard app — a Course → Chapter → Topic → Concept → Learning Item hierarchy
 paired with an AI-evaluated, spaced-repetition review engine.

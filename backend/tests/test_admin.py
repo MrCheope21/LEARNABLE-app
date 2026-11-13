@@ -256,7 +256,7 @@ def test_an_invitation_with_an_address_is_emailed_when_the_server_can_send(
 ):
     monkeypatch.setenv("EMAIL_BACKEND", "smtp")
     monkeypatch.setenv("SMTP_HOST", "smtp.example.com")
-    monkeypatch.setenv("SMTP_FROM", "LEARNABLE <no-reply@example.com>")
+    monkeypatch.setenv("SMTP_FROM", "Recallable <no-reply@example.com>")
     get_settings.cache_clear()
     try:
         summary = client.get(f"{API}/admin/summary", headers=admin).json()
@@ -265,7 +265,7 @@ def test_an_invitation_with_an_address_is_emailed_when_the_server_can_send(
         assert created["emailed"] is True
         (to, subject, body) = outbox.sent[0]
         assert to == "anna@example.com"
-        assert "LEARNABLE" in subject
+        assert "Recallable" in subject
         assert created["link"] in body  # the same link the administrator sees
         # An invitation without an address, or with send_email off, is not emailed.
         assert _invite(client, admin)["emailed"] is False

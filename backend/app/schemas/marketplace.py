@@ -3,7 +3,7 @@
 Before getting access, a listing shows only what its author wrote about it (title, description,
 category, tags) and its size: the chapter titles with their question counts. No question, answer
 or drawing is shown until the course is in the user's courses, and none can be downloaded even
-then: it is studied inside LEARNABLE.
+then: it is studied inside Recallable.
 """
 
 from enum import StrEnum
@@ -82,6 +82,9 @@ class ListingInfo(InputModel):
     # In cents of a euro; 0 is free. A price needs payments set up (GET /payments/payout).
     # People who already have the course keep it whatever the price becomes.
     price_cents: Annotated[int, Field(ge=0, le=1_000_000)] = 0
+    # A free sample: how many of the first questions, with their answers, anyone may read on
+    # the sales page before getting the course (0-5; 0, the default, shows none).
+    preview_count: Annotated[int, Field(ge=0, le=5)] = 0
 
 
 class ListingPublish(ListingInfo):
@@ -161,6 +164,38 @@ class PayoutStatus(BaseModel):
     price_max_cents: int
 
 
+class CheckoutStart(InputModel):
+    # A discount code from the author, if the buyer has one.
+    code: Annotated[str, Field(max_length=40)] = ""
+
+
+class DiscountCreate(InputModel):
+    # Letters and digits; stored uppercase.
+    code: Annotated[str, Field(min_length=3, max_length=40, pattern=r"^[A-Za-z0-9_-]+$")]
+    percent_off: Annotated[int, Field(ge=1, le=90)]
+    max_uses: Annotated[int, Field(ge=1, le=100_000)] | None = None
+    # Valid for this many days from now; null: until removed.
+    days: Annotated[int, Field(ge=1, le=365)] | None = None
+
+
+class DiscountRead(BaseModel):
+    id: UUID
+    code: str
+    percent_off: int
+    max_uses: int | None
+    used_count: int
+    expires_at: UTCTimestamp | None
+
+
+class DiscountQuote(BaseModel):
+    """What a code does to a listing's price, before paying."""
+
+    code: str
+    percent_off: int
+    price_cents: int
+    currency: str
+
+
 class Redirect(BaseModel):
     """An address on the payment provider's site to send the browser to."""
 
@@ -184,6 +219,7 @@ class Sale(BaseModel):
     currency: str
     paid_at: UTCTimestamp
     refunded: bool
+    discount_code: str | None = None
 
 
 class Sales(BaseModel):
@@ -229,8 +265,15 @@ class ChapterSize(BaseModel):
     questions: int
 
 
+class PreviewQuestion(BaseModel):
+    question: str
+    answer: str
+
+
 class ListingDetail(ListingSummary):
     chapters: list[ChapterSize]
+    # The free sample: the first questions with their answers (author's choice of how many).
+    preview: list[PreviewQuestion] = []
     is_mine: bool
     # The viewer got access earlier (the course may since have been removed from their courses).
     has_access: bool
@@ -242,6 +285,7 @@ class ListingDetail(ListingSummary):
 
 class MyListing(ListingSummary):
     source_course_id: UUID | None
+    preview_count: int = 0
 
 
 class Acquired(BaseModel):

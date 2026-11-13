@@ -134,6 +134,22 @@ class TagSubscription(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
 
 
+class PushSubscription(Base):
+    """A browser (or installed app) that agreed to receive push notifications for a user."""
+
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    # The push service's address for that browser, and the keys to encrypt for it.
+    endpoint: Mapped[str] = mapped_column(String(1000), unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))
+    auth: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)
+
+
 REPORT_OPEN = "OPEN"
 REPORT_RESOLVED = "RESOLVED"
 

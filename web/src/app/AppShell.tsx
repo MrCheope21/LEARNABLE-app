@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { auth, dashboard } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
@@ -20,7 +20,9 @@ export function AppShell() {
       <TopNav />
       <OfflineNotice />
       <div className="content">
-        <Outlet />
+        <Suspense fallback={<div className="state" role="status" aria-busy="true" />}>
+          <Outlet />
+        </Suspense>
       </div>
       <BottomNav />
     </div>

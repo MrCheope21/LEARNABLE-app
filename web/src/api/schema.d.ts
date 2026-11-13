@@ -369,6 +369,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export My Data
+         * @description A copy of everything held about the account, as a JSON file to download.
+         */
+        get: operations["export_my_data_api_v1_auth_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1121,6 +1141,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courses/{course_id}/exam-date": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Exam Date
+         * @description The day of the exam (null removes it): the progress page then says how many new
+         *     questions a day get there.
+         */
+        put: operations["set_exam_date_api_v1_courses__course_id__exam_date_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/{course_id}/leaderboard": {
         parameters: {
             query?: never;
@@ -1211,6 +1252,41 @@ export interface paths {
          */
         post: operations["announce_api_v1_courses__course_id__marketplace_announce_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/marketplace/discounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Discounts */
+        get: operations["list_discounts_api_v1_courses__course_id__marketplace_discounts_get"];
+        put?: never;
+        /** Create Discount */
+        post: operations["create_discount_api_v1_courses__course_id__marketplace_discounts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courses/{course_id}/marketplace/discounts/{discount_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Discount */
+        delete: operations["delete_discount_api_v1_courses__course_id__marketplace_discounts__discount_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1895,6 +1971,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/marketplace/listings/{listing_id}/discount": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discount Quote
+         * @description What a discount code makes the price (422 `invalid_code` when it can't be used).
+         */
+        get: operations["discount_quote_api_v1_marketplace_listings__listing_id__discount_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/marketplace/listings/{listing_id}/review": {
         parameters: {
             query?: never;
@@ -1981,6 +2077,26 @@ export interface paths {
         get: operations["order_api_v1_marketplace_orders__order_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/marketplace/orders/{order_id}/refund": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refund Order
+         * @description The author gives the buyer their money back; the course leaves the buyer's courses.
+         */
+        post: operations["refund_order_api_v1_marketplace_orders__order_id__refund_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2109,6 +2225,97 @@ export interface paths {
          * @description Called by Stripe, not by a browser: no session, the signature is the proof.
          */
         post: operations["stripe_webhook_api_v1_payments_stripe_webhook_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Push Status */
+        get: operations["push_status_api_v1_push_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/reminder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Push Reminder
+         * @description The hour of the daily review reminder (null: no reminder).
+         */
+        put: operations["push_reminder_api_v1_push_reminder_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/subscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Push Subscribe
+         * @description This browser agreed to notifications: remember where to send them.
+         */
+        post: operations["push_subscribe_api_v1_push_subscribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Push Test */
+        post: operations["push_test_api_v1_push_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Push Unsubscribe */
+        post: operations["push_unsubscribe_api_v1_push_unsubscribe_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2952,6 +3159,14 @@ export interface components {
             /** Read */
             read: boolean;
         };
+        /** CheckoutStart */
+        CheckoutStart: {
+            /**
+             * Code
+             * @default
+             */
+            code: string;
+        };
         /**
          * ChunkRead
          * @description A source passage for "View source" (docs/PROJECT_SPEC.md §66).
@@ -3209,6 +3424,7 @@ export interface components {
              */
             course_id: string;
             curriculum: components["schemas"]["CurriculumProgress"];
+            exam?: components["schemas"]["ExamPlan"] | null;
             memory: components["schemas"]["MemoryProgress"];
             review_load: components["schemas"]["ReviewLoad"];
         };
@@ -3220,6 +3436,8 @@ export interface components {
             created_at: string;
             /** Description */
             description: string;
+            /** Exam Date */
+            exam_date?: string | null;
             /**
              * Id
              * Format: uuid
@@ -3415,6 +3633,49 @@ export interface components {
             today: string;
             xp: components["schemas"]["XpSummary"];
         };
+        /** DiscountCreate */
+        DiscountCreate: {
+            /** Code */
+            code: string;
+            /** Days */
+            days?: number | null;
+            /** Max Uses */
+            max_uses?: number | null;
+            /** Percent Off */
+            percent_off: number;
+        };
+        /**
+         * DiscountQuote
+         * @description What a code does to a listing's price, before paying.
+         */
+        DiscountQuote: {
+            /** Code */
+            code: string;
+            /** Currency */
+            currency: string;
+            /** Percent Off */
+            percent_off: number;
+            /** Price Cents */
+            price_cents: number;
+        };
+        /** DiscountRead */
+        DiscountRead: {
+            /** Code */
+            code: string;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Max Uses */
+            max_uses: number | null;
+            /** Percent Off */
+            percent_off: number;
+            /** Used Count */
+            used_count: number;
+        };
         /** DisputeCreate */
         DisputeCreate: {
             /** Argument */
@@ -3549,6 +3810,35 @@ export interface components {
          * @enum {string}
          */
         EvaluationStatus: "COMPLETED" | "FAILED" | "NOT_CONFIGURED";
+        /** ExamDate */
+        ExamDate: {
+            /** Date */
+            date: string | null;
+        };
+        /**
+         * ExamPlan
+         * @description With an exam date on the course: what it takes to get there.
+         */
+        ExamPlan: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Days Left */
+            days_left: number;
+            /** New Left */
+            new_left: number;
+            /** New Per Day */
+            new_per_day: number;
+            /** Pace */
+            pace: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "on_track" | "behind" | "done" | "past";
+        };
         /** FriendRequests */
         FriendRequests: {
             /** Incoming */
@@ -3918,6 +4208,11 @@ export interface components {
             level: components["schemas"]["Level"];
             /** Outcomes */
             outcomes: string[];
+            /**
+             * Preview
+             * @default []
+             */
+            preview: components["schemas"]["PreviewQuestion"][];
             /** Price Cents */
             price_cents: number;
             /** Published At */
@@ -3960,6 +4255,11 @@ export interface components {
             /** Outcomes */
             outcomes?: string[];
             /**
+             * Preview Count
+             * @default 0
+             */
+            preview_count: number;
+            /**
              * Price Cents
              * @default 0
              */
@@ -3988,6 +4288,11 @@ export interface components {
             level: components["schemas"]["Level"];
             /** Outcomes */
             outcomes?: string[];
+            /**
+             * Preview Count
+             * @default 0
+             */
+            preview_count: number;
             /**
              * Price Cents
              * @default 0
@@ -4206,6 +4511,11 @@ export interface components {
             level: components["schemas"]["Level"];
             /** Outcomes */
             outcomes: string[];
+            /**
+             * Preview Count
+             * @default 0
+             */
+            preview_count: number;
             /** Price Cents */
             price_cents: number;
             /** Published At */
@@ -4424,6 +4734,13 @@ export interface components {
             /** Xp With Hint */
             xp_with_hint: number;
         };
+        /** PreviewQuestion */
+        PreviewQuestion: {
+            /** Answer */
+            answer: string;
+            /** Question */
+            question: string;
+        };
         /** Profile */
         Profile: {
             /** Blocked */
@@ -4504,6 +4821,43 @@ export interface components {
             existing_topic_id?: string | null;
             /** Title */
             title: string;
+        };
+        /** PushKeys */
+        PushKeys: {
+            /** Auth */
+            auth: string;
+            /** P256Dh */
+            p256dh: string;
+        };
+        /** PushStatus */
+        PushStatus: {
+            /** Devices */
+            devices: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Public Key */
+            public_key: string;
+            /** Reminder Hour */
+            reminder_hour: number | null;
+        };
+        /**
+         * PushSubscribe
+         * @description What the browser's `pushManager.subscribe()` returns.
+         */
+        PushSubscribe: {
+            /** Endpoint */
+            endpoint: string;
+            keys: components["schemas"]["PushKeys"];
+        };
+        /** PushTest */
+        PushTest: {
+            /** Sent */
+            sent: number;
+        };
+        /** PushUnsubscribe */
+        PushUnsubscribe: {
+            /** Endpoint */
+            endpoint: string;
         };
         /** QuestionCreate */
         QuestionCreate: {
@@ -4624,6 +4978,11 @@ export interface components {
          * @enum {string}
          */
         Relation: "none" | "friends" | "request_sent" | "request_received";
+        /** ReminderUpdate */
+        ReminderUpdate: {
+            /** Hour */
+            hour: number | null;
+        };
         /**
          * RepeatCreate
          * @description The answer written again after reviewing the reference.
@@ -4792,6 +5151,8 @@ export interface components {
             amount_cents: number;
             /** Currency */
             currency: string;
+            /** Discount Code */
+            discount_code?: string | null;
             /**
              * Id
              * Format: uuid
@@ -5884,6 +6245,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_my_data_api_v1_auth_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
@@ -7545,6 +7926,41 @@ export interface operations {
             };
         };
     };
+    set_exam_date_api_v1_courses__course_id__exam_date_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamDate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     course_leaderboard_api_v1_courses__course_id__leaderboard_get: {
         parameters: {
             query?: {
@@ -7699,6 +8115,102 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Announced"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_discounts_api_v1_courses__course_id__marketplace_discounts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_discount_api_v1_courses__course_id__marketplace_discounts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscountCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_discount_api_v1_courses__course_id__marketplace_discounts__discount_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+                discount_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -9107,7 +9619,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CheckoutStart"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -9116,6 +9632,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Redirect"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discount_quote_api_v1_marketplace_listings__listing_id__discount_get: {
+        parameters: {
+            query: {
+                code: string;
+            };
+            header?: never;
+            path: {
+                listing_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscountQuote"];
                 };
             };
             /** @description Validation Error */
@@ -9306,6 +9855,35 @@ export interface operations {
             };
         };
     };
+    refund_order_api_v1_marketplace_orders__order_id__refund_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     reply_to_review_api_v1_marketplace_reviews__review_id__reply_put: {
         parameters: {
             query?: never;
@@ -9467,6 +10045,145 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    push_status_api_v1_push_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushStatus"];
+                };
+            };
+        };
+    };
+    push_reminder_api_v1_push_reminder_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReminderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    push_subscribe_api_v1_push_subscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushSubscribe"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    push_test_api_v1_push_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushTest"];
+                };
+            };
+        };
+    };
+    push_unsubscribe_api_v1_push_unsubscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushUnsubscribe"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushStatus"];
+                };
             };
             /** @description Validation Error */
             422: {

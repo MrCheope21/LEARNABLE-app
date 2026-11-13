@@ -23,7 +23,7 @@ const TERMS = ["concept", "item", "active", "grades", "mastery", "xp"] as const;
 const bare = (title: string) => title.replace(/^\d+\.\s*/, "");
 
 /**
- * "How LEARNABLE works", one step at a time: the steps as a row of numbered buttons, the step
+ * "How Recallable works", one step at a time: the steps as a row of numbered buttons, the step
  * itself with its screen, and Back / Next (also the arrow keys). Links from the app point at a
  * step ("/guide#guide-review").
  */

@@ -1,6 +1,6 @@
 """Paid courses: taking the buyer's payment and paying the author (docs/MARKETPLACE.md §8).
 
-LEARNABLE never holds card data or the author's money. With PAYMENTS_PROVIDER=stripe:
+Recallable never holds card data or the author's money. With PAYMENTS_PROVIDER=stripe:
 
     author  → "Set up payments" → their own Stripe account (Connect Express), onboarded on
               Stripe's pages; `users.payout_ready` once Stripe says it can take payments
@@ -18,23 +18,37 @@ import json
 import time
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from typing import Any, Protocol
 
 import httpx
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError, ConflictError, InvalidRequestError, NotFoundError
 from app.db.types import utc_now
-from app.models.marketplace import MarketplaceAcquisition, MarketplaceListing, MarketplaceOrder
+from app.models.marketplace import (
+    MarketplaceAcquisition,
+    MarketplaceDiscount,
+    MarketplaceListing,
+    MarketplaceOrder,
+)
 from app.models.user import User
-from app.schemas.marketplace import PayoutStatus, Sale, Sales
+from app.schemas.marketplace import (
+    DiscountCreate,
+    DiscountQuote,
+    DiscountRead,
+    PayoutStatus,
+    Sale,
+    Sales,
+)
 from app.services import notifications
 
 PENDING, PAID, EXPIRED, REFUNDED = "PENDING", "PAID", "EXPIRED", "REFUNDED"
 SIGNATURE_TOLERANCE = 300
+MAX_DISCOUNTS = 20
 
 
 class PaymentsUnavailableError(AppError):
@@ -82,6 +96,8 @@ class PaymentGateway(Protocol):
     ) -> Checkout: ...
 
     def parse_event(self, payload: bytes, signature: str) -> PaymentEvent | None: ...
+
+    def refund(self, payment_id: str) -> None: ...
 
 
 class StripeGateway:
@@ -175,6 +191,18 @@ class StripeGateway:
             },
         )
         return Checkout(session_id=str(session["id"]), url=str(session["url"]))
+
+    def refund(self, payment_id: str) -> None:
+        """Gives the buyer the whole amount back: taken back from the author's account, with
+        the platform's fee returned too."""
+        self._post(
+            "/refunds",
+            {
+                "payment_intent": payment_id,
+                "reverse_transfer": "true",
+                "refund_application_fee": "true",
+            },
+        )
 
     def parse_event(self, payload: bytes, signature: str) -> PaymentEvent | None:
         """The event, once its signature is verified; None for kinds that don't matter here.
@@ -317,8 +345,130 @@ def check_price(user: User, price_cents: int, gateway: PaymentGateway | None) ->
 # --- The buyer's side ---
 
 
+def _usable(discount: MarketplaceDiscount | None) -> bool:
+    return (
+        discount is not None
+        and (discount.max_uses is None or discount.used_count < discount.max_uses)
+        and (discount.expires_at is None or _aware(discount.expires_at) > utc_now())
+    )
+
+
+def _aware(value: datetime) -> datetime:
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
+
+
+def _discount(db: Session, listing: MarketplaceListing, code: str) -> MarketplaceDiscount:
+    """The code, if it can be used now (422 `invalid_code` otherwise)."""
+    row = db.scalar(
+        select(MarketplaceDiscount).where(
+            MarketplaceDiscount.listing_id == listing.id,
+            MarketplaceDiscount.code == code.strip().upper(),
+        )
+    )
+    if row is None or not _usable(row):
+        raise InvalidRequestError(
+            "This code isn't valid for this course.", details={"reason": "invalid_code"}
+        )
+    return row
+
+
+def discounted(price_cents: int, percent_off: int) -> int:
+    """Never under the smallest amount a payment can be."""
+    return max(get_settings().price_min_cents, price_cents * (100 - percent_off) // 100)
+
+
+def quote(db: Session, listing_id: uuid.UUID, code: str) -> DiscountQuote:
+    listing = db.get(MarketplaceListing, listing_id)
+    if listing is None or listing.status != "PUBLISHED":
+        raise NotFoundError("Listing not found")
+    row = _discount(db, listing, code)
+    return DiscountQuote(
+        code=row.code,
+        percent_off=row.percent_off,
+        price_cents=discounted(listing.price_cents, row.percent_off),
+        currency=listing.currency,
+    )
+
+
+def _own_listing(db: Session, user: User, course_id: uuid.UUID) -> MarketplaceListing:
+    listing = db.scalar(
+        select(MarketplaceListing).where(
+            MarketplaceListing.source_course_id == course_id,
+            MarketplaceListing.author_id == user.id,
+        )
+    )
+    if listing is None:
+        raise NotFoundError("Listing not found")
+    return listing
+
+
+def _discount_read(row: MarketplaceDiscount) -> DiscountRead:
+    return DiscountRead(
+        id=row.id,
+        code=row.code,
+        percent_off=row.percent_off,
+        max_uses=row.max_uses,
+        used_count=row.used_count,
+        expires_at=row.expires_at,
+    )
+
+
+def discounts(db: Session, user: User, course_id: uuid.UUID) -> list[DiscountRead]:
+    listing = _own_listing(db, user, course_id)
+    rows = db.scalars(
+        select(MarketplaceDiscount)
+        .where(MarketplaceDiscount.listing_id == listing.id)
+        .order_by(MarketplaceDiscount.created_at.desc())
+    ).all()
+    return [_discount_read(row) for row in rows]
+
+
+def create_discount(
+    db: Session, user: User, course_id: uuid.UUID, payload: DiscountCreate
+) -> DiscountRead:
+    listing = _own_listing(db, user, course_id)
+    code = payload.code.upper()
+    taken = db.scalar(
+        select(MarketplaceDiscount.id).where(
+            MarketplaceDiscount.listing_id == listing.id, MarketplaceDiscount.code == code
+        )
+    )
+    if taken is not None:
+        raise ConflictError("This code already exists.", details={"reason": "code_exists"})
+    count = db.scalar(
+        select(func.count())
+        .select_from(MarketplaceDiscount)
+        .where(MarketplaceDiscount.listing_id == listing.id)
+    )
+    if (count or 0) >= MAX_DISCOUNTS:
+        raise InvalidRequestError(f"At most {MAX_DISCOUNTS} codes per course.")
+    row = MarketplaceDiscount(
+        listing_id=listing.id,
+        code=code,
+        percent_off=payload.percent_off,
+        max_uses=payload.max_uses,
+        expires_at=utc_now() + timedelta(days=payload.days) if payload.days else None,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _discount_read(row)
+
+
+def delete_discount(db: Session, user: User, course_id: uuid.UUID, discount_id: uuid.UUID) -> None:
+    listing = _own_listing(db, user, course_id)
+    row = db.get(MarketplaceDiscount, discount_id)
+    if row is not None and row.listing_id == listing.id:
+        db.delete(row)
+        db.commit()
+
+
 def checkout(
-    db: Session, buyer: User, listing_id: uuid.UUID, gateway: PaymentGateway | None
+    db: Session,
+    buyer: User,
+    listing_id: uuid.UUID,
+    gateway: PaymentGateway | None,
+    code: str = "",
 ) -> str:
     """Starts a purchase and returns the payment page's address."""
     gateway = _need(gateway)
@@ -343,13 +493,18 @@ def checkout(
             "The author can't take payments right now.", details={"reason": "seller_not_ready"}
         )
     settings = get_settings()
+    discount = _discount(db, listing, code) if code.strip() else None
+    amount = (
+        discounted(listing.price_cents, discount.percent_off) if discount else listing.price_cents
+    )
     order = MarketplaceOrder(
         id=uuid.uuid4(),
         listing_id=listing.id,
         buyer_id=buyer.id,
         seller_id=seller.id,
-        amount_cents=listing.price_cents,
-        fee_cents=fee_for(listing.price_cents, settings.platform_fee_percent),
+        amount_cents=amount,
+        discount_code=discount.code if discount else None,
+        fee_cents=fee_for(amount, settings.platform_fee_percent),
         currency=listing.currency,
         provider=gateway.name,
     )
@@ -407,6 +562,15 @@ def apply_event(db: Session, event: PaymentEvent) -> tuple[MarketplaceOrder, str
         order.status = PAID
         order.paid_at = utc_now()
         order.provider_payment_id = event.payment_id
+        if order.discount_code:
+            db.execute(
+                update(MarketplaceDiscount)
+                .where(
+                    MarketplaceDiscount.listing_id == order.listing_id,
+                    MarketplaceDiscount.code == order.discount_code,
+                )
+                .values(used_count=MarketplaceDiscount.used_count + 1)
+            )
         return order, "paid"
     if event.kind == "refunded" and order.status == PAID:
         order.status = REFUNDED
@@ -416,6 +580,37 @@ def apply_event(db: Session, event: PaymentEvent) -> tuple[MarketplaceOrder, str
         order.status = EXPIRED
         db.commit()
     return None
+
+
+def refund(
+    db: Session, user: User, order_id: uuid.UUID, gateway: PaymentGateway | None
+) -> MarketplaceOrder:
+    """The author (or an administrator) gives a buyer their money back. The order becomes
+    REFUNDED; the caller takes the access back and commits."""
+    gateway = _need(gateway)
+    order = db.get(MarketplaceOrder, order_id)
+    if order is None or (order.seller_id != user.id and not user.is_admin):
+        raise NotFoundError("Order not found")
+    if order.status != PAID or not order.provider_payment_id:
+        raise ConflictError("This order can't be refunded.", details={"reason": "not_refundable"})
+    gateway.refund(order.provider_payment_id)
+    order.status = REFUNDED
+    order.refunded_at = utc_now()
+    listing = db.get(MarketplaceListing, order.listing_id)
+    notifications.notify(
+        db,
+        order.buyer_id,
+        "order_refunded",
+        actor_id=order.seller_id,
+        data={
+            "listing_id": str(order.listing_id),
+            "title": listing.title if listing else "",
+            "amount_cents": order.amount_cents,
+            "currency": order.currency,
+        },
+        link=f"/marketplace/{order.listing_id}",
+    )
+    return order
 
 
 def notify_sale(db: Session, order: MarketplaceOrder, listing: MarketplaceListing) -> None:
@@ -469,6 +664,7 @@ def sales(db: Session, seller: User) -> Sales:
                 currency=order.currency,
                 paid_at=order.paid_at or order.created_at,
                 refunded=order.status == REFUNDED,
+                discount_code=order.discount_code,
             )
             for order, title in rows
         ],

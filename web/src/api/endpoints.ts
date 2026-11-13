@@ -36,6 +36,8 @@ export const auth = {
         body: { current_password: currentPassword, new_password: newPassword },
       }),
     ),
+  /** Everything held about the account, as one JSON document. */
+  exportData: () => call(api.GET("/api/v1/auth/export")),
   /** Deletes the signed-in account and everything it owns. */
   deleteAccount: (password: string) => call(api.POST("/api/v1/auth/delete-account", { body: { password } })),
 };
@@ -54,6 +56,9 @@ export const courses = {
   get: (courseId: Id) =>
     call(api.GET("/api/v1/courses/{course_id}", { params: { path: { course_id: courseId } } })),
   create: (body: Schemas["CourseCreate"]) => call(api.POST("/api/v1/courses", { body })),
+  /** The day of the exam ("2027-01-20"), or null to remove it. */
+  setExamDate: (courseId: Id, date: string | null) =>
+    call(api.PUT("/api/v1/courses/{course_id}/exam-date", { params: { path: { course_id: courseId } }, body: { date } })),
   update: (courseId: Id, body: Schemas["CourseUpdate"]) =>
     call(api.PATCH("/api/v1/courses/{course_id}", { params: { path: { course_id: courseId } }, body })),
   setPaused: (courseId: Id, paused: boolean) =>
@@ -441,6 +446,15 @@ export const notifications = {
   markRead: (ids?: Id[]) => call(api.POST("/api/v1/notifications/read", { body: { ids } })),
 };
 
+/** Push notifications: the daily review reminder. */
+export const push = {
+  status: () => call(api.GET("/api/v1/push")),
+  subscribe: (body: Schemas["PushSubscribe"]) => call(api.POST("/api/v1/push/subscribe", { body })),
+  unsubscribe: (endpoint: string) => call(api.POST("/api/v1/push/unsubscribe", { body: { endpoint } })),
+  reminder: (hour: number | null) => call(api.PUT("/api/v1/push/reminder", { body: { hour } })),
+  test: () => call(api.POST("/api/v1/push/test")),
+};
+
 /** Tags to hear about: a notification when a course carrying one is first published. */
 export const interests = {
   get: () => call(api.GET("/api/v1/interests")),
@@ -459,8 +473,17 @@ export const reports = {
 export const payments = {
   payout: () => call(api.GET("/api/v1/payments/payout")),
   onboarding: () => call(api.POST("/api/v1/payments/payout/onboarding")),
-  checkout: (listingId: Id) =>
-    call(api.POST("/api/v1/marketplace/listings/{listing_id}/checkout", { params: { path: { listing_id: listingId } } })),
+  checkout: (listingId: Id, code = "") =>
+    call(api.POST("/api/v1/marketplace/listings/{listing_id}/checkout", { params: { path: { listing_id: listingId } }, body: { code } })),
+  /** What a discount code makes the price. */
+  quote: (listingId: Id, code: string) =>
+    call(api.GET("/api/v1/marketplace/listings/{listing_id}/discount", { params: { path: { listing_id: listingId }, query: { code } } })),
+  discounts: (courseId: Id) => call(api.GET("/api/v1/courses/{course_id}/marketplace/discounts", { params: { path: { course_id: courseId } } })),
+  createDiscount: (courseId: Id, body: Schemas["DiscountCreate"]) =>
+    call(api.POST("/api/v1/courses/{course_id}/marketplace/discounts", { params: { path: { course_id: courseId } }, body })),
+  deleteDiscount: (courseId: Id, discountId: Id) =>
+    call(api.DELETE("/api/v1/courses/{course_id}/marketplace/discounts/{discount_id}", { params: { path: { course_id: courseId, discount_id: discountId } } })),
+  refund: (orderId: Id) => call(api.POST("/api/v1/marketplace/orders/{order_id}/refund", { params: { path: { order_id: orderId } } })),
   order: (orderId: Id) => call(api.GET("/api/v1/marketplace/orders/{order_id}", { params: { path: { order_id: orderId } } })),
   sales: () => call(api.GET("/api/v1/marketplace/sales")),
 };

@@ -164,6 +164,7 @@ export function FriendsTab() {
           </QueryState>
         )}
       </form>
+      <MyLink />
       <section className="card" aria-labelledby="friends-title">
         <h2 id="friends-title">{t("friends.yours")}</h2>
         <QueryState query={friends}>
@@ -178,6 +179,48 @@ export function FriendsTab() {
         </section>
       )}
     </>
+  );
+}
+
+/** "Add me": the address of your own profile, to send to a friend. Needs a username or the community. */
+function MyLink() {
+  const { t } = useI18n();
+  const me = useQuery({ queryKey: meKey, queryFn: auth.me });
+  const [copied, setCopied] = useState(false);
+  if (!me.data) return null;
+  if (!me.data.username && !me.data.community_visible) {
+    return (
+      <p className="card hint">
+        {t("friends.linkNeedsName")} <Link to="/settings">{t("account.settings")}</Link>
+      </p>
+    );
+  }
+  const link = `${window.location.origin}/community/users/${me.data.id}`;
+  const copy = async () => {
+    try {
+      if (navigator.share) await navigator.share({ title: "Recallable", text: t("friends.linkText"), url: link });
+      else {
+        await navigator.clipboard.writeText(link);
+        setCopied(true);
+      }
+    } catch {
+      // Cancelled, or no clipboard: the link stays selectable below.
+    }
+  };
+  return (
+    <section className="card my-link" aria-labelledby="my-link-title">
+      <h2 id="my-link-title">{t("friends.linkTitle")}</h2>
+      <p className="hint">
+        {t("friends.linkHint")}
+        {me.data.username && ` ${t("friends.linkUsername", { name: me.data.username })}`}
+      </p>
+      <div className="inline-field">
+        <input readOnly value={link} aria-label={t("friends.linkTitle")} onFocus={(e) => e.currentTarget.select()} />
+        <button type="button" className="primary" onClick={() => void copy()}>
+          {copied ? t("admin.copied") : t("friends.linkShare")}
+        </button>
+      </div>
+    </section>
   );
 }
 

@@ -6,11 +6,11 @@ import { chromium } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 
 const mark = (scale, dx, dy) =>
-  `<g transform="translate(${dx} ${dy}) scale(${scale})"><g fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.6,14.7 A12,12 0 1 0 24.4,32"/><path d="M28,14 V38"/></g></g>`;
+  `<g transform="translate(${dx} ${dy}) scale(${scale})"><g fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8,15.5 A12,12 0 1 0 24.4,32"/><path d="M28,28.5 V38"/></g><g fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2.5" stroke-linejoin="round"><path d="M15.3,8.8 L29.5,6 L26.7,20.2 Z"/></g></g>`;
 // Rounded tile (as the favicon) and full-bleed squares (the system rounds or masks those).
-const rounded = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#1555DD"/>${mark(1, 17, 7)}</svg>`;
-const square = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#1555DD"/>${mark(1, 17, 7)}</svg>`;
-const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#1555DD"/>${mark(0.72, 21.2, 14)}</svg>`;
+const rounded = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#1555DD"/>${mark(1, 16, 10)}</svg>`;
+const square = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#1555DD"/>${mark(1, 16, 10)}</svg>`;
+const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#1555DD"/>${mark(0.72, 20.5, 16)}</svg>`;
 
 const icons = [
   ["public/icons/icon-192.png", rounded, 192, true],

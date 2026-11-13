@@ -36,6 +36,7 @@ from app.schemas.courses import (
     TopicRead,
     TopicUpdate,
 )
+from app.schemas.progress import ExamDate
 from app.services.courses import service
 from app.services.documents.service import delete_course_files
 from app.services.learning import service as learning_service
@@ -71,6 +72,19 @@ def update_course(
     course_id: uuid.UUID, payload: CourseUpdate, db: Session = DB, user: User = CurrentUser
 ) -> Course:
     return service.update_course(db, user.id, course_id, payload)
+
+
+@router.put("/courses/{course_id}/exam-date", response_model=CourseRead)
+def set_exam_date(
+    course_id: uuid.UUID, payload: ExamDate, db: Session = DB, user: User = CurrentUser
+) -> Course:
+    """The day of the exam (null removes it): the progress page then says how many new
+    questions a day get there."""
+    course = service.get_owned_course(db, user.id, course_id)
+    course.exam_date = payload.date
+    db.commit()
+    db.refresh(course)
+    return course
 
 
 @router.delete("/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)

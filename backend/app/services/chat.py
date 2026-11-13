@@ -78,7 +78,9 @@ def conversations(db: Session, viewer: User) -> list[Conversation]:
         result.append(
             Conversation(
                 user_id=other_id,
-                name=(other.display_name if other else None) or ANONYMOUS,
+                name=community.shown_name(other.display_name, other.username)
+                if other
+                else ANONYMOUS,
                 last_message=row.body[:PREVIEW],
                 last_mine=row.sender_id == viewer.id,
                 last_at=row.created_at,
@@ -123,7 +125,7 @@ def thread(
     db.commit()
     return Thread(
         user_id=other.id,
-        name=other.display_name or ANONYMOUS,
+        name=community.shown_name(other.display_name, other.username),
         can_send=can_send,
         messages=[_read(row, viewer.id) for row in rows],
         has_more=has_more,

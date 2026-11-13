@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
-import { AdminPage } from "../features/admin/AdminPage";
 import { ApiError } from "../api/client";
 import { AuthProvider, useAuth } from "../auth/AuthContext";
 import { ResetPasswordPage } from "../auth/PasswordPages";
@@ -10,30 +9,33 @@ import { ChapterPage } from "../features/curriculum/ChapterPage";
 import { ConceptPage } from "../features/curriculum/ConceptPage";
 import { CourseLayout } from "../features/curriculum/CourseLayout";
 import { CourseOverview } from "../features/curriculum/CourseOverview";
-import { ProposalPage } from "../features/curriculum/ProposalPage";
-import { QuestionsPage } from "../features/curriculum/QuestionsPage";
 import { WeakSpotsPage } from "../features/curriculum/WeakSpotsPage";
-import { ChatThreadPage } from "../features/community/ChatPage";
 import { CommunityPage, ProfilePage } from "../features/community/CommunityPage";
-import { CourseLeaderboardPage } from "../features/community/CourseLeaderboardPage";
-import { GuidePage } from "../features/guide/GuidePage";
-import { ListingPage } from "../features/marketplace/ListingPage";
-import { MarketplacePage } from "../features/marketplace/MarketplacePage";
-import { SalesPage } from "../features/marketplace/SalesPage";
 import { NotificationsPage } from "../features/notifications/NotificationsPage";
-import { SettingsPage } from "../features/settings/SettingsPage";
 import { I18nProvider } from "../i18n";
 import { TopicPage } from "../features/curriculum/TopicPage";
 import { CoursesPage } from "../features/courses/CoursesPage";
-import { ActivityPage } from "../features/dashboard/ActivityPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { ReviewHubPage } from "../features/home/HomePage";
 import { ReviewQueuePage } from "../features/home/ReviewQueuePage";
-import { CourseMaterialPage } from "../features/material/MaterialPanel";
-import { PrivacyPage } from "../features/privacy/PrivacyPage";
 import { ProgressPage } from "../features/progress/ProgressPage";
-import { StudyPage } from "../features/study/StudyPage";
 import { AppShell } from "./AppShell";
+
+// Pages most visits never open are fetched when first opened.
+const AdminPage = lazy(() => import("../features/admin/AdminPage").then((m) => ({ default: m.AdminPage })));
+const ProposalPage = lazy(() => import("../features/curriculum/ProposalPage").then((m) => ({ default: m.ProposalPage })));
+const QuestionsPage = lazy(() => import("../features/curriculum/QuestionsPage").then((m) => ({ default: m.QuestionsPage })));
+const ChatThreadPage = lazy(() => import("../features/community/ChatPage").then((m) => ({ default: m.ChatThreadPage })));
+const CourseLeaderboardPage = lazy(() => import("../features/community/CourseLeaderboardPage").then((m) => ({ default: m.CourseLeaderboardPage })));
+const GuidePage = lazy(() => import("../features/guide/GuidePage").then((m) => ({ default: m.GuidePage })));
+const ListingPage = lazy(() => import("../features/marketplace/ListingPage").then((m) => ({ default: m.ListingPage })));
+const MarketplacePage = lazy(() => import("../features/marketplace/MarketplacePage").then((m) => ({ default: m.MarketplacePage })));
+const SalesPage = lazy(() => import("../features/marketplace/SalesPage").then((m) => ({ default: m.SalesPage })));
+const SettingsPage = lazy(() => import("../features/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const ActivityPage = lazy(() => import("../features/dashboard/ActivityPage").then((m) => ({ default: m.ActivityPage })));
+const CourseMaterialPage = lazy(() => import("../features/material/MaterialPanel").then((m) => ({ default: m.CourseMaterialPage })));
+const PrivacyPage = lazy(() => import("../features/privacy/PrivacyPage").then((m) => ({ default: m.PrivacyPage })));
+const StudyPage = lazy(() => import("../features/study/StudyPage").then((m) => ({ default: m.StudyPage })));
 
 export function createQueryClient(): QueryClient {
   return new QueryClient({
@@ -56,11 +58,13 @@ function CourseMaterialRoute() {
 export function AppRoutes() {
   return (
     <I18nProvider>
+      <Suspense fallback={<div className="state" role="status" aria-busy="true" />}>
       <Routes>
         {/* A reset link must open whether or not this browser is signed in. */}
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<SignedInRoutes />} />
       </Routes>
+      </Suspense>
     </I18nProvider>
   );
 }

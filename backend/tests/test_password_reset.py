@@ -62,7 +62,7 @@ def test_reset_by_email_link(client, account, outbox):
     assert response.status_code == 202
     [(to, subject, body)] = outbox.messages
     assert to == EMAIL
-    assert "Reset your LEARNABLE password" in subject
+    assert "Reset your Recallable password" in subject
     assert "http://localhost:5173/reset-password?token=" in body
 
     assert confirm(client, outbox.token()).status_code == 204
@@ -201,7 +201,7 @@ def test_smtp_sender_uses_starttls_and_login(monkeypatch):
             calls.append(("send", message["To"], message["Subject"]))
 
     monkeypatch.setattr("app.email.sender.smtplib.SMTP", FakeSMTP)
-    SmtpEmailSender("smtp.example.com", 587, "user", "pw", "LEARNABLE <a@b.c>").send(
+    SmtpEmailSender("smtp.example.com", 587, "user", "pw", "Recallable <a@b.c>").send(
         "to@example.com", "Hi", "Body"
     )
     assert calls == [

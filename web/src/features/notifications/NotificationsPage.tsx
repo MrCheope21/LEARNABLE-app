@@ -21,6 +21,7 @@ const ICONS: Record<string, IconName> = {
   review_reply: "chat",
   course_sold: "cart",
   course_new: "store",
+  order_refunded: "receipt",
 };
 
 /** What happened while you were away: friend requests, course updates, reviews, sales. */
@@ -167,6 +168,7 @@ const KNOWN: Record<string, true> = {
   "notif.kind.review_reply": true,
   "notif.kind.course_sold": true,
   "notif.kind.course_new": true,
+  "notif.kind.order_refunded": true,
 };
 
 function money(cents: unknown, currency: unknown): string {

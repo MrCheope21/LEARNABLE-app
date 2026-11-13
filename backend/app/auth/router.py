@@ -2,6 +2,7 @@ import re
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -38,7 +39,7 @@ from app.core.rate_limit import limiter, per_ip, per_user
 from app.db.session import get_db
 from app.email.sender import EmailSender, get_email_sender
 from app.models.user import User
-from app.services import accounts, community, invitations
+from app.services import accounts, community, export, invitations
 from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -161,6 +162,17 @@ def update_preferences(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@router.get("/export", dependencies=[Depends(per_user("export", 10, 3600))])
+def export_my_data(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> JSONResponse:
+    """A copy of everything held about the account, as a JSON file to download."""
+    return JSONResponse(
+        export.export_account(db, current_user),
+        headers={"Content-Disposition": 'attachment; filename="learnable-data.json"'},
+    )
 
 
 @router.post(

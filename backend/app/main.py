@@ -14,6 +14,7 @@ from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.session import get_session_factory
+from app.services import push
 from app.services.recovery import recover_stale_jobs
 from app.web import install_web_app
 
@@ -35,6 +36,12 @@ async def _recovery_loop(interval: float) -> None:
         await asyncio.to_thread(sweep_interrupted_jobs, _session_factory())
 
 
+async def _reminder_loop(interval: float) -> None:
+    while True:
+        await asyncio.sleep(interval)
+        await asyncio.to_thread(push.reminder_job, _session_factory(), push.get_push_sender)
+
+
 def _session_factory() -> sessionmaker[Session]:
     factory: sessionmaker[Session] = app.dependency_overrides.get(
         get_session_factory, get_session_factory
@@ -49,18 +56,20 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings.log_level)
     interval = settings.job_recovery_interval_seconds
-    if not interval:
-        yield
-        return
-    # Jobs run in-process: any left PROCESSING/GENERATING by a previous process are lost.
-    await asyncio.to_thread(sweep_interrupted_jobs, _session_factory())
-    loop = asyncio.create_task(_recovery_loop(interval))
+    loops: list[asyncio.Task[None]] = []
+    if interval:
+        # Jobs run in-process: any left PROCESSING/GENERATING by a previous process are lost.
+        await asyncio.to_thread(sweep_interrupted_jobs, _session_factory())
+        loops.append(asyncio.create_task(_recovery_loop(interval)))
+    if settings.push_reminder_interval_seconds and push.get_push_sender() is not None:
+        loops.append(asyncio.create_task(_reminder_loop(settings.push_reminder_interval_seconds)))
     try:
         yield
     finally:
-        loop.cancel()
-        with suppress(asyncio.CancelledError):
-            await loop
+        for loop in loops:
+            loop.cancel()
+            with suppress(asyncio.CancelledError):
+                await loop
 
 
 app = FastAPI(title="Adaptive AI Learning Platform API", lifespan=lifespan)

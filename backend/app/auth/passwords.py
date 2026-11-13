@@ -87,9 +87,9 @@ def reset_with_token(db: Session, token: str, new_password: str) -> User:
 
 
 def reset_email(link: str, minutes: int) -> tuple[str, str]:
-    subject = "Reset your LEARNABLE password"
+    subject = "Reset your Recallable password"
     body = (
-        "Someone (hopefully you) asked to reset the password of your LEARNABLE account.\n\n"
+        "Someone (hopefully you) asked to reset the password of your Recallable account.\n\n"
         f"Choose a new password here (the link works once, for {minutes} minutes):\n{link}\n\n"
         "If it wasn't you, ignore this email: your password stays as it is.\n"
     )

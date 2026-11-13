@@ -103,9 +103,18 @@ class Settings(BaseSettings):
     smtp_port: int = Field(default=587, gt=0)
     smtp_username: str = ""
     smtp_password: SecretStr = SecretStr("")
-    # The From address, e.g. "LEARNABLE <no-reply@example.com>".
+    # The From address, e.g. "Recallable <no-reply@example.com>".
     smtp_from: str = ""
     smtp_starttls: bool = True
+
+    # Push notifications for review reminders (app/services/push.py). Off unless all three are
+    # set. The key pair comes from `python scripts/make_vapid_keys.py`; the contact is what the
+    # browser vendors' push services ask for ("mailto:you@example.com" or an https address).
+    push_vapid_public_key: str = ""
+    push_vapid_private_key: SecretStr = SecretStr("")
+    push_contact: str = ""
+    # How often the reminder pass runs, in seconds. 0 disables it.
+    push_reminder_interval_seconds: float = Field(default=600, ge=0)
 
     # Paid courses on the marketplace (docs/MARKETPLACE.md §8). none: every course is free.
     # stripe: buyers pay through Stripe Checkout and the money goes to the author's own Stripe

@@ -49,6 +49,7 @@ from app.schemas.marketplace import (
     ListingSort,
     ListingSummary,
     MyListing,
+    PreviewQuestion,
     ReviewWrite,
     UpdateRead,
 )
@@ -183,6 +184,7 @@ def _set_info(listing: MarketplaceListing, info: ListingInfo) -> None:
     listing.category = info.category.value
     listing.tags = list(dict.fromkeys(t.strip() for t in info.tags if t.strip()))
     listing.price_cents = info.price_cents
+    listing.preview_count = info.preview_count
 
 
 # --- Telling the people who have the course ---
@@ -260,13 +262,13 @@ def update_email(title: str, note: str, link: str, language: str) -> tuple[str, 
     """The email about a new version or an announcement, in Italian or English."""
     if language == "it":
         return (
-            f"LEARNABLE: novità sul corso «{title}»",
+            f"Recallable: novità sul corso «{title}»",
             f"L'autore del corso «{title}» ha scritto a chi ce l'ha:\n\n{note}\n\n"
             f"Apri il corso: {link}\n\n"
             "Non vuoi queste email? Impostazioni → Notifiche.\n",
         )
     return (
-        f"LEARNABLE: news about the course “{title}”",
+        f"Recallable: news about the course “{title}”",
         f"The author of “{title}” wrote to everyone who has it:\n\n{note}\n\n"
         f"Open the course: {link}\n\n"
         "Don't want these emails? Settings → Notifications.\n",
@@ -486,6 +488,13 @@ def detail(
                 questions=sum(len(c["items"]) for t in chapter["topics"] for c in t["concepts"]),
             )
             for chapter in listing.snapshot.get("chapters", [])
+        ],
+        preview=[
+            PreviewQuestion(
+                question=(item["questions"][0]["text"] if item["questions"] else item["title"]),
+                answer=item["expected_knowledge"],
+            )
+            for item in _snapshot_items(listing.snapshot)[: listing.preview_count]
         ],
         is_mine=listing.author_id == user_id,
         has_access=acquisition is not None,
@@ -812,7 +821,7 @@ def _item_create(data: dict[str, Any]) -> LearningItemCreate:
 
 def _author(db: Session, listing: MarketplaceListing) -> str:
     user = db.get(User, listing.author_id)
-    return (user.display_name if user and user.display_name else None) or "A LEARNABLE user"
+    return (user.display_name if user and user.display_name else None) or "A Recallable user"
 
 
 def _summary(
@@ -847,7 +856,9 @@ def _summary(
 
 def _mine(db: Session, listing: MarketplaceListing) -> MyListing:
     return MyListing(
-        **_summary(db, listing, None).model_dump(), source_course_id=listing.source_course_id
+        **_summary(db, listing, None).model_dump(),
+        source_course_id=listing.source_course_id,
+        preview_count=listing.preview_count,
     )
 
 
@@ -875,7 +886,7 @@ def _review_read(
 ) -> ListingReview:
     return ListingReview(
         id=review.id,
-        author=name or "A LEARNABLE user",
+        author=name or "A Recallable user",
         rating=review.rating,
         comment=review.comment,
         created_at=review.created_at,

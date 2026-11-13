@@ -109,8 +109,35 @@ the AI service and how to delete everything. `POST /api/v1/auth/delete-account {
 deletes the signed-in account with everything it owns (the same as an administrator deleting
 it); the only administrator can't (409 `last_admin`).
 
-## 9. Not built yet
+## 9. Being found without joining
+
+Someone who chose a username can be found by typing it exactly (never by part of it), and from
+their own link (`/community/users/{id}`, shown on the Friends tab as "Your link"). They are
+shown as their display name, or `@username` without one, and can be friends and exchange
+messages. Leaderboards and search by name stay for people who joined the community. Someone
+with neither a username nor the community can't be found at all.
+
+## 10. Push notifications: the review reminder
+
+Off unless the server has `PUSH_VAPID_PUBLIC_KEY`, `PUSH_VAPID_PRIVATE_KEY` (from
+`python scripts/make_vapid_keys.py`) and `PUSH_CONTACT` ("mailto:…"). A browser or installed
+app subscribes from Settings → Notifications (`push_subscriptions`); on iPhone and iPad only
+the app added to the Home Screen can. Once per local day, from the hour the user chose
+(`users.reminder_hour`, 18 by default), a reminder goes out when questions are due and the
+day's goal isn't reached. The pass runs in the API process every
+`PUSH_REMINDER_INTERVAL_SECONDS` (600).
+
+```
+GET  /api/v1/push                # {enabled, public_key, devices, reminder_hour}
+POST /api/v1/push/subscribe      # {endpoint, keys: {p256dh, auth}}
+POST /api/v1/push/unsubscribe    # {endpoint}
+PUT  /api/v1/push/reminder       # {hour: 0-23 | null}
+POST /api/v1/push/test           # → {sent}
+```
+
+## 11. Not built yet
 
 - No rate limits on announcements; friend requests, messages, searches and reports are limited
   per account per hour.
-- No push notifications (the installed web app polls while open).
+- Push is used for the review reminder only: friend requests, messages and course news still
+  arrive in the bell while the app is open.

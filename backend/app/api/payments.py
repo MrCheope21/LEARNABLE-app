@@ -3,7 +3,7 @@ webhook (services/payments.py)."""
 
 import uuid
 
-from fastapi import APIRouter, Depends, Header, Request, status
+from fastapi import APIRouter, Depends, Header, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -17,7 +17,16 @@ from app.models.marketplace import (
     MarketplaceOrder,
 )
 from app.models.user import User
-from app.schemas.marketplace import OrderStatus, PayoutStatus, Redirect, Sales
+from app.schemas.marketplace import (
+    CheckoutStart,
+    DiscountCreate,
+    DiscountQuote,
+    DiscountRead,
+    OrderStatus,
+    PayoutStatus,
+    Redirect,
+    Sales,
+)
 from app.services import marketplace, payments
 from app.services.documents.service import delete_course_files
 from app.services.payments import PaymentGateway, get_payment_gateway
@@ -56,12 +65,74 @@ def onboarding(
 )
 def checkout(
     listing_id: uuid.UUID,
+    payload: CheckoutStart | None = None,
     db: Session = DB,
     user: User = CurrentUser,
     gateway: PaymentGateway | None = Gateway,
 ) -> Redirect:
     """Starts buying a paid course: the address of the payment page."""
-    return Redirect(url=payments.checkout(db, user, listing_id, gateway))
+    code = payload.code if payload else ""
+    return Redirect(url=payments.checkout(db, user, listing_id, gateway, code))
+
+
+@router.get("/marketplace/listings/{listing_id}/discount", response_model=DiscountQuote)
+def discount_quote(
+    listing_id: uuid.UUID,
+    code: str = Query(max_length=40),
+    db: Session = DB,
+    _user: User = CurrentUser,
+    _limit: None = Depends(per_user("discount_quote", 60, 3600)),
+) -> DiscountQuote:
+    """What a discount code makes the price (422 `invalid_code` when it can't be used)."""
+    return payments.quote(db, listing_id, code)
+
+
+@router.get("/courses/{course_id}/marketplace/discounts", response_model=list[DiscountRead])
+def list_discounts(
+    course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser
+) -> list[DiscountRead]:
+    return payments.discounts(db, user, course_id)
+
+
+@router.post(
+    "/courses/{course_id}/marketplace/discounts",
+    response_model=DiscountRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_discount(
+    course_id: uuid.UUID, payload: DiscountCreate, db: Session = DB, user: User = CurrentUser
+) -> DiscountRead:
+    return payments.create_discount(db, user, course_id, payload)
+
+
+@router.delete(
+    "/courses/{course_id}/marketplace/discounts/{discount_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_discount(
+    course_id: uuid.UUID, discount_id: uuid.UUID, db: Session = DB, user: User = CurrentUser
+) -> None:
+    payments.delete_discount(db, user, course_id, discount_id)
+
+
+@router.post(
+    "/marketplace/orders/{order_id}/refund",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(per_user("marketplace_refund", 30, 3600))],
+)
+def refund_order(
+    order_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    gateway: PaymentGateway | None = Gateway,
+    storage: DocumentStorage = Depends(get_document_storage),
+) -> None:
+    """The author gives the buyer their money back; the course leaves the buyer's courses."""
+    refunded = payments.refund(db, user, order_id, gateway)
+    listing = db.get(MarketplaceListing, refunded.listing_id)
+    keys = marketplace.revoke(db, refunded.buyer_id, listing) if listing else []
+    db.commit()
+    delete_course_files(storage, keys)
 
 
 @router.get("/marketplace/orders/{order_id}", response_model=OrderStatus)

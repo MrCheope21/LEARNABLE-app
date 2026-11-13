@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, Integer, String, Uuid, false, true
+from sqlalchemy import Boolean, Date, Integer, String, Uuid, false, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -50,4 +50,8 @@ class User(Base):
     # take payments yet (services/payments.py).
     payout_account_id: Mapped[str | None] = mapped_column(String(255), default=None)
     payout_ready: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # Review reminders by push notification: the local hour to send one (null: none), and the
+    # user's local day the last one went out (services/push.py).
+    reminder_hour: Mapped[int | None] = mapped_column(Integer, default=18, server_default="18")
+    last_reminded_on: Mapped[date | None] = mapped_column(Date, default=None)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utc_now)

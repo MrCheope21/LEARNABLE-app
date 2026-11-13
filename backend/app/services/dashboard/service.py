@@ -348,7 +348,7 @@ def _marketplace_authors(db: Session, courses: Sequence[Course]) -> dict[uuid.UU
         .all()
     )
     return {
-        c.id: names.get(c.marketplace_listing_id) or "A LEARNABLE user"
+        c.id: names.get(c.marketplace_listing_id) or "A Recallable user"
         for c in courses
         if c.marketplace_listing_id
     }

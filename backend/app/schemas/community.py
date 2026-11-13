@@ -162,6 +162,44 @@ class Inbox(BaseModel):
     friend_requests: int
 
 
+# --- Push notifications ---
+
+
+class PushKeys(InputModel):
+    p256dh: Annotated[str, Field(min_length=10, max_length=200)]
+    auth: Annotated[str, Field(min_length=4, max_length=100)]
+
+
+class PushSubscribe(InputModel):
+    """What the browser's `pushManager.subscribe()` returns."""
+
+    endpoint: Annotated[str, Field(min_length=10, max_length=1000, pattern=r"^https://")]
+    keys: PushKeys
+
+
+class PushUnsubscribe(InputModel):
+    endpoint: Annotated[str, Field(min_length=10, max_length=1000)]
+
+
+class ReminderUpdate(InputModel):
+    # The local hour (0-23) to be reminded from; null turns reminders off.
+    hour: Annotated[int, Field(ge=0, le=23)] | None
+
+
+class PushStatus(BaseModel):
+    # The server can send push notifications.
+    enabled: bool
+    # The key the browser subscribes with.
+    public_key: str
+    # How many of the user's browsers and devices are subscribed.
+    devices: int
+    reminder_hour: int | None
+
+
+class PushTest(BaseModel):
+    sent: int
+
+
 # --- Interests: tags the user wants to hear about ---
 
 

@@ -136,7 +136,7 @@ test("consolidation loop: concept → activate → I have studied it → 3 good 
   await page.getByRole("button", { name: "Done" }).click();
 
   // The logo goes to the dashboard, which reflects the study immediately.
-  await page.getByRole("link", { name: "LEARNABLE home" }).click();
+  await page.getByRole("link", { name: "Recallable home" }).click();
   await expect(page.getByRole("region", { name: "Experience" })).toContainText("XP today");
   const dashboard = await apiGet<Dashboard>(page, "/api/v1/dashboard");
   expect(dashboard.xp.today).toBeGreaterThanOrEqual(25); // 5 (hint) + 10 + 10

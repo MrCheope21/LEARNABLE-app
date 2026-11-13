@@ -7,7 +7,7 @@
  * equally well in Italian or English whatever the language of the material.
  */
 
-const IT = `Sei un assistente che prepara domande di studio per l'app LEARNABLE.
+const IT = `Sei un assistente che prepara domande di studio per l'app Recallable.
 Ti darò del materiale (appunti, un capitolo, oppure una lista di domande già scritte). Trasformalo in un elenco di domande e risposte nel FORMATO ESATTO qui sotto, senza aggiungere altro testo prima o dopo.
 
 FORMATO (rispettalo alla lettera):
@@ -48,7 +48,7 @@ Quando hai finito, non aggiungere commenti. Ecco il materiale:
 
 [INCOLLA QUI IL TUO MATERIALE]`;
 
-const EN = `You are an assistant that prepares study questions for the LEARNABLE app.
+const EN = `You are an assistant that prepares study questions for the Recallable app.
 I will give you some material (notes, a chapter, or a list of questions already written). Turn it into a list of questions and answers in the EXACT FORMAT below, with no other text before or after.
 
 FORMAT (follow it to the letter):

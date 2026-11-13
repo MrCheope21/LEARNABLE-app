@@ -123,8 +123,27 @@ refund policy, the 14-day withdrawal rule for digital content sold to EU consume
 digital services, invoices or receipts, the platform's own tax position). None of this is handled
 by the code.
 
-## 9. Not built yet
+## 9. Free sample, discount codes, refunds
 
-- Refunds from inside the app (today: from the Stripe dashboard).
-- Discount codes, bundles, subscriptions, currencies other than EUR.
-- Reporting a listing or a review to the administrator.
+- **Free sample**: the author chooses how many of the first questions (0-5, none by default)
+  anyone may read, with their answers, on the sales page (`preview_count`, `preview` in the
+  listing's detail).
+- **Discount codes**: per course, a percentage off (1-90), optionally with a maximum number of
+  uses and an expiry. The buyer types the code before paying; the discounted price is never
+  under `PRICE_MIN_CENTS`. A use is counted when the payment is confirmed.
+- **Refund**: from "Sales and payments" the author (or an administrator) refunds a sale in
+  full: Stripe takes the money back from the author's account and returns the platform's fee,
+  the course leaves the buyer's courses and the buyer is told.
+
+```
+GET    /api/v1/marketplace/listings/{id}/discount?code=      # {code, percent_off, price_cents}
+POST   /api/v1/marketplace/listings/{id}/checkout            # {code?}
+GET    /api/v1/courses/{course_id}/marketplace/discounts
+POST   /api/v1/courses/{course_id}/marketplace/discounts     # {code, percent_off, max_uses?, days?}
+DELETE /api/v1/courses/{course_id}/marketplace/discounts/{discount_id}
+POST   /api/v1/marketplace/orders/{order_id}/refund
+```
+
+## 10. Not built yet
+
+- Bundles, subscriptions, currencies other than EUR, partial refunds.

@@ -6,6 +6,7 @@ from app.models.community import (
     Friendship,
     Message,
     Notification,
+    PushSubscription,
     Report,
     TagSubscription,
 )
@@ -20,6 +21,7 @@ from app.models.learning import (
 )
 from app.models.marketplace import (
     MarketplaceAcquisition,
+    MarketplaceDiscount,
     MarketplaceListing,
     MarketplaceOrder,
     MarketplaceReview,
@@ -50,6 +52,7 @@ __all__ = [
     "LearningItem",
     "LearningItemSource",
     "MarketplaceAcquisition",
+    "MarketplaceDiscount",
     "MarketplaceListing",
     "MarketplaceOrder",
     "MarketplaceReview",
@@ -57,6 +60,7 @@ __all__ = [
     "Message",
     "Notification",
     "PasswordResetToken",
+    "PushSubscription",
     "QuestionFormulation",
     "Report",
     "Review",

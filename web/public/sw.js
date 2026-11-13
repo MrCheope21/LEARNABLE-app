@@ -1,4 +1,4 @@
-/* LEARNABLE service worker: makes the app installable and keeps it opening without a network.
+/* Recallable service worker: makes the app installable and keeps it opening without a network.
  *
  * - Never touches /api or /health: answers, grades and schedules always come from the server.
  * - Pages (navigations): network first; without a network, the cached app shell opens and shows
@@ -8,7 +8,7 @@
  *
  * Bump VERSION to drop old caches after a change to this file.
  */
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = `learnable-${VERSION}`;
 const SHELL = ["/", "/manifest.json", "/favicon.svg", "/icons/icon-192.png"];
 
@@ -65,5 +65,40 @@ self.addEventListener("fetch", (event) => {
     fetch(request)
       .then((response) => put(request, response))
       .catch(() => caches.match(request).then((cached) => cached || Response.error())),
+  );
+});
+
+// A push from the server (the daily review reminder): show it; a tap opens the app there.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Recallable", {
+      body: data.body || "",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      tag: "learnable-reminder",
+      data: { url: data.url || "/" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || "/", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        if ("focus" in client) {
+          client.navigate(target).catch(() => undefined);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    }),
   );
 });
