@@ -2437,7 +2437,8 @@ export interface paths {
          * Submit Answer
          * @description Stores the answer, evaluates it, resolves the outcome and applies it. Always 201 once
          *     the answer is stored, even if evaluation failed (`needs_self_grade`). A drawing question
-         *     takes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`.
+         *     takes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`; a multiple-choice question
+         *     takes `choices`, is graded without AI and doesn't count against the AI allowance.
          */
         post: operations["submit_answer_api_v1_review_sessions__session_id__answers_post"];
         delete?: never;
@@ -2819,6 +2820,8 @@ export interface components {
         };
         /** AnswerCreate */
         AnswerCreate: {
+            /** Choices */
+            choices?: number[] | null;
             /** Drawing */
             drawing?: string | null;
             /** @default TEXT */
@@ -3055,6 +3058,8 @@ export interface components {
              * @default TEXT
              */
             answer_format: string;
+            /** Choices */
+            choices?: string[] | null;
             /**
              * Concept Id
              * Format: uuid
@@ -3069,6 +3074,11 @@ export interface components {
              * Format: uuid
              */
             learning_item_id: string;
+            /**
+             * Multiple
+             * @default false
+             */
+            multiple: boolean;
             /** Pending Answer Id */
             pending_answer_id: string | null;
             potential_xp?: components["schemas"]["PotentialXp"] | null;
@@ -3206,6 +3216,33 @@ export interface components {
              * @default
              */
             code: string;
+        };
+        /**
+         * Choice
+         * @description One option of a multiple-choice question.
+         */
+        Choice: {
+            /**
+             * Correct
+             * @default false
+             */
+            correct: boolean;
+            /** Text */
+            text: string;
+        };
+        /** ChoiceOption */
+        ChoiceOption: {
+            /** Correct */
+            correct: boolean;
+            /** Text */
+            text: string;
+        };
+        /** ChoiceRead */
+        ChoiceRead: {
+            /** Correct */
+            correct: boolean;
+            /** Text */
+            text: string;
         };
         /**
          * ChunkRead
@@ -4096,6 +4133,8 @@ export interface components {
          * @description A Learning Item the user writes by hand, e.g. for a Concept with no source material.
          */
         LearningItemCreate: {
+            /** Choices */
+            choices?: components["schemas"]["Choice"][] | null;
             /**
              * Difficulty
              * @default 3
@@ -4135,6 +4174,8 @@ export interface components {
              * Format: uuid
              */
             chapter_id: string;
+            /** Choices */
+            choices?: components["schemas"]["ChoiceRead"][] | null;
             /**
              * Concept Id
              * Format: uuid
@@ -4195,6 +4236,8 @@ export interface components {
         LearningItemRole: "CORE_TRAINABLE" | "SUPPORTING_TRAINABLE" | "COMMON_TRAP" | "INFORMATIONAL" | "REFERENCE" | "OPTIONAL_EXTENSION";
         /** LearningItemUpdate */
         LearningItemUpdate: {
+            /** Choices */
+            choices?: components["schemas"]["Choice"][] | null;
             /** Difficulty */
             difficulty?: number | null;
             /** Essential Points */
@@ -4676,6 +4719,8 @@ export interface components {
         };
         /** OfflineCard */
         OfflineCard: {
+            /** Choices */
+            choices?: components["schemas"]["ChoiceOption"][] | null;
             /** Drawing */
             drawing: boolean;
             /** Due At */

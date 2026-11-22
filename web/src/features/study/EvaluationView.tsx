@@ -120,17 +120,21 @@ export function EvaluationView({ evaluation, previous }: { evaluation: Evaluatio
     <div className="evaluation-body">
       {evaluation.ai_provider === "mock" && <TestAiNotice />}
       {evaluation.classification && (
-        <span className="hint">{t("eval.aiEvaluation", { verdict: classificationLabel[evaluation.classification] })}</span>
+        <span className="hint">
+          {t(evaluation.ai_provider === "choice" ? "choice.checked" : "eval.aiEvaluation", { verdict: classificationLabel[evaluation.classification] })}
+        </span>
       )}
       {evaluation.feedback && <p>{evaluation.feedback}</p>}
       {evaluation.context_sufficient === false && (
         <p className="banner warning">{t("eval.insufficient")}</p>
       )}
       <PointChecklist evaluation={evaluation} />
+      {evaluation.ai_provider !== "choice" && (
       <details className="score-details">
         <summary>{t("eval.scoreBreakdown")}</summary>
         <ScoreBreakdown evaluation={evaluation} previous={previous?.status === "COMPLETED" ? previous : undefined} />
       </details>
+      )}
     </div>
   );
 }

@@ -25,6 +25,7 @@ REGOLE
 5. Usa SOLO le informazioni del materiale che ti do. Non inventare. Se nel materiale manca la risposta a una domanda, scrivi "Risposta: [DA COMPLETARE]".
 6. Scrivi nella stessa lingua del materiale.
 7. Se ti do domande già scritte, non cambiarne il senso: sistemale nel formato e assegna la priorità.
+8. Domande a risposta multipla: se il materiale ne contiene, o se te le chiedo, scrivi le opzioni su righe separate sotto la domanda, ciascuna che inizia con una lettera e una parentesi ("A) ", "B) ", …, da 2 a 8 opzioni), e nella riga "Risposta:" metti SOLO la lettera giusta (oppure le lettere giuste, separate da virgola: "Risposta: A, C"). Le opzioni sbagliate devono essere plausibili, non ovviamente false. Non usare mai "A:" o "D:" con i due punti per le opzioni.
 
 PRIORITÀ (scegli con cura, non dare 1 a tutto):
 1 = Essenziale: senza questo non si passa l'esame; definizioni e concetti cardine.
@@ -42,6 +43,14 @@ Priorità: 1
 
 Domanda: Quali sono i requisiti dell'attività d'impresa?
 Risposta: I requisiti sono l'attività economica, l'organizzazione, la professionalità e il fine della produzione o dello scambio di beni o servizi.
+Priorità: 2
+
+Domanda: Quale articolo del codice civile definisce l'imprenditore?
+A) Art. 2082
+B) Art. 2135
+C) Art. 2195
+D) Art. 1321
+Risposta: A
 Priorità: 2
 
 Quando hai finito, non aggiungere commenti. Ecco il materiale:
@@ -66,6 +75,7 @@ RULES
 5. Use ONLY the information in the material I give you. Do not invent. If the material lacks the answer to a question, write "Answer: [TO COMPLETE]".
 6. Write in the same language as the material.
 7. If I give you questions already written, keep their meaning: put them in the format and give each a priority.
+8. Multiple-choice questions: if the material has them, or I ask for them, write the options on separate lines under the question, each starting with a letter and a parenthesis ("A) ", "B) ", …, 2 to 8 options), and on the "Answer:" line put ONLY the right letter (or the right letters, separated by commas: "Answer: A, C"). Wrong options must be plausible, not obviously false. Never write "A:" or "D:" with a colon for options.
 
 PRIORITY (choose with care, don't give 1 to everything):
 1 = Essential: you can't pass without it; core definitions and ideas.
@@ -84,6 +94,14 @@ Priority: 1
 Question: Who first described mitochondria?
 Answer: They were first observed by Richard Altmann in 1890, and named by Carl Benda in 1898.
 Priority: 5
+
+Question: Which molecule do mitochondria mainly produce?
+A) Glucose
+B) ATP
+C) DNA
+D) Insulin
+Answer: B
+Priority: 2
 
 When you are done, add no comments. Here is the material:
 

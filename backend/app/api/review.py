@@ -31,7 +31,7 @@ from app.schemas.review import (
     SessionCreate,
     SessionRead,
 )
-from app.services import drawings
+from app.services import drawings, quota
 from app.services.quota import EVALUATION, ai_quota
 from app.services.review import consolidation, offline, service
 from app.storage.documents import DocumentStorage, get_document_storage
@@ -98,7 +98,7 @@ def next_card(session_id: uuid.UUID, db: Session = DB, user: User = CurrentUser)
     "/review-sessions/{session_id}/answers",
     response_model=AnswerResult,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(per_user("answers", 600, 3600)), Depends(ai_quota(EVALUATION))],
+    dependencies=[Depends(per_user("answers", 600, 3600))],
 )
 def submit_answer(
     session_id: uuid.UUID,
@@ -110,7 +110,10 @@ def submit_answer(
 ) -> AnswerResult:
     """Stores the answer, evaluates it, resolves the outcome and applies it. Always 201 once
     the answer is stored, even if evaluation failed (`needs_self_grade`). A drawing question
-    takes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`."""
+    takes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`; a multiple-choice question
+    takes `choices`, is graded without AI and doesn't count against the AI allowance."""
+    if payload.choices is None:
+        quota.charge(db, user, EVALUATION)
     return service.submit_answer(db, provider, storage, user.id, session_id, payload)
 
 

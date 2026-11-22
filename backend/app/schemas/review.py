@@ -109,7 +109,13 @@ class Card(BaseModel):
     potential_xp: PotentialXp | None = None
     hint: HintState | None = None
     # DRAWING: answered by drawing (GET /learning-items/{id}/reference-drawing after answering).
+    # CHOICE: pick among `choices` (send their positions as AnswerCreate.choices).
     answer_format: str = "TEXT"
+    # CHOICE only: the options, in stored order (the app shuffles them). Which are correct is
+    # never sent before answering.
+    choices: list[str] | None = None
+    # CHOICE: more than one option is correct (check boxes, not radio buttons).
+    multiple: bool = False
 
 
 class QueueItem(BaseModel):
@@ -151,6 +157,8 @@ class AnswerCreate(InputModel):
     method: AnswerMethod = AnswerMethod.TEXT
     # A drawing question's answer: the drawing as a data URL ("data:image/png;base64,...").
     drawing: Annotated[str, Field(max_length=5_000_000)] | None = None
+    # A multiple-choice answer: the positions (0-based, as in Card.choices) of the picked options.
+    choices: Annotated[list[Annotated[int, Field(ge=0, le=7)]], Field(max_length=8)] | None = None
 
 
 class RepeatCreate(InputModel):
@@ -312,6 +320,11 @@ class ConsolidationPlan(BaseModel):
 # --- Offline review (services/review/offline.py) ---
 
 
+class ChoiceOption(BaseModel):
+    text: str
+    correct: bool
+
+
 class OfflineCard(BaseModel):
     learning_item_id: UUID
     question_formulation_id: UUID
@@ -321,6 +334,8 @@ class OfflineCard(BaseModel):
     due_at: UTCTimestamp
     # Answered by drawing: offline the student compares with the reference in their head.
     drawing: bool
+    # Multiple choice: options with which are correct (graded on the device offline).
+    choices: list[ChoiceOption] | None = None
 
 
 class OfflinePack(BaseModel):

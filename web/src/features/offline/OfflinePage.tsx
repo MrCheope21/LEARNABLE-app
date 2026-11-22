@@ -4,6 +4,7 @@ import type { Schemas } from "../../api/client";
 import { useLabels } from "../../components/useLabels";
 import { useI18n } from "../../i18n";
 import { useOffline } from "../../pwa";
+import { ChoicePicker } from "../study/ChoicePicker";
 import { answeredIds, enqueue, packs, queue, subscribe, sync } from "./store";
 
 type Outcome = Schemas["ReviewOutcome"];
@@ -30,6 +31,9 @@ export function OfflinePage() {
   const pack = all[courseId];
   const [early, setEarly] = useState(false);
   const [text, setText] = useState("");
+  // Multiple choice: the picked options, then the grade they earn once checked.
+  const [picked, setPicked] = useState<number[]>([]);
+  const [checked, setChecked] = useState<Outcome | null>(null);
   const [shown, setShown] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState<number | null>(null);
@@ -50,18 +54,28 @@ export function OfflinePage() {
   const list = early ? left : due;
   const card = list[0];
 
-  const grade = (outcome: Outcome) => {
+  const grade = (outcome: Outcome, answerText: string = text) => {
     if (!card) return;
     enqueue({
       course_id: courseId,
       learning_item_id: card.learning_item_id,
       question_formulation_id: card.question_formulation_id,
-      text: text.trim(),
+      text: answerText.trim(),
       outcome,
     });
     setText("");
     setShown(false);
+    setPicked([]);
+    setChecked(null);
   };
+  const check = () => {
+    if (!card?.choices) return;
+    const right = card.choices.flatMap((c, i) => (c.correct ? [i] : []));
+    const hits = picked.filter((i) => right.includes(i)).length;
+    const wrong = picked.length - hits;
+    setChecked(wrong === 0 && hits === right.length ? "GOOD" : wrong === 0 && hits > 0 ? "HARD" : "AGAIN");
+  };
+  const LETTERS = "ABCDEFGH";
   const send = async () => {
     setSending(true);
     setSent(await sync());
@@ -103,7 +117,42 @@ export function OfflinePage() {
         <section className="card offline-card" aria-live="polite">
           <span className="eyebrow">{t("offline.leftNow", { n: list.length })}</span>
           <h2 className="question">{card.question}</h2>
-          {!shown ? (
+          {card.choices ? (
+            <>
+              <ChoicePicker
+                questionId={card.question_formulation_id}
+                choices={card.choices.map((c) => c.text)}
+                multiple={card.choices.filter((c) => c.correct).length > 1}
+                picked={picked}
+                onChange={setPicked}
+                disabled={checked !== null}
+              />
+              {checked === null ? (
+                <button type="button" className="primary" disabled={picked.length === 0} onClick={check}>
+                  {t("choice.check")}
+                </button>
+              ) : (
+                <>
+                  <p className={checked === "GOOD" ? "banner success" : "banner warning"} role="status">
+                    {checked === "GOOD"
+                      ? t("choice.right")
+                      : `${t("choice.rightAnswer")}: ${card.choices
+                          .flatMap((c, i) => (c.correct ? [`${LETTERS[i]}) ${c.text}`] : []))
+                          .join("; ")}`}
+                  </p>
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => {
+                      grade(checked, picked.map((i) => `${LETTERS[i]}) ${card.choices?.[i]?.text ?? ""}`).join("\n"));
+                    }}
+                  >
+                    {t("offline.next")}
+                  </button>
+                </>
+              )}
+            </>
+          ) : !shown ? (
             <>
               <label className="sr-only" htmlFor="offline-answer">
                 {t("study.yourAnswer")}

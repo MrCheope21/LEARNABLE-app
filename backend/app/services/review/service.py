@@ -82,6 +82,7 @@ from app.schemas.review import (
 from app.services import drawings
 from app.services.courses.service import get_owned_course
 from app.services.evaluation.resolver import RESOLVER_VERSION, repeat_offered, resolve_outcome
+from app.services.learning import choices
 from app.services.review import pool, progress
 from app.services.rewards import service as rewards
 from app.services.rewards.hints import build_cues
@@ -239,6 +240,8 @@ def next_card(db: Session, user_id: uuid.UUID, session_id: uuid.UUID) -> Session
         card=Card(
             learning_item_id=item.id,
             answer_format=item.answer_format,
+            choices=[c["text"] for c in item.choices or []] or None,
+            multiple=len(choices.correct_texts(item)) > 1,
             concept_id=item.concept_id,
             concept_title=concept.title if concept else "",
             question=CardQuestion(
@@ -542,6 +545,9 @@ def submit_answer(
         )
 
     drawing = _drawn_answer(item, payload)
+    text = payload.text
+    if item.answer_format == choices.CHOICE:
+        text = choices.answer_text(item, payload.choices or [])
     now = utc_now()
     round_number, _ = _round(db, session, item)
     answer = Answer(
@@ -553,7 +559,7 @@ def submit_answer(
         question_formulation_id=question.id,
         intent=session.intent,
         method=payload.method,
-        text=payload.text,
+        text=text,
         created_at=now,
         consolidation_round=round_number,
         # Decided by the server from the stored reveal, never by the client.
@@ -577,6 +583,13 @@ def submit_answer(
 
 def _drawn_answer(item: LearningItem, payload: AnswerCreate) -> tuple[bytes, str] | None:
     """The drawing of a drawing question; nothing for a text question, which needs words."""
+    if item.answer_format == choices.CHOICE:
+        options = len(item.choices or [])
+        if not payload.choices or any(i >= options for i in payload.choices):
+            raise InvalidRequestError("Pick at least one of the options.")
+        return None
+    if payload.choices is not None:
+        raise InvalidRequestError("This question isn't multiple choice.")
     if item.answer_format == "DRAWING":
         if not payload.drawing:
             raise InvalidRequestError("This question is answered by drawing: send the drawing.")
@@ -639,6 +652,12 @@ def dispute(
     beside the first evaluation; it never changes the outcome, the schedule or XP: if the
     student agrees with it, they grade the answer themselves (override)."""
     answer, session, item = _owned_answer(db, user_id, answer_id)
+    if item.answer_format == choices.CHOICE:
+        raise ConflictError(
+            "A multiple-choice answer is checked against the correct options: grade it "
+            "yourself if you disagree.",
+            details={"reason": "choice_question"},
+        )
     first = _latest_evaluation(db, answer)
     if first is None or first.status is not EvaluationStatus.COMPLETED:
         raise ConflictError(
@@ -799,6 +818,7 @@ def _evaluate_and_apply(
     if (
         session.intent is not SessionIntent.PRACTICE
         and answer.drawing_type is None
+        and item.answer_format != choices.CHOICE
         and repeat_offered(evidence, outcome)
     ):
         # Green on 3 of 4 scores but not a GOOD: not graded yet. The student reviews the
@@ -821,6 +841,10 @@ def _evaluate(
     argument: str | None = None,
 ) -> Evaluation:
     base = Evaluation(answer_id=answer.id, course_id=answer.course_id, user_argument=argument)
+    if item.answer_format == choices.CHOICE:
+        # Graded by comparing the picked options with the correct ones: no AI.
+        course = db.get(Course, item.course_id)
+        return choices.grade(item, answer.text, base, course.language if course else "en")
     if provider is None:
         base.status = EvaluationStatus.NOT_CONFIGURED
         base.error_message = _NOT_CONFIGURED

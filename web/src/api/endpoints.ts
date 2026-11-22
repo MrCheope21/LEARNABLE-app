@@ -305,11 +305,11 @@ export const study = {
         params: { path: { session_id: sessionId } },
       }),
     ),
-  answer: (sessionId: Id, questionId: Id, text: string, method: Schemas["AnswerMethod"] = "TEXT", drawing?: string) =>
+  answer: (sessionId: Id, questionId: Id, text: string, method: Schemas["AnswerMethod"] = "TEXT", drawing?: string, choices?: number[]) =>
     call(
       api.POST("/api/v1/review-sessions/{session_id}/answers", {
         params: { path: { session_id: sessionId } },
-        body: { question_formulation_id: questionId, text, method, ...(drawing ? { drawing } : {}) },
+        body: { question_formulation_id: questionId, text, method, ...(drawing ? { drawing } : {}), ...(choices ? { choices } : {}) },
       }),
     ),
   /** The questions still to come in this session, the one on screen first. */

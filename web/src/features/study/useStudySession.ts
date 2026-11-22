@@ -31,6 +31,8 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
   const [dictated, setDictated] = useState(false);
   // A drawing question's answer (a data URL), or null while nothing is drawn.
   const [drawing, setDrawing] = useState<string | null>(null);
+  // A multiple-choice question's picked options (positions in card.choices).
+  const [picked, setPicked] = useState<number[]>([]);
   const draftRef = useRef("");
   const [error, setError] = useState<unknown>(null);
   const [working, setWorking] = useState(false);
@@ -74,6 +76,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
       draftRef.current = saved;
       setDictated(false);
       setDrawing(null);
+      setPicked([]);
       setPhase(card.introduction ? { kind: "introduction", card } : { kind: "answering", card });
     } catch (e) {
       setPhase({ kind: "failed", message: userMessage(e, t) });
@@ -128,7 +131,9 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
   }, [phase]);
 
   const drawn = phase.kind === "answering" && phase.card.answer_format === "DRAWING";
-  const canSubmit = phase.kind === "answering" && (drawn ? drawing !== null : draft.trim().length > 0);
+  const choosing = phase.kind === "answering" && phase.card.answer_format === "CHOICE";
+  const canSubmit =
+    phase.kind === "answering" && (choosing ? picked.length > 0 : drawn ? drawing !== null : draft.trim().length > 0);
 
   const submit = useCallback(async () => {
     const current = sessionRef.current;
@@ -143,6 +148,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
         draft.trim(),
         dictated ? "VOICE" : "TEXT",
         card.answer_format === "DRAWING" ? (drawing ?? undefined) : undefined,
+        card.answer_format === "CHOICE" ? picked : undefined,
       );
       // The backend has the answer: the local copy can go.
       drafts.clear(card.question.id);
@@ -150,6 +156,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
       draftRef.current = "";
       setDictated(false);
       setDrawing(null);
+      setPicked([]);
       record(result);
       setPhase({ kind: "result", card, result });
     } catch (e) {
@@ -162,7 +169,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
       setPhase({ kind: "answering", card });
       setError(e);
     }
-  }, [phase, draft, dictated, drawing, canSubmit, record, loadNext]);
+  }, [phase, draft, dictated, drawing, picked, canSubmit, record, loadNext]);
 
   const withResult = useCallback(
     async (action: (result: AnswerView) => Promise<AnswerView>) => {
@@ -269,6 +276,8 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     setDraft,
     appendDictation,
     setDrawing,
+    picked,
+    setPicked,
     canSubmit,
     error,
     clearError: () => setError(null),

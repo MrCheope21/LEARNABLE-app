@@ -79,6 +79,9 @@ class LearningItem(Base):
     origin_key: Mapped[str | None] = mapped_column(String(32), default=None)
     origin_priority: Mapped[int | None] = mapped_column(Integer, default=None)
     reference_drawing_type: Mapped[str | None] = mapped_column(String(32), default=None)
+    # Multiple choice (answer_format CHOICE): [{"text", "correct"}], graded without AI
+    # (services/learning/choices.py). Null for other questions.
+    choices: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, default=None)
     order: Mapped[int] = mapped_column(Integer, default=0)
     # Item-level pause (spec §56); the schedule shift is in ReviewState.paused_at.
     paused: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())

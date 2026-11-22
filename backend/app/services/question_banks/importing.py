@@ -20,7 +20,7 @@ from app.models.curriculum import ConceptSource
 from app.models.document import Document, DocumentChunk
 from app.models.enums import ItemGenerationStatus, LearningItemRole, QuestionType
 from app.models.learning import LearningItemSource
-from app.schemas.learning import LearningItemCreate, QuestionCreate
+from app.schemas.learning import Choice, LearningItemCreate, QuestionCreate
 from app.services.documents.blocks import Block
 from app.services.documents.sentences import split_sentences
 from app.services.learning.service import new_item
@@ -217,7 +217,63 @@ def _priority(pair: QuestionAnswer) -> tuple[QuestionAnswer, int | None]:
     return replace(pair, question=question, answer=answer), found
 
 
+# "A) …" or "b. …" at the start of a line of the question: a multiple-choice option ("A:" and
+# "D:" are already the answer and question labels).
+_OPTION = re.compile(r"^\s*([A-Ha-h])\s*[).]\s+(.+?)\s*$")
+# An answer that only names options: "B", "b)", "A, C", "A e C", "A and C".
+_LETTERS_ANSWER = re.compile(
+    r"^\s*([A-Ha-h])\)?(?:\s*(?:,|;|/|\be\b|\band\b)\s*([A-Ha-h])\)?)*\s*\.?\s*$"
+)
+
+
+def _multiple_choice(pair: QuestionAnswer) -> tuple[str, list[Choice]] | None:
+    """The stem and the options, when the question lists options and the answer names letters."""
+    stem: list[str] = []
+    options: dict[str, str] = {}
+    for line in pair.question_lines:
+        if _PRIORITY_LINE.search(line):
+            continue
+        match = _OPTION.match(line)
+        if match and (options or stem):
+            options[match.group(1).upper()] = match.group(2)
+        elif options:
+            # A wrapped option: it continues the last one.
+            last = list(options)[-1]
+            options[last] = f"{options[last]} {line.strip()}"
+        else:
+            stem.append(line)
+    answer = pair.answer.strip()
+    if len(options) < 2 or not _LETTERS_ANSWER.match(answer):
+        return None
+    # A lowercase "e" between letters is Italian "and"; the option is a capital E.
+    connectors = re.sub(r"(?<=\s)e(?=\s)|\band\b", " ", answer)
+    letters = set(re.findall(r"(?<![A-Za-z])([A-Ha-h])(?![A-Za-z])", connectors))
+    right = {letter.upper() for letter in letters}
+    if not right <= set(options):
+        return None
+    made = [
+        Choice.model_construct(text=text, correct=letter in right)
+        for letter, text in options.items()
+    ]
+    return " ".join(" ".join(stem).split()), made
+
+
 def _item_for(pair: QuestionAnswer, priority: int | None) -> LearningItemCreate:
+    found = _multiple_choice(pair)
+    if found is not None:
+        stem, options = found
+        question = QuestionCreate.model_construct(question_type=QuestionType.RECALL, text=stem)
+        return LearningItemCreate.model_construct(
+            title=_shorten(stem, _TITLE_CHARS),
+            objective=_shorten(stem, _OBJECTIVE_CHARS),
+            expected_knowledge="",
+            essential_points=[],
+            role=LearningItemRole.CORE_TRAINABLE,
+            difficulty=3,
+            priority=priority,
+            questions=[question],
+            choices=options,
+        )
     # model_construct: the user's full answer is kept even beyond the API's input limits, which
     # exist for hand-typed edits; only database column sizes are enforced, by cutting.
     sentences = [s for line in pair.answer.split("\n") for s in split_sentences(line)]

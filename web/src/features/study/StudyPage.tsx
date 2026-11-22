@@ -7,6 +7,7 @@ import { dashboardKey, XpIcon } from "../../app/AppShell";
 import { BrandLogo } from "../../brand/BrandLogo";
 import { AuthImage } from "../../components/AuthImage";
 import { DrawingPad } from "../../components/DrawingPad";
+import { ChoicePicker } from "./ChoicePicker";
 import { HelpTip } from "../../components/HelpTip";
 import { ErrorBanner } from "../../components/QueryState";
 import { dateTime, studyMinutes, userGrades } from "../../components/labels";
@@ -341,6 +342,38 @@ function Answer({
   };
 
   const drawing = card.answer_format === "DRAWING";
+  if (card.answer_format === "CHOICE" && card.choices) {
+    return (
+      <article className="card answer-card">
+        <div className="answer-top">
+          <span className="eyebrow">{card.concept_title}</span>
+          <span className="answer-top-right">
+            <PotentialXp card={card} />
+          </span>
+        </div>
+        <h2 className="question">{card.question.text}</h2>
+        <ChoicePicker
+          questionId={card.question.id}
+          choices={card.choices}
+          multiple={card.multiple ?? false}
+          picked={s.picked}
+          onChange={s.setPicked}
+          disabled={submitting}
+        />
+        <div className="choice-bar">
+          <button type="button" className="primary composer-submit" disabled={!s.canSubmit || submitting} onClick={() => void s.submit()}>
+            {submitting ? t("study.evaluating") : t("choice.check")}
+          </button>
+        </div>
+        <div className="answer-help" role="group" aria-label={t("study.helpGroup")}>
+          <StudyConceptButton card={card} s={s} disabled={submitting} openConcept={openConcept} />
+          <button type="button" className="help-chip" disabled={submitting || s.working} onClick={() => void s.skip()}>
+            <Icon name="skip" size={18} /> {t("study.skip")}
+          </button>
+        </div>
+      </article>
+    );
+  }
   return (
     <article className="card answer-card">
       <div className="answer-top">
@@ -583,7 +616,7 @@ function Result({
       )}
       {gradeMode ? (
         <section className="grades" aria-label={t("study.yourGrade")}>
-          {showDispute && !result.second_opinion && (
+          {showDispute && !result.second_opinion && evaluation?.ai_provider !== "choice" && (
             <DisputeForm working={s.working} onAsk={s.dispute} testAi={evaluation?.ai_provider === "mock"} />
           )}
           <h3>{gradeTitle}</h3>

@@ -26,7 +26,13 @@ from app.ai.schemas import (
     QuestionsRequest,
     SourcePassage,
 )
-from app.core.errors import AINotConfiguredError, AppError, ConflictError, NotFoundError
+from app.core.errors import (
+    AINotConfiguredError,
+    AppError,
+    ConflictError,
+    InvalidRequestError,
+    NotFoundError,
+)
 from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, Topic
 from app.models.curriculum import ConceptSource
@@ -40,6 +46,7 @@ from app.schemas.learning import (
     QuestionGenerate,
 )
 from app.services.courses.service import get_owned_concept, get_owned_course
+from app.services.learning import choices
 from app.services.recovery import STALE_JOB_AFTER
 from app.services.scheduling.policy import get_policy
 from app.services.scheduling.store import policy_for, snapshot_of, store
@@ -297,6 +304,13 @@ def new_item(
         QuestionFormulation(course_id=concept.course_id, question_type=q.question_type, text=q.text)
         for q in proposed.questions
     ]
+    options = getattr(proposed, "choices", None)
+    if options:
+        normal = choices.normalized(options)
+        reason = choices.problem(normal)
+        if reason:
+            raise InvalidRequestError(reason)
+        choices.apply(item, normal)
     db.add(item)
     db.flush()
     return item
@@ -344,8 +358,24 @@ def update_item(
     """Edits content. Memory state is untouched: rewording an item doesn't reset what the user
     remembers (and only the SchedulingPolicy moves it anyway)."""
     item = get_owned_item(db, user_id, item_id)
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    changes = payload.model_dump(exclude_unset=True)
+    options = changes.pop("choices", None)
+    for field, value in changes.items():
         setattr(item, field, value)
+    if "choices" in payload.model_fields_set:
+        if options:
+            if item.answer_format == "DRAWING":
+                raise ConflictError(
+                    "A drawing question can't also be multiple choice.",
+                    details={"reason": "drawing_question"},
+                )
+            normal = choices.normalized(options)
+            reason = choices.problem(normal)
+            if reason:
+                raise InvalidRequestError(reason)
+            choices.apply(item, normal)
+        else:
+            choices.apply(item, None)
     db.commit()
     db.refresh(item)
     return item

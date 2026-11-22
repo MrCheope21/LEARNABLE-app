@@ -356,6 +356,23 @@
       "AnswerCreate": {
         "additionalProperties": false,
         "properties": {
+          "choices": {
+            "anyOf": [
+              {
+                "items": {
+                  "maximum": 7.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "maxItems": 8,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choices"
+          },
           "drawing": {
             "anyOf": [
               {
@@ -1060,6 +1077,20 @@
             "title": "Answer Format",
             "type": "string"
           },
+          "choices": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choices"
+          },
           "concept_id": {
             "format": "uuid",
             "title": "Concept Id",
@@ -1093,6 +1124,11 @@
             "format": "uuid",
             "title": "Learning Item Id",
             "type": "string"
+          },
+          "multiple": {
+            "default": false,
+            "title": "Multiple",
+            "type": "boolean"
           },
           "pending_answer_id": {
             "anyOf": [
@@ -1453,6 +1489,64 @@
           }
         },
         "title": "CheckoutStart",
+        "type": "object"
+      },
+      "Choice": {
+        "additionalProperties": false,
+        "description": "One option of a multiple-choice question.",
+        "properties": {
+          "correct": {
+            "default": false,
+            "title": "Correct",
+            "type": "boolean"
+          },
+          "text": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Choice",
+        "type": "object"
+      },
+      "ChoiceOption": {
+        "properties": {
+          "correct": {
+            "title": "Correct",
+            "type": "boolean"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "correct"
+        ],
+        "title": "ChoiceOption",
+        "type": "object"
+      },
+      "ChoiceRead": {
+        "properties": {
+          "correct": {
+            "title": "Correct",
+            "type": "boolean"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "correct"
+        ],
+        "title": "ChoiceRead",
         "type": "object"
       },
       "ChunkRead": {
@@ -3973,6 +4067,21 @@
         "additionalProperties": false,
         "description": "A Learning Item the user writes by hand, e.g. for a Concept with no source material.",
         "properties": {
+          "choices": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Choice"
+                },
+                "maxItems": 8,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choices"
+          },
           "difficulty": {
             "default": 3,
             "maximum": 5.0,
@@ -4072,6 +4181,20 @@
             "format": "uuid",
             "title": "Chapter Id",
             "type": "string"
+          },
+          "choices": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChoiceRead"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choices"
           },
           "concept_id": {
             "format": "uuid",
@@ -4221,6 +4344,21 @@
       "LearningItemUpdate": {
         "additionalProperties": false,
         "properties": {
+          "choices": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Choice"
+                },
+                "maxItems": 8,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choices"
+          },
           "difficulty": {
             "anyOf": [
               {
@@ -5586,6 +5724,20 @@
       },
       "OfflineCard": {
         "properties": {
+          "choices": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChoiceOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choices"
+          },
           "drawing": {
             "title": "Drawing",
             "type": "boolean"
@@ -15920,7 +16072,7 @@
     },
     "/api/v1/review-sessions/{session_id}/answers": {
       "post": {
-        "description": "Stores the answer, evaluates it, resolves the outcome and applies it. Always 201 once\nthe answer is stored, even if evaluation failed (`needs_self_grade`). A drawing question\ntakes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`.",
+        "description": "Stores the answer, evaluates it, resolves the outcome and applies it. Always 201 once\nthe answer is stored, even if evaluation failed (`needs_self_grade`). A drawing question\ntakes `drawing` (a PNG/JPEG/WebP data URL) instead of `text`; a multiple-choice question\ntakes `choices`, is graded without AI and doesn't count against the AI allowance.",
         "operationId": "submit_answer_api_v1_review_sessions__session_id__answers_post",
         "parameters": [
           {

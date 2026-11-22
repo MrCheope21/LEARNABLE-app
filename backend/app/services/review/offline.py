@@ -23,7 +23,13 @@ from app.models.enums import AnswerMethod, MemoryState, SelectionMode, SessionIn
 from app.models.learning import LearningItem, ReviewState
 from app.models.review import Answer, ReviewSession
 from app.models.user import User
-from app.schemas.review import OfflineAnswer, OfflineCard, OfflinePack, OfflineSyncResult
+from app.schemas.review import (
+    ChoiceOption,
+    OfflineAnswer,
+    OfflineCard,
+    OfflinePack,
+    OfflineSyncResult,
+)
 from app.services.courses.service import get_owned_course
 from app.services.review import service as review
 from app.services.review.pool import eligible_items
@@ -69,6 +75,7 @@ def pack(
                 essential_points=list(item.essential_points),
                 due_at=item.review_state.due_at or now,
                 drawing=item.answer_format == "DRAWING",
+                choices=[ChoiceOption(**c) for c in item.choices] if item.choices else None,
             )
         )
     cards.sort(key=lambda card: card.due_at)

@@ -360,6 +360,7 @@ function QuestionRow({
       <div className="question-text">
         <span>
           {first} <PriorityBadge priority={item.priority} />
+          {item.answer_format === "CHOICE" && <span className="pill">{t("choice.badge")}</span>}
         </span>
         <span className="hint">
           {others > 0 && `${t(others === 1 ? "q.otherWordings.one" : "q.otherWordings.other", { n: others })} · `}
@@ -394,6 +395,17 @@ function ItemEditor({ item, onSaved }: { item: Item; onSaved: () => void }) {
   const [answer, setAnswer] = useState(item.expected_knowledge);
   const [points, setPoints] = useState(item.essential_points.join("\n"));
   const [priority, setPriority] = useState(item.priority);
+  // Multiple choice: on when the item has options; off sends [] to turn it back into a written answer.
+  const [choosing, setChoosing] = useState(item.answer_format === "CHOICE");
+  const [options, setOptions] = useState<{ text: string; correct: boolean }[]>(
+    item.choices?.length ? item.choices.map((c) => ({ text: c.text, correct: c.correct })) : [
+      { text: "", correct: true },
+      { text: "", correct: false },
+      { text: "", correct: false },
+    ],
+  );
+  const filled = options.filter((o) => o.text.trim());
+  const optionsValid = !choosing || (filled.length >= 2 && filled.some((o) => o.correct));
   const save = useMutation({
     mutationFn: async () => {
       const keyPoints = points
@@ -401,7 +413,18 @@ function ItemEditor({ item, onSaved }: { item: Item; onSaved: () => void }) {
         .map((p) => p.trim())
         .filter(Boolean)
         .slice(0, 10);
-      await learningItems.update(item.id, { title: title.trim(), expected_knowledge: answer, essential_points: keyPoints, priority });
+      const choices = choosing
+        ? filled.map((o) => ({ text: o.text.trim(), correct: o.correct }))
+        : item.answer_format === "CHOICE"
+          ? []
+          : undefined;
+      await learningItems.update(item.id, {
+        title: title.trim(),
+        expected_knowledge: answer,
+        essential_points: keyPoints,
+        priority,
+        ...(choices !== undefined ? { choices } : {}),
+      });
       for (const id of removed) await learningItems.deleteQuestion(id);
       for (const wording of wordings) {
         const text = wording.text.trim();
@@ -454,9 +477,52 @@ function ItemEditor({ item, onSaved }: { item: Item; onSaved: () => void }) {
           {t("q.addWording")}
         </button>
       </fieldset>
+      {item.answer_format !== "DRAWING" && (
+        <fieldset className="choice-editor">
+          <legend>{t("choice.editorTitle")}</legend>
+          <label className="toggle">
+            <input type="checkbox" checked={choosing} onChange={(e) => setChoosing(e.target.checked)} />
+            {t("choice.enable")}
+          </label>
+          {choosing && (
+            <>
+              <p className="hint">{t("choice.editorHint")}</p>
+              <ol className="choice-edit-list">
+                {options.map((option, index) => (
+                  <li key={index}>
+                    <input
+                      aria-label={t("choice.optionN", { n: index + 1 })}
+                      value={option.text}
+                      maxLength={500}
+                      onChange={(e) => setOptions(options.map((o, i) => (i === index ? { ...o, text: e.target.value } : o)))}
+                    />
+                    <label className="choice-correct">
+                      <input
+                        type="checkbox"
+                        checked={option.correct}
+                        onChange={(e) => setOptions(options.map((o, i) => (i === index ? { ...o, correct: e.target.checked } : o)))}
+                      />
+                      {t("choice.correct")}
+                    </label>
+                    <button type="button" className="link danger" disabled={options.length <= 2} onClick={() => setOptions(options.filter((_, i) => i !== index))}>
+                      {t("common.remove")}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              {options.length < 8 && (
+                <button type="button" className="link" onClick={() => setOptions([...options, { text: "", correct: false }])}>
+                  {t("choice.addOption")}
+                </button>
+              )}
+              {!optionsValid && <p className="error">{t("choice.invalid")}</p>}
+            </>
+          )}
+        </fieldset>
+      )}
       <label>
-        {t("q.expected")}
-        <textarea rows={5} value={answer} onChange={(e) => setAnswer(e.target.value)} />
+        {choosing ? t("choice.explanation") : t("q.expected")}
+        <textarea rows={choosing ? 3 : 5} value={answer} onChange={(e) => setAnswer(e.target.value)} />
       </label>
       <label>
         {t("priority.label")}
@@ -472,7 +538,7 @@ function ItemEditor({ item, onSaved }: { item: Item; onSaved: () => void }) {
       </label>
       <ErrorBanner error={save.error} />
       <div className="actions">
-        <button type="submit" className="primary" disabled={save.isPending || !title.trim() || kept === 0}>
+        <button type="submit" className="primary" disabled={save.isPending || !title.trim() || kept === 0 || !optionsValid}>
           {save.isPending ? t("common.saving") : t("common.save")}
         </button>
       </div>

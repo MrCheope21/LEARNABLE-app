@@ -49,6 +49,8 @@ class QuestionAnswer:
     heading: str | None
     page: int | None
     page_end: int | None = None
+    # The question's own lines as written (multiple-choice options are found in them).
+    question_lines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -85,7 +87,14 @@ def parse_question_bank(blocks: list[Block]) -> ParseResult:
             else:
                 page_end = draft.last_page if draft.last_page != draft.page else None
                 result.pairs.append(
-                    QuestionAnswer(question, answer, draft.heading, draft.page, page_end)
+                    QuestionAnswer(
+                        question,
+                        answer,
+                        draft.heading,
+                        draft.page,
+                        page_end,
+                        [line for line in draft.question if line.strip()],
+                    )
                 )
         elif question:
             result.unanswered_pages.append(draft.page)

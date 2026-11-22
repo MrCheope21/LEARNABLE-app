@@ -55,6 +55,7 @@ from app.schemas.marketplace import (
 )
 from app.services import drawings, interests, notifications, payments
 from app.services.courses.service import get_owned_course
+from app.services.learning import choices
 from app.services.learning.service import new_item
 from app.services.managed_courses import ensure_editable, syncing
 from app.storage.documents import DocumentStorage
@@ -384,6 +385,7 @@ def _item(
         "difficulty": item.difficulty,
         "priority": item.priority,
         "drawing_type": drawing_type,
+        "choices": item.choices,
         "questions": [
             {"question_type": q.question_type.value, "text": q.text} for q in item.questions
         ],
@@ -766,6 +768,7 @@ def _sync_item(
             item.priority = data["priority"]
         item.origin_priority = data["priority"]
         _sync_questions(item, data["questions"])
+    choices.apply(item, data.get("choices"))
     if data["drawing_type"]:
         storage.save(
             drawings.reference_key(item),
@@ -775,7 +778,7 @@ def _sync_item(
         item.reference_drawing_type = data["drawing_type"]
     elif item.reference_drawing_type:
         storage.delete(drawings.reference_key(item))
-        item.answer_format = "TEXT"
+        item.answer_format = "CHOICE" if item.choices else "TEXT"
         item.reference_drawing_type = None
 
 
