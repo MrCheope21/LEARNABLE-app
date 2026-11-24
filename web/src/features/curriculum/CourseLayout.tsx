@@ -1,4 +1,5 @@
 import { useQuery, type QueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { NavLink, Outlet, useParams } from "react-router-dom";
 import { courses } from "../../api/endpoints";
 import { CollapseToggle, useCollapsed } from "../../components/Collapsible";
@@ -26,6 +27,9 @@ export function CourseLayout() {
   const { courseId = "", chapterId, topicId, conceptId } = useParams();
   const course = useQuery({ queryKey: ["course", courseId], queryFn: () => courses.get(courseId) });
   const tree = useCollapsed(`learnable.tree-collapsed.${courseId}`);
+  // Topics start closed (a topic may hold hundreds of concepts): these are the ones opened.
+  const openedTopics = useCollapsed(`learnable.tree-opened.${courseId}`);
+  const [find, setFind] = useState("");
   const outline = useQuery({ queryKey: outlineKey(courseId), queryFn: () => courses.outline(courseId) });
   const readOnly = Boolean(course.data?.marketplace_listing_id);
   const { t } = useI18n();
@@ -38,6 +42,14 @@ export function CourseLayout() {
         <NavLink end to={`/courses/${courseId}`} className="tree-course">
           {course.data?.title ?? t("course.fallback")}
         </NavLink>
+        <input
+          type="search"
+          className="tree-find"
+          value={find}
+          placeholder={t("tree.find")}
+          aria-label={t("tree.find")}
+          onChange={(e) => setFind(e.target.value)}
+        />
         <QueryState query={outline} label={t("course.loadingCurriculum")}>
           {(chapters) => {
             // The branch holding the page you're on stays open, even if you collapsed it.
@@ -45,10 +57,24 @@ export function CourseLayout() {
               (c) => c.id === chapterId || c.topics.some((t) => t.id === topicId || t.concepts.some((k) => k.id === conceptId)),
             );
             const openTopic = openChapter?.topics.find((t) => t.id === topicId || t.concepts.some((k) => k.id === conceptId));
-            const expanded = (id: string, open: boolean) => open || !tree.isCollapsed(id);
+            const needle = find.trim().toLocaleLowerCase();
+            const hit = (text: string) => !needle || text.toLocaleLowerCase().includes(needle);
+            // Searching: every branch with a match is open and the rest is left out.
+            const expanded = (id: string, open: boolean) => Boolean(needle) || open || !tree.isCollapsed(id);
+            const topicExpanded = (id: string, open: boolean) => Boolean(needle) || open || openedTopics.isCollapsed(id);
+            const shownChapters = chapters
+              .map((chapter) => {
+                if (!needle || hit(chapter.title)) return chapter;
+                const topics = chapter.topics
+                  .map((topic) => (hit(topic.title) ? topic : { ...topic, concepts: topic.concepts.filter((k) => hit(k.title)) }))
+                  .filter((topic) => hit(topic.title) || topic.concepts.length > 0);
+                return { ...chapter, topics };
+              })
+              .filter((chapter) => !needle || hit(chapter.title) || chapter.topics.length > 0);
             return (
               <ul>
-                {chapters.map((chapter) => {
+                {shownChapters.length === 0 && <li className="hint">{t("tree.noMatch")}</li>}
+                {shownChapters.map((chapter) => {
                   const chapterOpen = expanded(chapter.id, chapter.id === openChapter?.id && chapter.id !== chapterId);
                   return (
                     <li key={chapter.id}>
@@ -70,14 +96,14 @@ export function CourseLayout() {
                       {chapter.topics.length > 0 && (
                         <ul id={`tree-${chapter.id}`} hidden={!chapterOpen}>
                           {chapter.topics.map((topic) => {
-                            const topicOpen = expanded(topic.id, topic.id === openTopic?.id && topic.id !== topicId);
+                            const topicOpen = topicExpanded(topic.id, topic.id === openTopic?.id);
                             return (
                               <li key={topic.id}>
                                 <div className="tree-row">
                                   {topic.concepts.length > 0 ? (
                                     <CollapseToggle
                                       expanded={topicOpen}
-                                      onToggle={() => tree.toggle(topic.id)}
+                                      onToggle={() => openedTopics.toggle(topic.id)}
                                       label={topic.title}
                                       controls={`tree-${topic.id}`}
                                     />
@@ -87,6 +113,7 @@ export function CourseLayout() {
                                   <NavLink to={`/courses/${courseId}/topics/${topic.id}`} className="tree-topic">
                                     {topic.title}
                                   </NavLink>
+                                  {topic.concepts.length > 0 && <span className="tree-count">{topic.concepts.length}</span>}
                                 </div>
                                 {topic.concepts.length > 0 && (
                                   <ul id={`tree-${topic.id}`} hidden={!topicOpen}>

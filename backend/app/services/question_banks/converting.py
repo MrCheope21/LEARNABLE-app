@@ -17,11 +17,13 @@ topic. Every sheet of a workbook is read; with several, each sheet is a topic.
 
 Anki: notes are read from the collection inside the package; the first field is the question
 and the second the answer, cloze notes ({{c1::…}}) ask the sentence with the gap and answer
-with it filled in. Formatting, images and sounds are dropped. Packages exported only in the
-newest format (collection.anki21b) can't be read: Anki's "Support older Anki versions" option
-makes one that can.
+with it filled in. Formatting and sounds are dropped; a picture on the back of a card becomes
+the expected drawing (the deck is then converted to a Word file, which can hold pictures).
+Packages exported only in the newest format (collection.anki21b) can't be read: Anki's
+"Support older Anki versions" option makes one that can.
 """
 
+import contextlib
 import csv
 import html
 import io
@@ -44,12 +46,15 @@ class Card:
     answer: str
     topic: str | None = None
     priority: str | None = None
+    # A picture on the back of an Anki card: the expected drawing.
+    answer_image: bytes | None = None
 
 
 @dataclass(frozen=True)
 class Converted:
     filename: str
-    text: str
+    # The labelled text (a .md file), or a Word file when some answers are pictures.
+    data: bytes
     cards: int
 
 
@@ -99,7 +104,10 @@ def convert(filename: str, data: bytes) -> Converted:
             )
         )
     stem = PureWindowsPath(filename).stem or "domande"
-    return Converted(f"{stem}.md"[:255], _as_text(cards[:MAX_ROWS]), min(len(cards), MAX_ROWS))
+    kept = cards[:MAX_ROWS]
+    if any(card.answer_image for card in kept):
+        return Converted(f"{stem}.docx"[:255], _as_docx(kept), len(kept))
+    return Converted(f"{stem}.md"[:255], _as_text(kept).encode(), len(kept))
 
 
 # --- The labelled text ---
@@ -130,6 +138,35 @@ def _as_text(cards: list[Card]) -> str:
             out.append(f"Priorità: {card.priority}")
         out.append("")
     return "\n".join(out).strip() + "\n"
+
+
+def _as_docx(cards: list[Card]) -> bytes:
+    """The same labelled format as a Word file, with the answer pictures under "Risposta:"
+    (read back by the DOCX extraction, services/documents/extraction.py)."""
+    from docx import Document
+    from docx.shared import Cm
+
+    document = Document()
+    topic: str | None = None
+    for card in cards:
+        if card.topic and card.topic != topic:
+            topic = card.topic
+            document.add_heading(" ".join(topic.split()), level=1)
+        for line in f"Domanda: {_safe(card.question)}".split("\n"):
+            document.add_paragraph(line)
+        answer_lines = f"Risposta: {_safe(card.answer)}".split("\n")
+        for line in answer_lines:
+            document.add_paragraph(line)
+        if card.answer_image:
+            # A format Word can't hold (e.g. WebP) is left out: the card keeps its text answer.
+            with contextlib.suppress(Exception):
+                document.add_picture(io.BytesIO(card.answer_image), width=Cm(8))
+        if card.priority:
+            document.add_paragraph(f"Priorità: {card.priority}")
+        document.add_paragraph("")
+    out = io.BytesIO()
+    document.save(out)
+    return out.getvalue()
 
 
 # --- Spreadsheets ---
@@ -243,7 +280,28 @@ def _plain(field: str) -> str:
     return "\n".join(line for line in lines if line)
 
 
-def _note_card(fields: list[str]) -> tuple[str, str] | None:
+_IMAGE_SRC = re.compile(r"<img[^>]*\bsrc\s*=\s*[\"']?([^\"'>\s]+)", re.IGNORECASE)
+
+
+def _note_card(
+    fields: list[str], media: dict[str, bytes] | None = None
+) -> tuple[str, str, bytes | None] | None:
+    """Question, answer and the first picture of the answer side (when `media` has it)."""
+    made = _note_text(fields)
+    picture = None
+    if media and len(fields) > 1:
+        found = _IMAGE_SRC.search(fields[1])
+        if found:
+            picture = media.get(html.unescape(found.group(1)))
+    if made is None:
+        # A card whose back is only a picture: a drawing question.
+        if picture is not None and fields and _plain(fields[0]):
+            return _plain(fields[0]), "", picture
+        return None
+    return made[0], made[1], picture
+
+
+def _note_text(fields: list[str]) -> tuple[str, str] | None:
     first = fields[0] if fields else ""
     if _CLOZE.search(first):
         question = _plain(_CLOZE.sub(lambda m: f"[{m.group(2) or '…'}]", first))
@@ -274,10 +332,21 @@ def _from_anki(data: bytes, names: set[str]) -> list[Card]:
             "This Anki package uses the newest format. In Anki, export the deck again with "
             '"Support older Anki versions" ticked, then upload that file.'
         )
+    media: dict[str, bytes] = {}
     with tempfile.TemporaryDirectory() as folder:
         path = Path(folder) / "collection.sqlite"
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             path.write_bytes(archive.read(entry))
+            # "media" maps the archive's numbered entries to the file names the notes use.
+            try:
+                mapping = json.loads(archive.read("media") or b"{}") if "media" in names else {}
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                mapping = {}
+            for number, name in mapping.items() if isinstance(mapping, dict) else []:
+                if str(number) in names and str(name).lower().endswith(
+                    (".png", ".jpg", ".jpeg", ".webp")
+                ):
+                    media[str(name)] = archive.read(str(number))
         try:
             db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
             try:
@@ -293,10 +362,10 @@ def _from_anki(data: bytes, names: set[str]) -> list[Card]:
     single_deck = len({did for _, did in rows}) <= 1
     cards: list[Card] = []
     for fields, did in rows[: MAX_ROWS + 1]:
-        made = _note_card(str(fields).split("\x1f"))
+        made = _note_card(str(fields).split("\x1f"), media)
         if made is None:
             continue
         deck = decks.get(int(did)) if did is not None else None
         topic = None if single_deck or not deck else deck.replace("::", " / ")
-        cards.append(Card(made[0], made[1], topic))
+        cards.append(Card(made[0], made[1], topic, answer_image=made[2]))
     return cards

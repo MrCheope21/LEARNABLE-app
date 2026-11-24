@@ -121,6 +121,7 @@ export function MaterialPanel({ courseId, chapterId }: { courseId: string; chapt
         <p>
           <strong>{t("mat.importOther")}</strong> {t("mat.importOtherBody")}
         </p>
+        <p>{t("mat.drawingImport")}</p>
         <PriorityHelp />
         <ChatbotPrompt />
       </details>

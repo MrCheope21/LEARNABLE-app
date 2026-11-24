@@ -14,6 +14,7 @@ from pathlib import PurePath
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.errors import AppError
 from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, Topic
 from app.models.curriculum import ConceptSource
@@ -21,10 +22,12 @@ from app.models.document import Document, DocumentChunk
 from app.models.enums import ItemGenerationStatus, LearningItemRole, QuestionType
 from app.models.learning import LearningItemSource
 from app.schemas.learning import Choice, LearningItemCreate, QuestionCreate
+from app.services import drawings
 from app.services.documents.blocks import Block
 from app.services.documents.sentences import split_sentences
 from app.services.learning.service import new_item
 from app.services.question_banks.parsing import MAX_PAIRS, QuestionAnswer, parse_question_bank
+from app.storage.documents import DocumentStorage
 
 NO_PAIRS = (
     'No questions were found. Start each question with "Domanda:" (or "Question:") and each '
@@ -49,9 +52,18 @@ class NoQuestionsFoundError(Exception):
     pass
 
 
-def import_question_bank(db: Session, document: Document, blocks: list[Block]) -> ImportResult:
-    """Adds chunks, hierarchy and items to the session; the caller commits."""
+def import_question_bank(
+    db: Session,
+    document: Document,
+    blocks: list[Block],
+    images: list[bytes] | None = None,
+    storage: DocumentStorage | None = None,
+) -> ImportResult:
+    """Adds chunks, hierarchy and items to the session; the caller commits. A picture under an
+    answer (`images`, from a Word file) makes the item a drawing question with that picture as
+    its reference drawing, saved in `storage`."""
     parsed = parse_question_bank(blocks)
+    skipped_pictures = 0
     if not parsed.pairs:
         raise NoQuestionsFoundError(NO_PAIRS)
     course = db.get(Course, document.course_id)
@@ -102,10 +114,29 @@ def import_question_bank(db: Session, document: Document, blocks: list[Block]) -
         db.flush()
         db.add(ConceptSource(concept_id=concept.id, chunk_id=chunk.id, course_id=course.id))
         item = new_item(db, concept, _item_for(pair, priority), order=0)
+        if pair.answer_images and storage is not None:
+            pictures = images or []
+            index = pair.answer_images[0]
+            picture = pictures[index] if index < len(pictures) else b""
+            try:
+                media_type = drawings.image_type(picture)
+            except AppError:
+                skipped_pictures += 1  # not PNG/JPEG/WebP, or over 3 MB: stays a text question
+            else:
+                storage.save(drawings.reference_key(item), picture)
+                item.answer_format = "DRAWING"
+                item.reference_drawing_type = media_type
         db.add(LearningItemSource(learning_item_id=item.id, chunk_id=chunk.id, course_id=course.id))
 
     document.analyzed_at = utc_now()
-    return ImportResult(len(parsed.pairs), _notice(parsed.unanswered_pages, parsed.truncated))
+    notice = _notice(parsed.unanswered_pages, parsed.truncated)
+    if skipped_pictures:
+        extra = (
+            f"{skipped_pictures} picture(s) in answers couldn't be used as drawings "
+            "(PNG, JPEG or WebP up to 3 MB)."
+        )
+        notice = f"{notice} {extra}" if notice else extra
+    return ImportResult(len(parsed.pairs), notice)
 
 
 def _chapter_for(db: Session, document: Document) -> Chapter:
@@ -292,9 +323,11 @@ def _item_for(pair: QuestionAnswer, priority: int | None) -> LearningItemCreate:
 
 
 def _passage_text(pair: QuestionAnswer, language: str) -> str:
-    if language.split("-")[0].lower() == "it":
-        return f"Domanda: {pair.question}\n\nRisposta: {pair.answer}"
-    return f"Question: {pair.question}\n\nAnswer: {pair.answer}"
+    italian = language.split("-")[0].lower() == "it"
+    answer = pair.answer or ("[disegno]" if italian else "[drawing]")
+    if italian:
+        return f"Domanda: {pair.question}\n\nRisposta: {answer}"
+    return f"Question: {pair.question}\n\nAnswer: {answer}"
 
 
 def _shorten(text: str, limit: int) -> str:

@@ -400,3 +400,12 @@ summary.know-row .know-name::before { content: "▸"; display: inline-block; wid
 .choice-edit-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.7rem; }
 .choice-edit-list li > input { flex: 1 1 14rem; min-width: 0; }
 .choice-correct { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; }
+
+/* ---------- Course navigation and the questions list (lighter for long courses) ---------- */
+.tree-find { width: 100%; margin: 0.4rem 0 0.6rem; min-height: 38px; }
+.tree-count { margin-inline-start: auto; padding: 0 0.4rem; font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.row-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.2rem 0.6rem; justify-content: flex-end; }
+.icon-button { display: inline-grid; place-items: center; min-width: 36px; min-height: 36px; padding: 0; border-radius: 50%; border: 0; background: none; color: var(--muted); }
+.icon-button.danger:hover:not(:disabled) { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
+.question-single { padding-inline-start: 0.2rem; }
+.show-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.6rem 1rem; margin: 1rem 0; }

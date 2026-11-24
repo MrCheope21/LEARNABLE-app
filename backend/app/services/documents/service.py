@@ -73,7 +73,7 @@ def upload_document(
             raise UnsupportedMediaTypeError(str(exc)) from exc
         filename, data, purpose = (
             converted.filename,
-            converted.text.encode(),
+            converted.data,
             DocumentPurpose.QUESTION_BANK,
         )
     detected = detect_type(filename or "", data)
@@ -143,7 +143,9 @@ def process_document(
         try:
             extraction = extract(document.kind, storage.load(document.storage_key))
             if document.purpose is DocumentPurpose.QUESTION_BANK:
-                imported = import_question_bank(db, document, extraction.blocks)
+                imported = import_question_bank(
+                    db, document, extraction.blocks, extraction.images, storage
+                )
                 document.page_count = extraction.page_count
                 document.chunk_count = imported.pairs
                 document.import_notice = imported.notice

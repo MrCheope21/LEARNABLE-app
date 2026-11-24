@@ -663,3 +663,12 @@ days; `status` is `on_track`, `behind`, `done` (nothing new left) or `past`.
   Front, Risposta/Answer/Back, Argomento/Topic/Deck, Priorità/Priority) or taken in order.
 - Evaluations carry `gap`: one sentence on what the answer lacked compared with the reference
   answer (prompt `answer_evaluation_v3`); empty when nothing did and on older evaluations.
+
+## Drawings as answers in question banks
+
+In a Word question bank, a picture right under "Risposta:" makes that question a drawing
+question with the picture as its reference drawing (PNG, JPEG or WebP up to 3 MB; others stay
+text questions and the import notice says how many). An Anki card with a picture on its back
+does the same: such a deck is converted to a Word file instead of text. Answers are then drawn
+and evaluated by the AI against the reference drawing, as for drawings set by hand. Pictures in
+PDF files and spreadsheets are not read.

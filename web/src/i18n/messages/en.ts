@@ -1344,6 +1344,21 @@ export const en = {
   "choice.invalid": "Write at least 2 options and tick at least one as right.",
   "choice.explanation": "Explanation (optional, shown after answering)",
   "offline.next": "Next",
+  "q.deleteOneConfirm": "Delete this question for good, with its history?\n\n{text}",
+  "q.deleteOne": "Delete: {text}",
+  "q.pauseOne": "Leave out",
+  "q.resumeOne": "Include again",
+  "q.pauseOneHint": "Not asked in reviews any more; nothing is deleted.",
+  "q.resumeOneHint": "Asked in reviews again, from where it was.",
+  "q.chapterFilter": "Chapter",
+  "q.allChapters": "All chapters",
+  "q.topicFilter": "Topic",
+  "q.allTopics": "All topics",
+  "q.shownOf": "{n} of {total} questions shown",
+  "q.showMore": "Show {n} more",
+  "tree.find": "Find a chapter, topic or question",
+  "tree.noMatch": "Nothing matches.",
+  "mat.drawingImport": "Drawings as answers: in a Word file (.docx), put the picture right under \"Risposta:\"; in Anki, put it on the back of the card. The question becomes a drawing question: you answer by drawing, and the AI compares your drawing with that one.",
 } as const;
 
 export type MessageKey = keyof typeof en;

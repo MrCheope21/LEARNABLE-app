@@ -46,7 +46,8 @@ def make_apkg(tmp_path: Path, notes, decks=None, entry="collection.anki2", extra
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
         archive.writestr(entry, path.read_bytes())
-        archive.writestr("media", "{}")
+        if "media" not in (extra or {}):
+            archive.writestr("media", "{}")
         for name, content in (extra or {}).items():
             archive.writestr(name, content)
     return buffer.getvalue()

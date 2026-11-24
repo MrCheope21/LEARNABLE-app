@@ -20,7 +20,7 @@ paragraphs and pages. Document headings group the questions into topics.
 import re
 from dataclasses import dataclass, field
 
-from app.services.documents.blocks import Block
+from app.services.documents.blocks import IMAGE_MARKER, Block
 from app.services.documents.cleaning import clean_text
 
 MAX_PAIRS = 2000
@@ -36,6 +36,7 @@ _ANSWER = re.compile(
     r"^\s*(?:[-*•]\s*)?"
     rf"(?:(?:(?i:risposta|soluzione|answer)){_NUMBER}\s*{_SEPARATOR}|[RA]{_NUMBER}\s*:)\s*"
 )
+_PICTURE = re.compile(IMAGE_MARKER.replace("{}", r"(\d+)"))
 _LIST_ITEM = re.compile(r"\s*(?:[-*•]|\d+[.)]|[a-z]\))\s")
 # An answer label later on the question's own line: full words only, after whitespace.
 _INLINE_ANSWER = re.compile(r"\s(?i:risposta|soluzione|answer)\s*:\s*")
@@ -51,6 +52,8 @@ class QuestionAnswer:
     page_end: int | None = None
     # The question's own lines as written (multiple-choice options are found in them).
     question_lines: list[str] = field(default_factory=list)
+    # Pictures under "Risposta:" (Extraction.images indexes): a drawing as the expected answer.
+    answer_images: list[int] = field(default_factory=list)
 
 
 @dataclass
@@ -68,6 +71,7 @@ class _Draft:
     question: list[str] = field(default_factory=list)
     answer: list[str] | None = None
     last_page: int | None = None
+    answer_images: list[int] = field(default_factory=list)
 
 
 def parse_question_bank(blocks: list[Block]) -> ParseResult:
@@ -81,7 +85,7 @@ def parse_question_bank(blocks: list[Block]) -> ParseResult:
             return
         question = clean_text("\n".join(draft.question))
         answer = _paragraphs(draft.answer or [])
-        if question and answer:
+        if question and (answer or draft.answer_images):
             if len(result.pairs) >= MAX_PAIRS:
                 result.truncated = True
             else:
@@ -94,6 +98,7 @@ def parse_question_bank(blocks: list[Block]) -> ParseResult:
                         draft.page,
                         page_end,
                         [line for line in draft.question if line.strip()],
+                        list(draft.answer_images),
                     )
                 )
         elif question:
@@ -101,6 +106,12 @@ def parse_question_bank(blocks: list[Block]) -> ParseResult:
         draft = None
 
     for block in blocks:
+        picture = _PICTURE.fullmatch(block.text.strip())
+        if picture:
+            # A picture in the answer is the expected drawing; elsewhere it is ignored.
+            if draft is not None and draft.answer is not None:
+                draft.answer_images.append(int(picture.group(1)))
+            continue
         for line in block.text.split("\n"):
             question_label = _QUESTION.match(line)
             answer_label = _ANSWER.match(line)
