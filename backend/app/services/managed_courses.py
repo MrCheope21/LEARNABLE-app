@@ -48,6 +48,7 @@ _CONTENT: dict[type, frozenset[str]] = {
             "answer_format",
             "reference_drawing_type",
             "choices",
+            "question_image_type",
             "order",
             "concept_id",
             "topic_id",

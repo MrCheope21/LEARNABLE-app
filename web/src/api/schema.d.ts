@@ -1220,6 +1220,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courses/{course_id}/learning-items/detect-choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Detect Choices
+         * @description Finds the course's questions that list options (A, B, C…) with letters as the answer
+         *     and makes them multiple choice. Memory state and history are kept.
+         */
+        post: operations["detect_choices_api_v1_courses__course_id__learning_items_detect_choices_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/courses/{course_id}/marketplace": {
         parameters: {
             query?: never;
@@ -1780,6 +1801,28 @@ export interface paths {
         /** Pause Learning Item */
         post: operations["pause_learning_item_api_v1_learning_items__item_id__pause_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/learning-items/{item_id}/question-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Question Image */
+        get: operations["question_image_api_v1_learning_items__item_id__question_image_get"];
+        /**
+         * Set Question Image
+         * @description A picture shown with the question (PNG, JPEG or WebP, 3 MB at most).
+         */
+        put: operations["set_question_image_api_v1_learning_items__item_id__question_image_put"];
+        post?: never;
+        /** Remove Question Image */
+        delete: operations["remove_question_image_api_v1_learning_items__item_id__question_image_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3004,6 +3047,11 @@ export interface components {
              */
             user_id: string;
         };
+        /** Body_set_question_image_api_v1_learning_items__item_id__question_image_put */
+        Body_set_question_image_api_v1_learning_items__item_id__question_image_put: {
+            /** File */
+            file: string;
+        };
         /** Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put */
         Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put: {
             /** File */
@@ -3083,6 +3131,11 @@ export interface components {
             pending_answer_id: string | null;
             potential_xp?: components["schemas"]["PotentialXp"] | null;
             question: components["schemas"]["CardQuestion"];
+            /**
+             * Question Image
+             * @default false
+             */
+            question_image: boolean;
             /** Round */
             round?: number | null;
             /** Rounds Total */
@@ -3243,6 +3296,11 @@ export interface components {
             correct: boolean;
             /** Text */
             text: string;
+        };
+        /** ChoicesConverted */
+        ChoicesConverted: {
+            /** Converted */
+            converted: number;
         };
         /**
          * ChunkRead
@@ -4213,6 +4271,8 @@ export interface components {
             priority: number;
             /** Prompt Version */
             prompt_version: string | null;
+            /** Question Image Type */
+            question_image_type?: string | null;
             /** Questions */
             questions: components["schemas"]["QuestionRead"][];
             review_state: components["schemas"]["MemoryRead"];
@@ -5127,6 +5187,8 @@ export interface components {
          * @description The correct answer and where it comes from, shown with the feedback (spec §41, §66).
          */
         Reference: {
+            /** Choices */
+            choices?: components["schemas"]["ChoiceOption"][] | null;
             /**
              * Drawing
              * @default false
@@ -5136,6 +5198,11 @@ export interface components {
             essential_points: string[];
             /** Expected Knowledge */
             expected_knowledge: string;
+            /**
+             * Picked
+             * @default []
+             */
+            picked: number[];
             /** Sources */
             sources: components["schemas"]["ProposalSource"][];
         };
@@ -8228,6 +8295,37 @@ export interface operations {
             };
         };
     };
+    detect_choices_api_v1_courses__course_id__learning_items_detect_choices_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChoicesConverted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     course_marketplace_api_v1_courses__course_id__marketplace_get: {
         parameters: {
             query?: never;
@@ -9393,6 +9491,101 @@ export interface operations {
         };
     };
     pause_learning_item_api_v1_learning_items__item_id__pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    question_image_api_v1_learning_items__item_id__question_image_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_question_image_api_v1_learning_items__item_id__question_image_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_set_question_image_api_v1_learning_items__item_id__question_image_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearningItemRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_question_image_api_v1_learning_items__item_id__question_image_delete: {
         parameters: {
             query?: never;
             header?: never;

@@ -207,3 +207,100 @@ def test_options_reach_who_gets_the_course_from_the_marketplace(client, auth_hea
         f"{API}/learning-items/{copied[0]['id']}", json={"choices": []}, headers=buyer
     )
     assert refused.status_code in (403, 409)
+
+
+CHATBOT_BANK = r"""# **Il sistema finanziario**
+
+**Domanda:** Qual è la differenza tra mercati monetari e mercati finanziari?\
+**Risposta:** I mercati monetari riguardano strumenti a breve termine.\
+Priorità: 1
+
+**Domanda:** Quale organo vigila sulle banche?\
+- **A)** La Consob\
+- **B)** La Banca d'Italia\
+- **C)** L'IVASS\
+**Risposta:** **B**\
+Priorità: 3
+
+Domanda: Chi emette le banconote in euro? A) La BCE B) Il Tesoro C) La Consob
+Risposta: A
+"""
+
+
+def test_a_chatbot_written_bank_is_read_without_markdown_and_with_its_options(client, auth_headers):
+    headers = auth_headers("chatbot@example.com")
+    course_id = client.post(
+        f"{API}/courses", json={"title": "Finanza", "language": "it"}, headers=headers
+    ).json()["id"]
+    document = _upload(client, headers, course_id, "domande.md", CHATBOT_BANK.encode())
+    assert document["status"] == "READY", document["error_message"]
+    outline = client.get(f"{API}/courses/{course_id}/outline", headers=headers).json()
+    topic = outline[0]["topics"][0]
+    assert topic["title"] == "Il sistema finanziario"
+    items = [
+        client.get(f"{API}/concepts/{c['id']}/learning-items", headers=headers).json()[0]
+        for c in topic["concepts"]
+    ]
+    written, vigilance, notes = items
+    assert written["answer_format"] == "TEXT"
+    assert written["questions"][0]["text"].endswith("mercati finanziari?")
+    assert (
+        written["expected_knowledge"] == "I mercati monetari riguardano strumenti a breve termine."
+    )
+    assert vigilance["answer_format"] == "CHOICE"
+    assert vigilance["questions"][0]["text"] == "Quale organo vigila sulle banche?"
+    assert [c["correct"] for c in vigilance["choices"]] == [False, True, False]
+    assert notes["answer_format"] == "CHOICE"
+    assert [c["text"] for c in notes["choices"]] == ["La BCE", "Il Tesoro", "La Consob"]
+
+
+def test_questions_already_saved_are_tidied_and_turned_into_multiple_choice(client, course):
+    headers, _, _, topic_id = course
+    made = concept(client, headers, topic_id, title="**Vigilanza**")
+    client.post(
+        f"{API}/concepts/{made['id']}/learning-items",
+        json={
+            "title": "Chi vigila?\\",
+            "expected_knowledge": "B\\",
+            "questions": [
+                {
+                    "question_type": "RECALL",
+                    "text": "Chi vigila sulle banche?\\ A) La Consob\\ B) La Banca d'Italia\\ "
+                    "C) L'IVASS\\",
+                }
+            ],
+        },
+        headers=headers,
+    )
+    plain = client.post(
+        f"{API}/concepts/{made['id']}/learning-items",
+        json={
+            "title": "Spiega la vigilanza\\",
+            "expected_knowledge": "La vigilanza è prudenziale.\\",
+            "questions": [{"question_type": "RECALL", "text": "Spiega la vigilanza\\"}],
+        },
+        headers=headers,
+    ).json()
+    course_id = plain["course_id"]
+    done = client.post(f"{API}/courses/{course_id}/learning-items/detect-choices", headers=headers)
+    assert done.json() == {"converted": 1}
+    items = client.get(f"{API}/concepts/{made['id']}/learning-items", headers=headers).json()
+    choice = next(i for i in items if i["answer_format"] == "CHOICE")
+    assert choice["questions"][0]["text"] == "Chi vigila sulle banche?"
+    assert [c["correct"] for c in choice["choices"]] == [False, True, False]
+    text = next(i for i in items if i["answer_format"] == "TEXT")
+    assert text["questions"][0]["text"] == "Spiega la vigilanza"
+    assert text["expected_knowledge"] == "La vigilanza è prudenziale."
+    concept_title = client.get(f"{API}/concepts/{made['id']}", headers=headers).json()["title"]
+    assert concept_title == "Vigilanza"
+
+
+def test_the_result_shows_the_options_and_what_was_picked(client, course):
+    headers, course_id, _, topic_id = course
+    made = concept(client, headers, topic_id)
+    mc_item(client, headers, made["id"])
+    session = start(client, headers, course_id).json()
+    shown = card(client, headers, session["id"])
+    result = pick(client, headers, session["id"], shown, [0]).json()
+    assert result["reference"]["choices"] == OPTIONS
+    assert result["reference"]["picked"] == [0]

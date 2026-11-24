@@ -82,6 +82,8 @@ class LearningItemRead(BaseModel):
     # choice: `choices`, graded without AI).
     answer_format: str
     choices: list[ChoiceRead] | None = None
+    # A picture shown with the question (GET /learning-items/{id}/question-image).
+    question_image_type: str | None = None
     # In a marketplace course `priority` is the user's own and `origin_priority` the author's.
     priority: int
     origin_priority: int | None

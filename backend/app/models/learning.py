@@ -79,6 +79,9 @@ class LearningItem(Base):
     origin_key: Mapped[str | None] = mapped_column(String(32), default=None)
     origin_priority: Mapped[int | None] = mapped_column(Integer, default=None)
     reference_drawing_type: Mapped[str | None] = mapped_column(String(32), default=None)
+    # A picture shown with the question (a chart, a diagram, a table to read), stored under
+    # drawings.question_image_key(item); its media type is kept here. Null: none.
+    question_image_type: Mapped[str | None] = mapped_column(String(32), default=None)
     # Multiple choice (answer_format CHOICE): [{"text", "correct"}], graded without AI
     # (services/learning/choices.py). Null for other questions.
     choices: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, default=None)

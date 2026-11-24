@@ -236,6 +236,9 @@ class Settings(BaseSettings):
     # Optional key prefix inside the bucket, e.g. "learnable/".
     storage_prefix: str = ""
     max_upload_mb: int = Field(default=50, gt=0)
+    # Administrators may upload larger files (the whole file is read in memory: keep it within
+    # what the server can hold).
+    admin_max_upload_mb: int = Field(default=200, gt=0)
 
     # Interrupted background jobs (see app/services/recovery.py) are swept at startup and then
     # every this many seconds. 0 disables the sweep (tests drive it directly).

@@ -109,7 +109,9 @@ def storage_used_bytes(db: Session, user_id: uuid.UUID) -> int:
 
 
 def storage_limit_bytes(user: User) -> int:
-    """0 means unlimited."""
+    """0 means unlimited (always, for administrators)."""
+    if user.is_admin:
+        return 0
     mb = (
         user.limit_storage_mb
         if user.limit_storage_mb is not None

@@ -37,9 +37,10 @@ class ExtractionError(Exception):
 __all__ = ["Block", "Extraction", "ExtractionError", "extract"]
 
 
-def extract(kind: DocumentKind, data: bytes) -> Extraction:
+def extract(kind: DocumentKind, data: bytes, with_images: bool = False) -> Extraction:
+    """`with_images` (question banks): also the pictures of a PDF, cut out where they sit."""
     if kind is DocumentKind.PDF:
-        return _extract_pdf(data)
+        return _extract_pdf(data, with_images)
     if kind is DocumentKind.TEXT:
         return Extraction(_plain_blocks(_decode_text(data)), None, None)
     if kind is DocumentKind.MARKDOWN:
@@ -98,7 +99,7 @@ def _check_archive(data: bytes) -> None:
 # --- PDF ---
 
 
-def _extract_pdf(data: bytes) -> Extraction:
+def _extract_pdf(data: bytes, with_images: bool = False) -> Extraction:
     try:
         reader = PdfReader(BytesIO(data))
         if reader.is_encrypted and reader.decrypt("") == PasswordType.NOT_DECRYPTED:
@@ -119,7 +120,8 @@ def _extract_pdf(data: bytes) -> Extraction:
 
     # Layout first (headings from font sizes, real paragraphs); plain text for any page, or the
     # whole file, the layout reader can't handle.
-    pages = pdf_layout.read_pages(data)
+    images: list[bytes] = []
+    pages = pdf_layout.read_pages(data, images if with_images else None)
     if pages is not None:
         blocks = pdf_layout.build_blocks(pages, plain_paragraphs)
     else:
@@ -142,7 +144,7 @@ def _extract_pdf(data: bytes) -> Extraction:
         created = _as_utc(reader.metadata.creation_date) if reader.metadata else None
     except Exception:
         created = None  # malformed metadata dates are common and not worth failing over
-    return Extraction(blocks, page_count, created)
+    return Extraction(blocks, page_count, created, images)
 
 
 def _pdf_sections(reader: PdfReader) -> list[tuple[int, str]]:

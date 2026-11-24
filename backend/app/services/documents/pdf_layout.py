@@ -15,6 +15,7 @@ into blocks:
 Lines keep their "\\n" separators, so cleaning can still rejoin words hyphenated at a line end.
 """
 
+import hashlib
 import re
 from collections import Counter
 from collections.abc import Callable
@@ -22,10 +23,11 @@ from dataclasses import dataclass, replace
 from io import BytesIO
 from itertools import pairwise
 from statistics import median
+from typing import Any
 
 import pdfplumber
 
-from app.services.documents.blocks import Block
+from app.services.documents.blocks import IMAGE_MARKER, Block
 
 # A line this much larger than the body text is a heading.
 _HEADING_RATIO = 1.12
@@ -58,14 +60,51 @@ class Page:
     lines: list[Line] | None
 
 
-def read_pages(data: bytes) -> list[Page] | None:
+# Pictures smaller than this (points, either side) are icons or bullets, not content.
+_MIN_PICTURE = 60
+# A picture on this many pages or more is a logo or a decoration.
+_REPEATED_PICTURE = 3
+_PICTURE_DPI = 150
+_MAX_PICTURE_BYTES = 2_500_000
+
+
+def _pictures(page: Any) -> list[tuple[float, float, bytes]]:
+    """The page's pictures as (top, bottom, PNG bytes), cut out of the rendered page."""
+    found = []
+    for image in page.images:
+        x0, top, x1, bottom = (float(image[k]) for k in ("x0", "top", "x1", "bottom"))
+        if x1 - x0 < _MIN_PICTURE or bottom - top < _MIN_PICTURE:
+            continue
+        box = (
+            max(0.0, x0),
+            max(0.0, top),
+            min(float(page.width), x1),
+            min(float(page.height), bottom),
+        )
+        try:
+            rendered = page.crop(box).to_image(resolution=_PICTURE_DPI).original
+            out = BytesIO()
+            rendered.save(out, format="PNG", optimize=True)
+            if out.tell() > _MAX_PICTURE_BYTES:
+                # A photo-like picture: as JPEG it fits the 3 MB a question picture may take.
+                out = BytesIO()
+                rendered.convert("RGB").save(out, format="JPEG", quality=85)
+        except Exception:  # noqa: S112 - a picture that won't render is simply left out
+            continue
+        found.append((top, bottom, out.getvalue()))
+    return found
+
+
+def read_pages(data: bytes, images: list[bytes] | None = None) -> list[Page] | None:
     """Lines with their dominant font size, per page. None if the file can't be opened this way
-    (the caller then falls back to plain text extraction)."""
+    (the caller then falls back to plain text extraction). With `images`, the page's pictures
+    are appended to it and placed among the lines as IMAGE_MARKER lines (question banks)."""
     try:
         pdf = pdfplumber.open(BytesIO(data), password="")
     except Exception:
         return None
     pages: list[Page] = []
+    pictures: dict[int, list[tuple[float, float, bytes]]] = {}
     with pdf:
         for number, page in enumerate(pdf.pages, start=1):
             try:
@@ -90,7 +129,22 @@ def read_pages(data: bytes) -> list[Page] | None:
                             sizes.most_common(1)[0][0],
                         )
                     )
+            if images is not None:
+                pictures[number] = _pictures(page)
             pages.append(Page(number, float(page.height), lines))
+    if images is not None and pictures:
+        seen = Counter(
+            hashlib.sha256(png).hexdigest() for found in pictures.values() for *_, png in found
+        )
+        for page_ in pages:
+            if page_.lines is None:
+                continue
+            for top, bottom, png in pictures.get(page_.number, []):
+                if seen[hashlib.sha256(png).hexdigest()] >= _REPEATED_PICTURE:
+                    continue
+                images.append(png)
+                page_.lines.append(Line(IMAGE_MARKER.format(len(images) - 1), top, bottom, 0.0))
+            page_.lines.sort(key=lambda line: line.top)
     return pages
 
 
@@ -152,7 +206,8 @@ def _group_lines(
 def _body_size(lines: list[Line]) -> float:
     weight: Counter[float] = Counter()
     for line in lines:
-        weight[line.size] += len(line.text)
+        if line.size > 0:  # picture markers have no font size
+            weight[line.size] += len(line.text)
     return weight.most_common(1)[0][0]
 
 

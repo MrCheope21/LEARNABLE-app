@@ -1359,6 +1359,19 @@ export const en = {
   "tree.find": "Find a chapter, topic or question",
   "tree.noMatch": "Nothing matches.",
   "mat.drawingImport": "Drawings as answers: in a Word file (.docx), put the picture right under \"Risposta:\"; in Anki, put it on the back of the card. The question becomes a drawing question: you answer by drawing, and the AI compares your drawing with that one.",
+  "choice.resultAria": "The options and your answer",
+  "choice.markRight": "✓ your answer, right",
+  "choice.markMissed": "✓ right answer",
+  "choice.markWrong": "✗ your answer",
+  "q.tidy": "Tidy imported questions",
+  "q.tidyHint": "Removes the \\ and ** a chatbot leaves in the text, and turns questions with options A, B, C… into multiple choice.",
+  "q.tidyDone": "Text tidied; {n} questions are now multiple choice.",
+  "qimage.title": "Picture with the question",
+  "qimage.hint": "Add a graph, table or diagram the student needs to answer. It appears under the question.",
+  "qimage.add": "Add picture",
+  "qimage.replace": "Replace picture",
+  "qimage.remove": "Remove picture",
+  "qimage.alt": "Picture for the question",
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -420,3 +420,42 @@ summary.know-row .know-name::before { content: "▸"; display: inline-block; wid
 .card.result { overflow: hidden; }
 .study-main .card.result { padding-inline: var(--card-pad, 1.25rem); }
 .card.result > .verdict { margin-top: 0; margin-inline: calc(-1 * var(--card-pad, 1.25rem)); border-radius: 0; }
+
+/* ---------- Multiple choice, second pass: tiles, result, and the editor row ---------- */
+.choices { grid-template-columns: 1fr; gap: 0.6rem; }
+@media (min-width: 760px) { .choices { grid-template-columns: 1fr 1fr; } .choices legend { grid-column: 1 / -1; } }
+.choice-option { min-height: 64px; padding: 0.8rem 1rem; border-width: 2px; border-radius: 14px; box-shadow: 0 1px 2px rgb(0 0 0 / 6%); transition: border-color 140ms, background 140ms, transform 120ms; }
+.choice-option:active { transform: scale(0.99); }
+.choice-option .choice-letter { width: 2.2rem; height: 2.2rem; font-size: 1rem; flex: none; border: 2px solid var(--border); background: var(--surface); }
+.choice-option.picked .choice-letter { border-color: var(--accent); }
+.choice-option .choice-text { font-size: 1.02rem; font-weight: 500; }
+.choice-bar .composer-submit { min-width: 10rem; min-height: 48px; justify-content: center; }
+.choice-result { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.choice-result-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.7rem; padding: 0.7rem 0.9rem; border: 2px solid var(--border); border-radius: 14px; }
+.choice-result-row .choice-letter { display: inline-grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--surface-2); font-weight: 700; }
+.choice-result-row .choice-text { overflow-wrap: anywhere; }
+.choice-result-row .choice-mark { font-size: 0.85rem; font-weight: 700; white-space: nowrap; }
+.choice-result-row.right, .choice-result-row.missed { border-color: var(--good); background: color-mix(in srgb, var(--good) 10%, var(--surface)); }
+.choice-result-row.right .choice-letter, .choice-result-row.missed .choice-letter { background: var(--good); color: #fff; }
+.choice-result-row.right .choice-mark, .choice-result-row.missed .choice-mark { color: var(--good); }
+.choice-result-row.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 9%, var(--surface)); }
+.choice-result-row.wrong .choice-letter { background: var(--bad); color: #fff; }
+.choice-result-row.wrong .choice-mark { color: var(--bad); }
+.choice-result-row.other { opacity: 0.75; }
+@media (max-width: 480px) { .choice-result-row { grid-template-columns: auto minmax(0, 1fr); } .choice-result-row .choice-mark { grid-column: 2; } }
+/* Editing a question opens its editor under the whole row, not in a column of it. */
+.question-row > .item-editor, .question-row > .reference-drawing, .question-row > .question-image-editor { grid-column: 1 / -1; }
+.question-row .question-text { min-width: 0; }
+.tidy-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; margin-bottom: 0.8rem; }
+
+/* A picture that belongs to the question (a graph, a table, a diagram to read). */
+.question-image {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  margin: 0.25rem 0 1rem;
+  border-radius: var(--radius-sm, 12px);
+  border: 1px solid var(--border);
+  background: #fff;
+  object-fit: contain;
+}

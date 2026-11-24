@@ -25,6 +25,7 @@ from app.schemas.learning import Choice, LearningItemCreate, QuestionCreate
 from app.services import drawings
 from app.services.documents.blocks import Block
 from app.services.documents.sentences import split_sentences
+from app.services.learning import choices
 from app.services.learning.service import new_item
 from app.services.question_banks.parsing import MAX_PAIRS, QuestionAnswer, parse_question_bank
 from app.storage.documents import DocumentStorage
@@ -100,12 +101,14 @@ def import_question_bank(
             order = 0 if last is None else last + 1
         next_concept_order[topic.id] = order + 1
 
+        # Its title is the question alone (a multiple-choice one without its options).
+        made = _item_for(pair, priority)
         concept = Concept(
             id=uuid.uuid4(),
             topic_id=topic.id,
             chapter_id=chapter.id,
             course_id=document.course_id,
-            title=_shorten(pair.question, _TITLE_CHARS),
+            title=made.title,
             order=order,
             # Items are already here: activation must not generate more over them.
             item_generation_status=ItemGenerationStatus.READY,
@@ -113,7 +116,16 @@ def import_question_bank(
         db.add(concept)
         db.flush()
         db.add(ConceptSource(concept_id=concept.id, chunk_id=chunk.id, course_id=course.id))
-        item = new_item(db, concept, _item_for(pair, priority), order=0)
+        item = new_item(db, concept, made, order=0)
+        if pair.question_images and storage is not None:
+            picture = _picture(images, pair.question_images[0])
+            try:
+                media_type = drawings.image_type(picture)
+            except AppError:
+                skipped_pictures += 1
+            else:
+                storage.save(drawings.question_image_key(item), picture)
+                item.question_image_type = media_type
         if pair.answer_images and storage is not None:
             pictures = images or []
             index = pair.answer_images[0]
@@ -131,10 +143,7 @@ def import_question_bank(
     document.analyzed_at = utc_now()
     notice = _notice(parsed.unanswered_pages, parsed.truncated)
     if skipped_pictures:
-        extra = (
-            f"{skipped_pictures} picture(s) in answers couldn't be used as drawings "
-            "(PNG, JPEG or WebP up to 3 MB)."
-        )
+        extra = f"{skipped_pictures} picture(s) couldn't be used (PNG, JPEG or WebP up to 3 MB)."
         notice = f"{notice} {extra}" if notice else extra
     return ImportResult(len(parsed.pairs), notice)
 
@@ -248,45 +257,20 @@ def _priority(pair: QuestionAnswer) -> tuple[QuestionAnswer, int | None]:
     return replace(pair, question=question, answer=answer), found
 
 
-# "A) …" or "b. …" at the start of a line of the question: a multiple-choice option ("A:" and
-# "D:" are already the answer and question labels).
-_OPTION = re.compile(r"^\s*([A-Ha-h])\s*[).]\s+(.+?)\s*$")
-# An answer that only names options: "B", "b)", "A, C", "A e C", "A and C".
-_LETTERS_ANSWER = re.compile(
-    r"^\s*([A-Ha-h])\)?(?:\s*(?:,|;|/|\be\b|\band\b)\s*([A-Ha-h])\)?)*\s*\.?\s*$"
-)
+def _picture(images: list[bytes] | None, index: int) -> bytes:
+    pictures = images or []
+    return pictures[index] if index < len(pictures) else b""
 
 
 def _multiple_choice(pair: QuestionAnswer) -> tuple[str, list[Choice]] | None:
-    """The stem and the options, when the question lists options and the answer names letters."""
-    stem: list[str] = []
-    options: dict[str, str] = {}
-    for line in pair.question_lines:
-        if _PRIORITY_LINE.search(line):
-            continue
-        match = _OPTION.match(line)
-        if match and (options or stem):
-            options[match.group(1).upper()] = match.group(2)
-        elif options:
-            # A wrapped option: it continues the last one.
-            last = list(options)[-1]
-            options[last] = f"{options[last]} {line.strip()}"
-        else:
-            stem.append(line)
-    answer = pair.answer.strip()
-    if len(options) < 2 or not _LETTERS_ANSWER.match(answer):
+    """The stem and the options, when the question lists options and the answer names them
+    (services/learning/choices.py `detect`)."""
+    lines = [line for line in pair.question_lines if not _PRIORITY_LINE.search(line)]
+    found = choices.detect(lines or pair.question, pair.answer)
+    if found is None:
         return None
-    # A lowercase "e" between letters is Italian "and"; the option is a capital E.
-    connectors = re.sub(r"(?<=\s)e(?=\s)|\band\b", " ", answer)
-    letters = set(re.findall(r"(?<![A-Za-z])([A-Ha-h])(?![A-Za-z])", connectors))
-    right = {letter.upper() for letter in letters}
-    if not right <= set(options):
-        return None
-    made = [
-        Choice.model_construct(text=text, correct=letter in right)
-        for letter, text in options.items()
-    ]
-    return " ".join(" ".join(stem).split()), made
+    stem, options = found
+    return stem, [Choice.model_construct(text=o["text"], correct=o["correct"]) for o in options]
 
 
 def _item_for(pair: QuestionAnswer, priority: int | None) -> LearningItemCreate:

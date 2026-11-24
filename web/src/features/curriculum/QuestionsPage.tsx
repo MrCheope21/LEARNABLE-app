@@ -16,6 +16,7 @@ import { useReadOnlyCourse } from "../../components/CourseAccess";
 import { PriorityBadge, PrioritySelect, PRIORITIES } from "../../components/PriorityBadge";
 import { Tooltip } from "../../components/Tooltip";
 import { studyLink } from "../study/StudyPage";
+import { QuestionImageEditor } from "./QuestionImageEditor";
 import { ReferenceDrawingEditor } from "./ReferenceDrawingEditor";
 import { removalFor, type Removal } from "./selection";
 import { courseProgressKey, outlineKey } from "./CourseLayout";
@@ -118,6 +119,13 @@ export function QuestionsPage() {
   }, [items.data, filter, priorityFilter, chapterFilter, topicFilter]);
 
   // One question at a time: delete it (own course) or leave it out of reviews (any course).
+  const tidy = useMutation({
+    mutationFn: () => learningItems.detectChoices(courseId),
+    onSuccess: ({ converted }) => {
+      setNotice(t("q.tidyDone", { n: converted }));
+      refresh();
+    },
+  });
   const removeOne = (item: Item) => {
     const text = item.questions[0]?.text ?? item.title;
     if (!window.confirm(t("q.deleteOneConfirm", { text: text.length > 120 ? `${text.slice(0, 120)}…` : text }))) return;
@@ -167,6 +175,14 @@ export function QuestionsPage() {
         </p>
       </div>
 
+      {!readOnly && (
+        <div className="tidy-bar">
+          <button type="button" disabled={tidy.isPending} onClick={() => tidy.mutate()}>
+            {tidy.isPending ? t("common.pleaseWait") : t("q.tidy")}
+          </button>
+          <span className="hint">{t("q.tidyHint")}</span>
+        </div>
+      )}
       <div className="toolbar">
         <label className="sr-only" htmlFor={searchId}>
           {t("q.search")}
@@ -292,7 +308,7 @@ export function QuestionsPage() {
           </button>
         </p>
       )}
-      <ErrorBanner error={bulk.error ?? remove.error} />
+      <ErrorBanner error={bulk.error ?? remove.error ?? tidy.error} />
 
       <QueryState query={outline}>
         {(chapters) => (
@@ -486,6 +502,7 @@ function QuestionRow({
       {editing && !readOnly && (
         <>
           <ItemEditor item={item} onSaved={onSaved} />
+          <QuestionImageEditor item={item} onChanged={onSaved} />
           <ReferenceDrawingEditor item={item} onChanged={onSaved} />
         </>
       )}

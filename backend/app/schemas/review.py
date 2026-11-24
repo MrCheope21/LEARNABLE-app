@@ -116,6 +116,8 @@ class Card(BaseModel):
     choices: list[str] | None = None
     # CHOICE: more than one option is correct (check boxes, not radio buttons).
     multiple: bool = False
+    # A picture goes with the question (GET /learning-items/{id}/question-image).
+    question_image: bool = False
 
 
 class QueueItem(BaseModel):
@@ -214,6 +216,11 @@ class ScheduleChange(BaseModel):
     lateness_seconds: int
 
 
+class ChoiceOption(BaseModel):
+    text: str
+    correct: bool
+
+
 class Reference(BaseModel):
     """The correct answer and where it comes from, shown with the feedback (spec §41, §66)."""
 
@@ -222,6 +229,10 @@ class Reference(BaseModel):
     sources: list[ProposalSource]
     # The answer is a reference drawing (GET /learning-items/{id}/reference-drawing).
     drawing: bool = False
+    # Multiple choice: the options in stored order with the right ones, and the positions the
+    # student picked (shown after answering).
+    choices: list[ChoiceOption] | None = None
+    picked: list[int] = []
 
 
 class XpResult(BaseModel):
@@ -318,11 +329,6 @@ class ConsolidationPlan(BaseModel):
 
 
 # --- Offline review (services/review/offline.py) ---
-
-
-class ChoiceOption(BaseModel):
-    text: str
-    correct: bool
 
 
 class OfflineCard(BaseModel):

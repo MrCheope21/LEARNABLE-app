@@ -141,7 +141,11 @@ def process_document(
             return  # deleted, or already processed
 
         try:
-            extraction = extract(document.kind, storage.load(document.storage_key))
+            extraction = extract(
+                document.kind,
+                storage.load(document.storage_key),
+                with_images=document.purpose is DocumentPurpose.QUESTION_BANK,
+            )
             if document.purpose is DocumentPurpose.QUESTION_BANK:
                 imported = import_question_bank(
                     db, document, extraction.blocks, extraction.images, storage

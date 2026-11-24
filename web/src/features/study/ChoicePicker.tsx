@@ -74,3 +74,32 @@ export function ChoicePicker({
     </fieldset>
   );
 }
+
+/**
+ * After answering a multiple-choice question: every option, the right ones in green, a wrong
+ * pick in red, and which were the student's. In the stored order, lettered as stored.
+ */
+export function ChoiceResult({ choices, picked }: { choices: { text: string; correct: boolean }[]; picked: number[] }) {
+  const { t } = useI18n();
+  return (
+    <ul className="choice-result" aria-label={t("choice.resultAria")}>
+      {choices.map((choice, index) => {
+        const mine = picked.includes(index);
+        const state = choice.correct ? (mine ? "right" : "missed") : mine ? "wrong" : "other";
+        return (
+          <li key={index} className={`choice-result-row ${state}`}>
+            <span className="choice-letter" aria-hidden="true">
+              {LETTERS[index]}
+            </span>
+            <span className="choice-text">{choice.text}</span>
+            <span className="choice-mark">
+              {state === "right" && t("choice.markRight")}
+              {state === "missed" && t("choice.markMissed")}
+              {state === "wrong" && t("choice.markWrong")}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}

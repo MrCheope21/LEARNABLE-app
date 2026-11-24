@@ -168,6 +168,9 @@ export const learningItems = {
     call(api.GET("/api/v1/courses/{course_id}/learning-items", { params: { path: { course_id: courseId } } })),
   bulk: (courseId: Id, body: Schemas["BulkItemAction"]) =>
     call(api.POST("/api/v1/courses/{course_id}/learning-items/bulk", { params: { path: { course_id: courseId } }, body })),
+  /** Tidies imported text and turns questions with options (A, B, C…) into multiple choice. */
+  detectChoices: (courseId: Id) =>
+    call(api.POST("/api/v1/courses/{course_id}/learning-items/detect-choices", { params: { path: { course_id: courseId } } })),
   update: (itemId: Id, body: Schemas["LearningItemUpdate"]) =>
     call(api.PATCH("/api/v1/learning-items/{item_id}", { params: { path: { item_id: itemId } }, body })),
   addQuestion: (itemId: Id, text: string, questionType: Schemas["QuestionType"] = "RECALL") =>
@@ -191,6 +194,18 @@ export const learningItems = {
   removeReferenceDrawing: (itemId: Id) =>
     call(api.DELETE("/api/v1/learning-items/{item_id}/reference-drawing", { params: { path: { item_id: itemId } } })),
   referenceDrawing: (itemId: Id) => downloadBlob(`/api/v1/learning-items/${itemId}/reference-drawing`),
+  /** A picture shown with the question (a graph, a table, a diagram to read). */
+  setQuestionImage: (itemId: Id, file: Blob) => {
+    const form = new FormData();
+    form.append("file", file, "question.png");
+    return rawRequest<Schemas["LearningItemRead"]>(`/api/v1/learning-items/${itemId}/question-image`, {
+      method: "PUT",
+      body: form,
+    });
+  },
+  removeQuestionImage: (itemId: Id) =>
+    call(api.DELETE("/api/v1/learning-items/{item_id}/question-image", { params: { path: { item_id: itemId } } })),
+  questionImage: (itemId: Id) => downloadBlob(`/api/v1/learning-items/${itemId}/question-image`),
   answerDrawing: (answerId: Id) => downloadBlob(`/api/v1/answers/${answerId}/drawing`),
   deleteQuestion: (questionId: Id) =>
     call(api.DELETE("/api/v1/questions/{question_id}", { params: { path: { question_id: questionId } } })),

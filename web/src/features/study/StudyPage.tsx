@@ -7,7 +7,7 @@ import { dashboardKey, XpIcon } from "../../app/AppShell";
 import { BrandLogo } from "../../brand/BrandLogo";
 import { AuthImage } from "../../components/AuthImage";
 import { DrawingPad } from "../../components/DrawingPad";
-import { ChoicePicker } from "./ChoicePicker";
+import { ChoicePicker, ChoiceResult } from "./ChoicePicker";
 import { HelpTip } from "../../components/HelpTip";
 import { ErrorBanner } from "../../components/QueryState";
 import { dateTime, studyMinutes, userGrades } from "../../components/labels";
@@ -352,6 +352,7 @@ function Answer({
           </span>
         </div>
         <h2 className="question">{card.question.text}</h2>
+        {card.question_image && <QuestionImage itemId={card.learning_item_id} />}
         <ChoicePicker
           questionId={card.question.id}
           choices={card.choices}
@@ -384,6 +385,7 @@ function Answer({
         </span>
       </div>
       <h2 className="question">{card.question.text}</h2>
+      {card.question_image && <QuestionImage itemId={card.learning_item_id} />}
       <HintBox card={card} s={s} disabled={submitting} revealedOnly />
       {drawing && (
         <>
@@ -532,6 +534,7 @@ function Result({
       <div className="result-question">
         <span className="eyebrow">{card.concept_title}</span>
         <h2 className="question">{card.question.text}</h2>
+        {card.question_image && <QuestionImage itemId={card.learning_item_id} />}
       </div>
       {result.has_drawing ? (
         <section className="drawing-compare" aria-label={t("study.drawingCompare")}>
@@ -552,6 +555,8 @@ function Result({
             </figure>
           )}
         </section>
+      ) : result.reference.choices ? (
+        <ChoiceResult choices={result.reference.choices} picked={result.reference.picked ?? []} />
       ) : (
         <section className="your-answer" aria-label={t("study.yourAnswer")}>
           <h3>{t("study.yourAnswer")}</h3>
@@ -1007,6 +1012,11 @@ function StudyConceptButton({
       <Icon name="book" size={18} /> {t("study.dontRemember")}
     </button>
   );
+}
+
+function QuestionImage({ itemId }: { itemId: string }) {
+  const { t } = useI18n();
+  return <AuthImage queryKey={["question-image", itemId]} load={() => learningItems.questionImage(itemId)} alt={t("qimage.alt")} className="question-image" />;
 }
 
 function ReferenceDrawing({ itemId }: { itemId: string }) {

@@ -3,6 +3,7 @@
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Response, UploadFile, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.ai.factory import get_ai_provider
@@ -31,7 +32,7 @@ from app.schemas.learning import (
     QuestionUpdate,
 )
 from app.services import drawings
-from app.services.learning import manage, service
+from app.services.learning import choices, manage, service
 from app.services.quota import GENERATION, ai_quota
 from app.storage.documents import DocumentStorage, get_document_storage
 
@@ -190,6 +191,19 @@ def list_course_items(
     return manage.list_course_items(db, user.id, course_id)
 
 
+class ChoicesConverted(BaseModel):
+    converted: int
+
+
+@router.post("/courses/{course_id}/learning-items/detect-choices", response_model=ChoicesConverted)
+def detect_choices(
+    course_id: uuid.UUID, db: Session = DB, user: User = CurrentUser
+) -> ChoicesConverted:
+    """Finds the course's questions that list options (A, B, C…) with letters as the answer
+    and makes them multiple choice. Memory state and history are kept."""
+    return ChoicesConverted(converted=choices.convert_course(db, user.id, course_id))
+
+
 @router.post("/courses/{course_id}/learning-items/bulk", response_model=BulkItemResult)
 def bulk_items(
     course_id: uuid.UUID,
@@ -257,6 +271,46 @@ def remove_reference_drawing(
 ) -> LearningItem:
     """Back to a question answered in words."""
     return drawings.remove_reference(db, storage, user.id, item_id)
+
+
+@router.put(
+    "/learning-items/{item_id}/question-image",
+    response_model=LearningItemRead,
+    dependencies=[Depends(per_user("upload", 60, 3600))],
+)
+def set_question_image(
+    item_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = DB,
+    user: User = CurrentUser,
+    storage: DocumentStorage = Depends(get_document_storage),
+) -> LearningItem:
+    """A picture shown with the question (PNG, JPEG or WebP, 3 MB at most)."""
+    data = file.file.read(drawings.MAX_DRAWING_BYTES + 1)
+    if len(data) > drawings.MAX_DRAWING_BYTES:
+        raise PayloadTooLargeError("The picture is too large (3 MB at most).")
+    return drawings.set_question_image(db, storage, user.id, item_id, data)
+
+
+@router.delete("/learning-items/{item_id}/question-image", response_model=LearningItemRead)
+def remove_question_image(
+    item_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    storage: DocumentStorage = Depends(get_document_storage),
+) -> LearningItem:
+    return drawings.remove_question_image(db, storage, user.id, item_id)
+
+
+@router.get("/learning-items/{item_id}/question-image", response_class=Response)
+def question_image(
+    item_id: uuid.UUID,
+    db: Session = DB,
+    user: User = CurrentUser,
+    storage: DocumentStorage = Depends(get_document_storage),
+) -> Response:
+    data, media_type = drawings.load_question_image(db, storage, user.id, item_id)
+    return Response(data, media_type=media_type, headers={"Cache-Control": "private, no-store"})
 
 
 @router.get("/learning-items/{item_id}/reference-drawing", response_class=Response)

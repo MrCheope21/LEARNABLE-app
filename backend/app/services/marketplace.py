@@ -98,6 +98,9 @@ def publish(
         )
     listing = _listing_of(db, course)
     old_drawings = [i["key"] for i in _snapshot_items(listing.snapshot) if i["drawing_type"]]
+    old_drawings += [
+        f"q-{i['key']}" for i in _snapshot_items(listing.snapshot) if i.get("question_image_type")
+    ]
     old_version = listing.version
     listing.version += 1
     _set_info(listing, payload)
@@ -367,6 +370,13 @@ def _item(
     storage: DocumentStorage, listing: MarketplaceListing, item: LearningItem
 ) -> dict[str, Any]:
     key = item.id.hex
+    question_image_type = None
+    if item.question_image_type:
+        storage.save(
+            _listing_drawing_key(listing.id, listing.version, f"q-{key}"),
+            storage.load(drawings.question_image_key(item)),
+        )
+        question_image_type = item.question_image_type
     drawing_type = None
     if item.answer_format == "DRAWING" and item.reference_drawing_type:
         # The listing keeps its own copy: the author can change or delete theirs later.
@@ -385,6 +395,7 @@ def _item(
         "difficulty": item.difficulty,
         "priority": item.priority,
         "drawing_type": drawing_type,
+        "question_image_type": question_image_type,
         "choices": item.choices,
         "questions": [
             {"question_type": q.question_type.value, "text": q.text} for q in item.questions
@@ -735,6 +746,8 @@ def _sync(
             for row in leftovers.values():
                 if isinstance(row, LearningItem) and row.reference_drawing_type:
                     storage.delete(drawings.reference_key(row))
+                if isinstance(row, LearningItem) and row.question_image_type:
+                    storage.delete(drawings.question_image_key(row))
                 db.delete(row)
             db.flush()
 
@@ -769,6 +782,15 @@ def _sync_item(
         item.origin_priority = data["priority"]
         _sync_questions(item, data["questions"])
     choices.apply(item, data.get("choices"))
+    if data.get("question_image_type"):
+        storage.save(
+            drawings.question_image_key(item),
+            storage.load(_listing_drawing_key(listing.id, listing.version, f"q-{data['key']}")),
+        )
+        item.question_image_type = data["question_image_type"]
+    elif item.question_image_type:
+        storage.delete(drawings.question_image_key(item))
+        item.question_image_type = None
     if data["drawing_type"]:
         storage.save(
             drawings.reference_key(item),

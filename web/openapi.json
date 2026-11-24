@@ -928,6 +928,20 @@
         "title": "BlockedPerson",
         "type": "object"
       },
+      "Body_set_question_image_api_v1_learning_items__item_id__question_image_put": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_set_question_image_api_v1_learning_items__item_id__question_image_put",
+        "type": "object"
+      },
       "Body_set_reference_drawing_api_v1_learning_items__item_id__reference_drawing_put": {
         "properties": {
           "file": {
@@ -1154,6 +1168,11 @@
           },
           "question": {
             "$ref": "#/components/schemas/CardQuestion"
+          },
+          "question_image": {
+            "default": false,
+            "title": "Question Image",
+            "type": "boolean"
           },
           "round": {
             "anyOf": [
@@ -1547,6 +1566,19 @@
           "correct"
         ],
         "title": "ChoiceRead",
+        "type": "object"
+      },
+      "ChoicesConverted": {
+        "properties": {
+          "converted": {
+            "title": "Converted",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "converted"
+        ],
+        "title": "ChoicesConverted",
         "type": "object"
       },
       "ChunkRead": {
@@ -4272,6 +4304,17 @@
             ],
             "title": "Prompt Version"
           },
+          "question_image_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Image Type"
+          },
           "questions": {
             "items": {
               "$ref": "#/components/schemas/QuestionRead"
@@ -6772,6 +6815,20 @@
       "Reference": {
         "description": "The correct answer and where it comes from, shown with the feedback (spec \u00a741, \u00a766).",
         "properties": {
+          "choices": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChoiceOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choices"
+          },
           "drawing": {
             "default": false,
             "title": "Drawing",
@@ -6787,6 +6844,14 @@
           "expected_knowledge": {
             "title": "Expected Knowledge",
             "type": "string"
+          },
+          "picked": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Picked",
+            "type": "array"
           },
           "sources": {
             "items": {
@@ -12315,6 +12380,55 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/learning-items/detect-choices": {
+      "post": {
+        "description": "Finds the course's questions that list options (A, B, C\u2026) with letters as the answer\nand makes them multiple choice. Memory state and history are kept.",
+        "operationId": "detect_choices_api_v1_courses__course_id__learning_items_detect_choices_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Course Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChoicesConverted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Detect Choices",
+        "tags": [
+          "learning-items"
+        ]
+      }
+    },
     "/api/v1/courses/{course_id}/marketplace": {
       "get": {
         "operationId": "course_marketplace_api_v1_courses__course_id__marketplace_get",
@@ -14231,6 +14345,150 @@
           }
         ],
         "summary": "Pause Learning Item",
+        "tags": [
+          "learning-items"
+        ]
+      }
+    },
+    "/api/v1/learning-items/{item_id}/question-image": {
+      "delete": {
+        "operationId": "remove_question_image_api_v1_learning_items__item_id__question_image_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningItemRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Question Image",
+        "tags": [
+          "learning-items"
+        ]
+      },
+      "get": {
+        "operationId": "question_image_api_v1_learning_items__item_id__question_image_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Question Image",
+        "tags": [
+          "learning-items"
+        ]
+      },
+      "put": {
+        "description": "A picture shown with the question (PNG, JPEG or WebP, 3 MB at most).",
+        "operationId": "set_question_image_api_v1_learning_items__item_id__question_image_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_set_question_image_api_v1_learning_items__item_id__question_image_put"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningItemRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Question Image",
         "tags": [
           "learning-items"
         ]
