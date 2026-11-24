@@ -7,7 +7,7 @@ services:
   backend:
     build:
       context: ../..
-      dockerfile: backend/Dockerfile
+      dockerfile: backend/Dockerfile.prebuilt
     restart: unless-stopped
     logging: {driver: local}
     env_file: ../../.env

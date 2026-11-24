@@ -44,3 +44,6 @@ Thumbs.db
 *.sqlite3
 *.db
 /backend/var/
+
+# Client built on a developer machine and copied to the Google VM (backend/Dockerfile.prebuilt)
+web-prebuilt/
