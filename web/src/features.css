@@ -409,3 +409,14 @@ summary.know-row .know-name::before { content: "▸"; display: inline-block; wid
 .icon-button.danger:hover:not(:disabled) { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
 .question-single { padding-inline-start: 0.2rem; }
 .show-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.6rem 1rem; margin: 1rem 0; }
+
+/* ---------- Study screen: header path on one line; verdict band flush with the card ---------- */
+/* The path ("Course › Concept") on one line: the separator and each link share a baseline. */
+.study-header .breadcrumb { display: flex; align-items: baseline; gap: 0 0.4rem; margin: 0; padding: 0; list-style: none; }
+.study-header .breadcrumb li { display: flex; align-items: baseline; min-width: 0; }
+.study-header .breadcrumb li + li::before { flex: none; margin-inline-end: 0.4rem; }
+.study-header .breadcrumb li a { min-width: 0; }
+/* The verdict band fills the top of the result card; the card's own corners round it. */
+.card.result { overflow: hidden; }
+.study-main .card.result { padding-inline: var(--card-pad, 1.25rem); }
+.card.result > .verdict { margin-top: 0; margin-inline: calc(-1 * var(--card-pad, 1.25rem)); border-radius: 0; }

@@ -1,25 +1,19 @@
-// Recallable identity geometry (the name was LEARNABLE until 2026-11): every mark is drawn from strokes (no font, no raster), so it is
+// LEARNABLE identity geometry: every mark is drawn from strokes (no font, no raster), so it is
 // identical everywhere and stays crisp at any size. Shared by the React BrandLogo and by
 // scripts/export-brand.ts, which writes the static SVG files (favicon, app icon, docs).
 //
-// Letter grid (stroke centerlines): baseline y=38, x-height y=14, ascender y=3, stroke 7 with
-// round caps, so the outer edges are baseline 41.5, x-height 10.5, ascender -0.5.
+// Letter grid (stroke centerlines): baseline y=38, x-height y=14, ascender y=3, stroke 6 with
+// round caps, so the outer edges are baseline 41, x-height 11, ascender 0.
 
 export const BRAND_BLUE = "#1555DD";
-export const STROKE = 7;
+export const STROKE = 6;
 
 export type Concept = "concept5" | "concept3";
 
 interface Glyph {
   width: number;
   paths: string[];
-  // Filled shapes in the accent color (the arrowhead of the recall loop).
-  accents?: string[];
 }
-
-// The arrowhead where the loop of the "a" comes back round: it leaves the bowl up and to the
-// right, above a shortened stem.
-const ARROW = "M15.3,8.8 L29.5,6 L26.7,20.2 Z";
 
 // A full circle of radius 12 whose left edge is at x = left.
 const BOWL = (left: number) =>
@@ -30,7 +24,6 @@ const GLYPHS: Record<string, Glyph> = {
   e: { width: 30, paths: ["M3.5,26 H27 A12,12 0 1 0 23.5,34.5"] },
   r: { width: 20, paths: ["M3,14 V38", "M3,25 A11,11 0 0 1 14,14 H17"] },
   n: { width: 26, paths: ["M3,14 V38", "M3,25 A10,10 0 0 1 23,25 V38"] },
-  c: { width: 27, paths: ["M23.5,17.5 A12,12 0 1 0 23.5,34.5"] },
   b: { width: 30, paths: ["M3,3 V38", BOWL(3)] },
   // Concept 3: a plain single-storey a (full bowl and stem).
   a: { width: 30, paths: [BOWL(3), "M27,14 V38"] },
@@ -38,29 +31,25 @@ const GLYPHS: Record<string, Glyph> = {
   // returns into it, like a "go round again" arrow: recall. Closed at the bottom and joined to
   // the stem, so it still reads instantly as an "a".
   a5: { width: 31, paths: ["M17.6,14.7 A12,12 0 1 0 24.4,32", "M28,14 V38"] },
-  // The same loop with its arrowhead: the "a" of "recall", and the app icon.
-  aRecall: { width: 31, paths: ["M20.8,15.5 A12,12 0 1 0 24.4,32", "M28,28.5 V38"], accents: [ARROW] },
 };
 
-const GAP = 5;
+const GAP = 4;
 
-function word(letters: string[]): { width: number; paths: string[]; accents: string[] } {
+function word(letters: string[]): { width: number; paths: string[] } {
   let x = 0;
   const paths: string[] = [];
-  const accents: string[] = [];
   letters.forEach((key, index) => {
     const glyph = GLYPHS[key];
     if (!glyph) throw new Error(`no glyph ${key}`);
     for (const d of glyph.paths) paths.push(`<path transform="translate(${x} 0)" d="${d}"/>`);
-    for (const d of glyph.accents ?? []) accents.push(`<path transform="translate(${x} 0)" d="${d}"/>`);
     x += glyph.width + (index < letters.length - 1 ? GAP : 0);
   });
-  return { width: x, paths, accents };
+  return { width: x, paths };
 }
 
 const WORDMARK_LETTERS: Record<Concept, string[]> = {
-  concept5: ["r", "e", "c", "aRecall", "l", "l", "a5", "b", "l", "e"],
-  concept3: ["r", "e", "c", "a", "l", "l", "a", "b", "l", "e"],
+  concept5: ["l", "e", "a5", "r", "n", "a5", "b", "l", "e"],
+  concept3: ["l", "e", "a", "r", "n", "a", "b", "l", "e"],
 };
 
 // Concept 3, "pages in motion": an open book whose right page rises into an upward stroke.
@@ -77,13 +66,8 @@ export interface Artwork {
   viewBox: string;
   width: number;
   height: number;
-  // Inner SVG markup: stroked paths (fill none) using the given color, plus the accent shapes.
+  // Inner SVG markup: stroked paths (fill none) using the given color.
   body: (color: string) => string;
-}
-
-function filled(paths: string[], color: string): string {
-  if (paths.length === 0) return "";
-  return `<g fill="${color}" stroke="${color}" stroke-width="2.5" stroke-linejoin="round">${paths.join("")}</g>`;
 }
 
 function stroked(paths: string[], color: string, extra = ""): string {
@@ -97,13 +81,13 @@ function stroked(paths: string[], color: string, extra = ""): string {
 export function wordmark(concept: Concept): Artwork {
   const letters = word(WORDMARK_LETTERS[concept]);
   if (concept === "concept5") {
-    const pad = 4;
+    const pad = 3;
     const width = letters.width + pad * 2;
     return {
-      viewBox: `${-pad} ${-pad} ${width} 49`,
+      viewBox: `${-pad} ${-pad} ${width} 47`,
       width,
-      height: 49,
-      body: (color) => stroked(letters.paths, color) + filled(letters.accents, color),
+      height: 47,
+      body: (color) => stroked(letters.paths, color),
     };
   }
   const bookPaths = BOOK.map((d) => `<path d="${d}"/>`);
@@ -121,14 +105,12 @@ export function wordmark(concept: Concept): Artwork {
 /** The compact mark, used alone as the app icon: concept 5's "a", concept 3's book. */
 export function mark(concept: Concept): Artwork {
   if (concept === "concept5") {
-    const glyph = GLYPHS.aRecall;
-    const [loop = "", stem = ""] = glyph?.paths ?? [];
-    const arrow = (glyph?.accents ?? []).map((d) => `<path d="${d}"/>`);
+    const [loop = "", stem = ""] = GLYPHS.a5?.paths ?? [];
     return {
-      viewBox: "-4 2 40 40",
+      viewBox: "-5 5 40 40",
       width: 40,
       height: 40,
-      body: (color) => stroked([`<path d="${loop}"/>`, `<path d="${stem}"/>`], color) + filled(arrow, color),
+      body: (color) => stroked([`<path d="${loop}"/>`, `<path d="${stem}"/>`], color),
     };
   }
   return {
