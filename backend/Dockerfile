@@ -23,6 +23,8 @@ RUN pip install --no-cache-dir -r requirements.lock
 COPY backend/alembic.ini ./
 COPY backend/migrations ./migrations
 COPY backend/app ./app
+# Administration commands (scripts/manage_users.py, set_password.py), run with `docker compose exec`.
+COPY backend/scripts/manage_users.py backend/scripts/set_password.py ./scripts/
 COPY --from=web-build /web/dist ./web-dist
 
 # The app runs as a non-root user that can't write to /app, so the document storage directory

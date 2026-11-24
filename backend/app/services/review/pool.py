@@ -6,7 +6,8 @@ inactive or paused material.
 
 Intent decides the memory states a pool may draw from:
 - LEARN: NEW items only (not encoded yet), in course order.
-- SCHEDULED_REVIEW: encoded items that are due, most overdue first.
+- SCHEDULED_REVIEW: encoded items that are due, most overdue first, or the ones chosen from the
+  due list (SELECTED), in course order.
 - PRACTICE: encoded items, by the chosen selection mode.
 EXAM (Phase 15) is not available yet.
 """
@@ -26,7 +27,7 @@ from app.models.review import Answer
 # Which selection modes each intent accepts; the first is the default.
 MODES: dict[SessionIntent, tuple[SelectionMode, ...]] = {
     SessionIntent.LEARN: (SelectionMode.NEW, SelectionMode.SELECTED),
-    SessionIntent.SCHEDULED_REVIEW: (SelectionMode.DUE,),
+    SessionIntent.SCHEDULED_REVIEW: (SelectionMode.DUE, SelectionMode.SELECTED),
     SessionIntent.PRACTICE: (
         SelectionMode.COURSE_ORDER,
         SelectionMode.RANDOM,
@@ -162,6 +163,15 @@ def select_pool(
                 "Selection mode SELECTED needs learning_item_ids.",
                 details={"reason": "no_items_selected"},
             )
+        if intent is SessionIntent.SCHEDULED_REVIEW:
+            # Chosen from the due list: only items that are due, and in course order (the order
+            # they were added), not the order the boxes were ticked.
+            due = stmt.where(
+                LearningItem.id.in_(wanted),
+                ReviewState.due_at <= now,
+                ReviewState.paused_at.is_(None),
+            )
+            return [item.id for item in db.scalars(due.limit(limit))]
         found = {item.id for item in db.scalars(stmt.where(LearningItem.id.in_(wanted)))}
         return [i for i in wanted if i in found][:limit]
 

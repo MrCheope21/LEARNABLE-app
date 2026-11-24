@@ -13,8 +13,25 @@ EssentialPoints = Annotated[
 ]
 Difficulty = Annotated[int, Field(ge=1, le=5)]
 # 1 Essential, 2 Important, 3 Extra.
-Priority = Annotated[int, Field(ge=1, le=3)]
+# 1 Essential, 2 Important, 3 Useful, 4 Accessory, 5 In depth (models/enums.py).
+Priority = Annotated[int, Field(ge=1, le=5)]
 QuestionText = Annotated[str, Field(min_length=1, max_length=2000)]
+
+
+class Choice(InputModel):
+    """One option of a multiple-choice question."""
+
+    text: Annotated[str, Field(min_length=1, max_length=500)]
+    correct: bool = False
+
+
+# 2-8 options, at least one correct (checked in services/learning/choices.py).
+Choices = Annotated[list[Choice], Field(max_length=8)]
+
+
+class ChoiceRead(BaseModel):
+    text: str
+    correct: bool
 
 
 class QuestionCreate(InputModel):
@@ -61,8 +78,12 @@ class LearningItemRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    # TEXT or DRAWING (answered by drawing, against a reference drawing).
+    # TEXT, DRAWING (answered by drawing, against a reference drawing) or CHOICE (multiple
+    # choice: `choices`, graded without AI).
     answer_format: str
+    choices: list[ChoiceRead] | None = None
+    # A picture shown with the question (GET /learning-items/{id}/question-image).
+    question_image_type: str | None = None
     # In a marketplace course `priority` is the user's own and `origin_priority` the author's.
     priority: int
     origin_priority: int | None
@@ -100,6 +121,8 @@ class LearningItemCreate(InputModel):
     # None: from the role (CORE_TRAINABLE → Essential, ...).
     priority: Priority | None = None
     questions: list[QuestionCreate] = Field(default_factory=list, max_length=5)
+    # Makes it a multiple-choice question.
+    choices: Choices | None = None
 
 
 class LearningItemUpdate(PatchModel):
@@ -111,6 +134,8 @@ class LearningItemUpdate(PatchModel):
     difficulty: Difficulty | None = None
     priority: Priority | None = None
     order: Order | None = None
+    # Multiple-choice options; [] turns it back into a written-answer question.
+    choices: Choices | None = None
 
 
 class QuestionUpdate(PatchModel):

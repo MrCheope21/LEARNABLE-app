@@ -1,11 +1,16 @@
+import re
+import uuid
+
 from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
-from sqlalchemy import select
+from fastapi.responses import JSONResponse
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth import passwords
 from app.auth.dependencies import get_current_user
 from app.auth.schemas import (
+    AccountDelete,
     MessageRead,
     PasswordChange,
     PasswordResetConfirm,
@@ -24,18 +29,30 @@ from app.auth.security import (
     verify_password,
 )
 from app.core.config import get_settings
-from app.core.errors import AuthenticationError, ConflictError, InvalidRequestError
+from app.core.errors import (
+    AccountSuspendedError,
+    AuthenticationError,
+    ConflictError,
+    InvalidRequestError,
+)
 from app.core.rate_limit import limiter, per_ip, per_user
 from app.db.session import get_db
 from app.email.sender import EmailSender, get_email_sender
 from app.models.user import User
+from app.services import accounts, community, export, invitations
+from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _FAILED_LOGINS = 10
 _FAILED_LOGIN_WINDOW = 900
 
-_INVALID_CREDENTIALS = "Incorrect email or password"
+_INVALID_CREDENTIALS = "Incorrect email, username or password"
+
+
+def _username_taken(db: Session, username: str, except_id: object = None) -> bool:
+    found = db.scalar(select(User.id).where(User.username == username))
+    return found is not None and found != except_id
 
 
 @router.post(
@@ -45,22 +62,35 @@ _INVALID_CREDENTIALS = "Incorrect email or password"
     dependencies=[Depends(per_ip("register", 10, 3600))],
 )
 def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
+    # Open sign-up, or an invitation from an administrator (docs/MULTI_USER.md).
+    invitation = (
+        None
+        if get_settings().registration_open
+        else invitations.check(db, payload.invite, payload.email)
+    )
     if db.scalar(select(User).where(User.email == payload.email)) is not None:
         raise ConflictError("Email already registered")
+    if payload.username and _username_taken(db, payload.username):
+        raise ConflictError("Username already taken")
     user = User(
+        id=uuid.uuid4(),
         email=payload.email,
+        username=payload.username,
         hashed_password=hash_password(payload.password),
         timezone=payload.timezone or "UTC",
         language=payload.language,
     )
     db.add(user)
     try:
+        db.flush()
+        if invitation is not None:
+            invitations.consume(db, invitation, user.id)
         db.commit()
     except IntegrityError as exc:
         # Two concurrent registrations for the same email both pass the check above; the unique
         # index catches the loser.
         db.rollback()
-        raise ConflictError("Email already registered") from exc
+        raise ConflictError("Email or username already registered") from exc
     db.refresh(user)
     return user
 
@@ -71,7 +101,9 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
     # Unknown addresses count the same, so the limit doesn't reveal who is registered.
     failures = f"login-failures:{payload.email}"
     limiter.hit_check(failures, _FAILED_LOGINS, _FAILED_LOGIN_WINDOW)
-    user = db.scalar(select(User).where(User.email == payload.email))
+    # An "@" means an email; anything else is a username.
+    column = User.email if "@" in payload.email else User.username
+    user = db.scalar(select(User).where(column == payload.email))
     if user is None:
         spend_equivalent_verification_time(payload.password)
         limiter.record(failures, _FAILED_LOGIN_WINDOW)
@@ -79,6 +111,8 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> Token:
     if not verify_password(payload.password, user.hashed_password):
         limiter.record(failures, _FAILED_LOGIN_WINDOW)
         raise AuthenticationError(_INVALID_CREDENTIALS)
+    if not user.is_active:
+        raise AccountSuspendedError("This account is suspended.")
     if password_needs_rehash(user.hashed_password):
         user.hashed_password = hash_password(payload.password)
         db.commit()
@@ -107,9 +141,72 @@ def update_preferences(
         current_user.language = payload.language
     if payload.display_name is not None:
         current_user.display_name = " ".join(payload.display_name.split()) or None
+    if payload.username is not None:
+        name = payload.username.lower()
+        if name and not re.fullmatch(r"[a-z0-9._-]{3,30}", name):
+            raise InvalidRequestError(
+                "Username: 3-30 letters, digits, dots, underscores or hyphens."
+            )
+        if name and _username_taken(db, name, current_user.id):
+            raise ConflictError("Username already taken")
+        current_user.username = name or None
+    if payload.community_visible is not None:
+        current_user.community_visible = payload.community_visible
+    if payload.email_updates is not None:
+        current_user.email_updates = payload.email_updates
+    # Visible people need a name (it is all others see); clearing the name takes you out.
+    if current_user.community_visible and not current_user.display_name:
+        if payload.community_visible:
+            community.check_can_be_visible(current_user)
+        current_user.community_visible = False
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@router.get("/export", dependencies=[Depends(per_user("export", 10, 3600))])
+def export_my_data(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> JSONResponse:
+    """A copy of everything held about the account, as a JSON file to download."""
+    return JSONResponse(
+        export.export_account(db, current_user),
+        headers={"Content-Disposition": 'attachment; filename="learnable-data.json"'},
+    )
+
+
+@router.post(
+    "/delete-account",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(per_user("delete-account", 10, 900))],
+)
+def delete_my_account(
+    payload: AccountDelete,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    storage: DocumentStorage = Depends(get_document_storage),
+) -> Response:
+    """Deletes the account for good, with everything it owns: courses, uploaded files, answers,
+    XP, friendships, messages, reviews and the courses it published (people who already have
+    one keep their copy). Needs the password (422 `wrong_password`). The only administrator
+    can't leave (409 `last_admin`): the site would have nobody to run it."""
+    if not verify_password(payload.password, current_user.hashed_password):
+        raise InvalidRequestError(
+            "Your password is incorrect.", details={"reason": "wrong_password"}
+        )
+    if current_user.is_admin:
+        others = db.scalar(
+            select(func.count())
+            .select_from(User)
+            .where(User.is_admin, User.is_active, User.id != current_user.id)
+        )
+        if not others:
+            raise ConflictError(
+                "You are the only administrator: make someone else one first.",
+                details={"reason": "last_admin"},
+            )
+    accounts.delete_account(db, storage, current_user.id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 _RESET_ACCEPTED = (

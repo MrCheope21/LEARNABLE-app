@@ -32,21 +32,21 @@ from app.services.rewards import policy
 
 
 @pytest.mark.parametrize(
-    ("ordinal", "plain", "hinted"),
+    ("level", "plain", "hinted"),
     [
-        (1, 10, 5),
-        (2, 20, 10),
-        (3, 30, 15),
-        (4, 40, 20),
-        (14, 140, 70),
-        (15, 150, 75),
+        (0, 10, 5),
+        (1, 20, 10),
+        (2, 30, 15),
+        (3, 40, 20),
+        (8, 90, 45),
+        (14, 150, 75),
         (40, 150, 75),
     ],
 )
-def test_progressive_xp_and_hint_halving(ordinal, plain, hinted):
-    assert policy.base_xp(ordinal) == plain
-    assert policy.awarded_xp(ordinal, hint_used=False) == plain
-    assert policy.awarded_xp(ordinal, hint_used=True) == hinted
+def test_xp_follows_the_level_and_a_hint_halves_it(level, plain, hinted):
+    assert policy.base_xp(level) == plain
+    assert policy.awarded_xp(level, hint_used=False) == plain
+    assert policy.awarded_xp(level, hint_used=True) == hinted
 
 
 @pytest.mark.parametrize(
@@ -107,7 +107,7 @@ def dashboard(client, headers):
 # --- Consolidation ---
 
 
-def test_three_correct_rounds_earn_60_xp_and_encode_once(client, course, db_session):
+def test_three_correct_rounds_earn_30_xp_and_encode_once(client, course, db_session):
     headers, _, topic_id = course
     c = concept(client, headers, topic_id)
     it = item(client, headers, c["id"])
@@ -123,7 +123,7 @@ def test_three_correct_rounds_earn_60_xp_and_encode_once(client, course, db_sess
     for expected_round in (1, 2, 3):
         shown = card(client, headers, session["id"])["card"]
         assert (shown["round"], shown["rounds_total"]) == (expected_round, 3)
-        assert shown["potential_xp"]["xp"] == 10 * expected_round
+        assert shown["potential_xp"]["xp"] == 10  # level 0 in every round
         assert shown["introduction"] is None  # studied already: straight to recall
         result = answer(client, headers, session["id"], FULL).json()
         assert result["consolidation_round"] == expected_round
@@ -138,31 +138,69 @@ def test_three_correct_rounds_earn_60_xp_and_encode_once(client, course, db_sess
                 1,
             )
 
-    assert awards == [10, 20, 30]
+    assert awards == [10, 10, 10]
     assert card(client, headers, session["id"])["done"] is True
-    assert card(client, headers, session["id"])["session"]["xp_earned"] == 60
+    assert card(client, headers, session["id"])["session"]["xp_earned"] == 30
     state = memory(db_session, it["id"])
     assert (state.state.value, state.level) == ("LEARNING", 1)  # not an inflated interval
     history = client.get(f"/api/v1/learning-items/{it['id']}/reviews", headers=headers).json()
     assert [(r["intent"], r["outcome"]) for r in history] == [("CONSOLIDATION", "GOOD")]
-    assert dashboard(client, headers)["xp"] == {"total": 60, "today": 60}
+    assert dashboard(client, headers)["xp"] == {"total": 30, "today": 30}
 
 
-def test_three_rounds_not_three_correct_answers(client, course):
+def test_an_item_needs_three_good_answers_not_three_in_a_row(client, course, db_session):
     headers, _, topic_id = course
     c = concept(client, headers, topic_id)
-    item(client, headers, c["id"])
+    it = item(client, headers, c["id"])
     session = studied(client, headers, c["id"]).json()
 
     results = [answer(client, headers, session["id"], text).json() for text in (FULL, WRONG, FULL)]
 
     # Incorrect earns nothing and neither advances nor resets the success counter.
-    assert [xp_of(r) for r in results] == [10, 0, 20]
+    assert [xp_of(r) for r in results] == [10, 0, 10]
     assert [r["xp"]["ordinal"] for r in results] == [1, None, 2]
+    # Two good answers so far: the wrong one added a try, the item isn't learned yet.
+    assert card(client, headers, session["id"])["done"] is False
+    assert memory(db_session, it["id"]).state.value == "NEW"
+
+    last = answer(client, headers, session["id"], FULL).json()
+    assert (xp_of(last), last["xp"]["ordinal"]) == (10, 3)
     assert card(client, headers, session["id"])["done"] is True
+    state = memory(db_session, it["id"])
+    assert (state.state.value, state.level) == ("LEARNING", 1)
 
 
-def test_a_failed_last_round_leaves_the_item_new(client, course, db_session):
+def test_the_good_answer_counter_shows_which_good_answer_is_sought(client, course):
+    headers, _, topic_id = course
+    c = concept(client, headers, topic_id)
+    item(client, headers, c["id"])
+    session = studied(client, headers, c["id"]).json()
+    shown = []
+    for text in (FULL, WRONG, WRONG, FULL, FULL):
+        current = card(client, headers, session["id"])["card"]
+        shown.append((current["round"], current["rounds_total"]))
+        answer(client, headers, session["id"], text)
+    # A wrong answer doesn't move the counter on.
+    assert shown == [(1, 3), (2, 3), (2, 3), (2, 3), (3, 3)]
+
+
+def test_a_hard_answer_is_not_a_good_one(client, course, db_session):
+    headers, _, topic_id = course
+    c = concept(client, headers, topic_id)
+    it = item(client, headers, c["id"])
+    session = studied(client, headers, c["id"]).json()
+    for text in (PARTIAL, PARTIAL, PARTIAL):
+        assert answer(client, headers, session["id"], text).json()["final_outcome"] == "HARD"
+    # Three passes with difficulty are not three good answers: still being consolidated.
+    assert card(client, headers, session["id"])["done"] is False
+    assert memory(db_session, it["id"]).state.value == "NEW"
+    for _ in range(3):
+        answer(client, headers, session["id"], FULL)
+    assert card(client, headers, session["id"])["done"] is True
+    assert memory(db_session, it["id"]).state.value == "LEARNING"
+
+
+def test_a_failed_last_answer_keeps_the_item_new_and_asks_it_again(client, course, db_session):
     headers, _, topic_id = course
     c = concept(client, headers, topic_id)
     it = item(client, headers, c["id"])
@@ -170,13 +208,16 @@ def test_a_failed_last_round_leaves_the_item_new(client, course, db_session):
     for text in (FULL, FULL, WRONG):
         answer(client, headers, session["id"], text)
 
+    # Two good answers: not enough. Spaced repetition hasn't started.
     assert memory(db_session, it["id"]).state.value == "NEW"
-    # The next batch repeats the item, but its three XP-eligible rounds are spent.
-    again = studied(client, headers, c["id"]).json()
-    assert again["id"] != session["id"]
-    shown = card(client, headers, again["id"])["card"]
-    assert shown["potential_xp"]["eligible"] is False
-    assert xp_of(answer(client, headers, again["id"], FULL).json()) is None
+    assert card(client, headers, session["id"])["done"] is False
+    result = answer(client, headers, session["id"], FULL).json()
+    assert result["schedule"]["next_level"] == 1
+    assert card(client, headers, session["id"])["done"] is True
+    # Three correct answers were rewarded, 10 each (level 0); the wrong one earned nothing.
+    assert dashboard(client, headers)["xp"]["total"] == 30
+    # Nothing is left to consolidate.
+    assert studied(client, headers, c["id"]).status_code == 409
 
 
 def test_partial_answers_earn_nothing(client, course):
@@ -210,12 +251,12 @@ def test_an_interrupted_batch_resumes_without_replaying_rounds(client, course):
     resumed = studied(client, headers, c["id"]).json()
     assert (resumed["id"], resumed["position"]) == (session["id"], 1)
     next_card = card(client, headers, session["id"])["card"]
-    assert (next_card["round"], next_card["potential_xp"]["xp"]) == (2, 20)
+    assert (next_card["round"], next_card["potential_xp"]["xp"]) == (2, 10)
 
     # Leaving (end) and coming back also resumes nothing twice: an ended batch isn't reopened,
     # and a new batch only takes items still NEW, whose spent rounds earn nothing more.
     rest = [answer(client, headers, session["id"], FULL).json() for _ in range(5)]
-    assert [xp_of(r) for r in rest] == [20, 30, 10, 20, 30]
+    assert [xp_of(r) for r in rest] == [10, 10, 10, 10, 10]
     assert studied(client, headers, c["id"]).json()["details"]["reason"] == "nothing_to_consolidate"
 
 
@@ -264,22 +305,30 @@ def test_a_hint_halves_xp_and_survives_a_reload(client, course):
     )
     session = studied(client, headers, c["id"]).json()
     shown = card(client, headers, session["id"])["card"]
-    assert shown["hint"] == {"available": True, "revealed": False, "text": None}
+    assert shown["hint"] == {
+        "available": True,
+        "revealed": False,
+        "text": None,
+        "point_count": None,
+        "terms": [],
+    }
     assert shown["potential_xp"]["xp_with_hint"] == 5
 
     revealed = hint(client, headers, session["id"]).json()
     assert revealed["revealed"] is True
-    assert revealed["text"].endswith("…")
-    assert "restituzione" not in revealed["text"]  # a cue, not the answer
+    # How many points to cover and a key term from each, never a sentence of the answer.
+    assert revealed["point_count"] == 2
+    assert revealed["terms"] == ["consegna", "restituzione"]
+    assert "obbligo di restituzione" not in revealed["text"]
     # Reloading shows it again; asking again returns the same hint, still one halving.
     assert card(client, headers, session["id"])["card"]["hint"] == revealed
     assert hint(client, headers, session["id"]).json() == revealed
 
     first = answer(client, headers, session["id"], FULL).json()
     assert (first["hint_used"], first["xp"]["xp"], first["xp"]["base_xp"]) == (True, 5, 10)
-    # The penalty is for that attempt only; the counter advanced.
+    # The penalty is for that attempt only.
     second = answer(client, headers, session["id"], FULL).json()
-    assert (second["hint_used"], xp_of(second)) == (False, 20)
+    assert (second["hint_used"], xp_of(second)) == (False, 10)
 
 
 def test_no_hint_when_the_reference_is_too_short(client, course, db_session):
@@ -395,12 +444,12 @@ def test_scheduled_reviews_earn_once_per_due_date(client, course, db_session):
     make_due(db_session, it["id"])
     review = start(client, headers, course_id, intent="SCHEDULED_REVIEW").json()
     shown = card(client, headers, review["id"])["card"]
-    assert shown["potential_xp"] == {"eligible": True, "ordinal": 4, "xp": 40, "xp_with_hint": 20}
+    assert shown["potential_xp"] == {"eligible": True, "level": 1, "xp": 20, "xp_with_hint": 10}
     result = answer(client, headers, review["id"], FULL).json()
     assert (result["xp"]["reason"], result["xp"]["ordinal"], xp_of(result)) == (
         "SCHEDULED_REVIEW",
         4,
-        40,
+        20,
     )
     # Answering the same item again before its next due date (practice with schedule updates)
     # moves the schedule but can't earn again.
@@ -410,7 +459,32 @@ def test_scheduled_reviews_earn_once_per_due_date(client, course, db_session):
     # The next legitimate review earns again.
     make_due(db_session, it["id"])
     later = start(client, headers, course_id, intent="SCHEDULED_REVIEW").json()
-    assert xp_of(answer(client, headers, later["id"], FULL).json()) == 50
+    again = answer(client, headers, later["id"], FULL).json()
+    # The first review moved it up (an easy answer skips a level): the reward moved with it.
+    assert (again["xp"]["level"], xp_of(again)) == (3, 40)
+
+
+def test_an_item_back_at_level_zero_earns_the_level_zero_reward(client, course, db_session):
+    """xp_v2: the reward belongs to the level, so it doesn't keep growing after a lapse."""
+    headers, course_id, topic_id = course
+    c = concept(client, headers, topic_id)
+    it = item(client, headers, c["id"])
+    session = studied(client, headers, c["id"]).json()
+    for _ in range(3):
+        answer(client, headers, session["id"], FULL)
+    make_due(db_session, it["id"])
+    review = start(client, headers, course_id, intent="SCHEDULED_REVIEW").json()
+    assert xp_of(answer(client, headers, review["id"], FULL).json()) == 20  # level 1
+
+    make_due(db_session, it["id"])
+    failed = start(client, headers, course_id, intent="SCHEDULED_REVIEW").json()
+    assert xp_of(answer(client, headers, failed["id"], WRONG).json()) == 0
+    assert memory(db_session, it["id"]).level == 0
+
+    make_due(db_session, it["id"])
+    back = start(client, headers, course_id, intent="SCHEDULED_REVIEW").json()
+    shown = card(client, headers, back["id"])["card"]
+    assert (shown["potential_xp"]["level"], shown["potential_xp"]["xp"]) == (0, 10)
 
 
 def test_learning_with_the_answer_shown_earns_nothing(client, course):
@@ -433,7 +507,7 @@ def test_counters_are_independent_per_user_and_item(client, course, auth_headers
     session = studied(client, headers, c["id"]).json()
     first_item = [xp_of(answer(client, headers, session["id"], FULL).json()) for _ in range(3)]
     second_item = [xp_of(answer(client, headers, session["id"], FULL).json()) for _ in range(3)]
-    assert first_item == second_item == [10, 20, 30]
+    assert first_item == second_item == [10, 10, 10]
 
     other = auth_headers("other-learner@example.com")
     course2 = client.post("/api/v1/courses", json={"title": "Altro"}, headers=other).json()
@@ -448,7 +522,7 @@ def test_counters_are_independent_per_user_and_item(client, course, auth_headers
     s2 = studied(client, other, c2["id"]).json()
     assert xp_of(answer(client, other, s2["id"], FULL).json()) == 10
     assert dashboard(client, other)["xp"]["total"] == 10
-    assert dashboard(client, headers)["xp"]["total"] == 120
+    assert dashboard(client, headers)["xp"]["total"] == 60
 
 
 def test_awards_are_unique_in_the_database(client, course, db_session):

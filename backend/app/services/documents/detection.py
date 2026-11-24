@@ -19,7 +19,10 @@ class DetectedType:
     mime_type: str
 
 
-SUPPORTED_DESCRIPTION = "PDF, Word (.docx), PowerPoint (.pptx), text (.txt), Markdown (.md), images"
+SUPPORTED_DESCRIPTION = (
+    "PDF, Word (.docx), PowerPoint (.pptx), text (.txt), Markdown (.md), images; for questions "
+    "and answers also Excel (.xlsx), CSV and Anki (.apkg)"
+)
 
 _DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 _PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation"

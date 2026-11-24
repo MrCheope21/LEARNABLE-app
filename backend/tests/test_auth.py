@@ -162,3 +162,45 @@ def test_password_hashing_handles_long_passwords():
     hashed = hash_password(base + "1")
     assert verify_password(base + "1", hashed)
     assert not verify_password(base + "2", hashed)
+
+
+def _with_username(client, email: str, username: str):
+    return client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": DEFAULT_PASSWORD, "username": username},
+    )
+
+
+def test_login_with_the_username_or_the_email(client):
+    assert _with_username(client, "ada@example.com", "Ada.L").json()["username"] == "ada.l"
+    for who in ("ada.l", "ADA.L", " ada.l ", "ada@example.com"):
+        assert _login(client, who).status_code == 200, who
+    assert _login(client, "ada.l", "not-the-right-password").status_code == 401
+    unknown = _login(client, "nobody.here")
+    assert unknown.status_code == 401
+    assert unknown.json() == _login(client, "ada.l", "not-the-right-password").json()
+
+
+def test_usernames_are_unique_and_checked(client):
+    assert _with_username(client, "one@example.com", "sharedname").status_code == 201
+    taken = _with_username(client, "two@example.com", "SharedName")
+    assert taken.status_code == 409
+    assert _with_username(client, "three@example.com", "has space").status_code == 422
+    assert _with_username(client, "four@example.com", "a@b.c").status_code == 422
+    assert _with_username(client, "five@example.com", "ab").status_code == 422
+
+
+def test_a_username_can_be_set_changed_and_cleared_in_the_profile(client):
+    _register(client, "later@example.com")
+    _with_username(client, "taken@example.com", "taken")
+    token = _login(client, "later@example.com").json()["access_token"]
+    patch = lambda name: client.patch(  # noqa: E731
+        "/api/v1/auth/me", json={"username": name}, headers=_bearer(token)
+    )
+    assert patch("Later_1").json()["username"] == "later_1"
+    assert _login(client, "later_1").status_code == 200
+    assert patch("taken").status_code == 409
+    assert patch("x").status_code in (400, 422)
+    assert patch("later_1").status_code == 200  # your own name isn't "taken"
+    assert patch("").json()["username"] is None
+    assert _login(client, "later_1").status_code == 401

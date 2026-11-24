@@ -1,4 +1,4 @@
-"""Question priority: 1 Essential, 2 Important, 3 Extra (labels and filters for the student)."""
+"""Question priority, from 1 Essential to 5 In depth (labels and filters for the student)."""
 
 import pytest
 from test_question_banks import _outline, _upload
@@ -32,14 +32,19 @@ def test_a_priority_given_when_creating_wins_over_the_role(client, course):  # n
     assert (created["role"], created["priority"]) == ("CORE_TRAINABLE", 3)
 
 
-def test_priority_can_be_changed_but_only_to_1_2_or_3(client, course):  # noqa: F811
+def test_priority_can_be_changed_but_only_from_1_to_5(client, course):  # noqa: F811
     headers, _, _, topic_id = course
     created = item(client, headers, concept(client, headers, topic_id)["id"])
     url = f"/api/v1/learning-items/{created['id']}"
     assert client.patch(url, json={"priority": 2}, headers=headers).json()["priority"] == 2
-    for bad in (0, 4, "high"):
+    for bad in (0, 6, "high"):
         assert client.patch(url, json={"priority": bad}, headers=headers).status_code == 422
     assert get(client, headers, created["id"])["priority"] == 2
+    # Accessory (4) and in depth (5): below "useful", for details and optional extras.
+    for level in (4, 5):
+        assert (
+            client.patch(url, json={"priority": level}, headers=headers).json()["priority"] == level
+        )
 
 
 def test_many_questions_get_a_priority_at_once(client, course):  # noqa: F811
@@ -86,6 +91,33 @@ def test_question_banks_take_a_priority_line(client, bank_course):  # noqa: F811
         client.get(f"/api/v1/concepts/{c['id']}/learning-items", headers=headers).json()[0]
         for c in concepts
     ]
-    assert [i["priority"] for i in items] == [1, 3, 1]
+    assert [i["priority"] for i in items] == [1, 5, 1]
     # The label line is not part of the expected answer.
     assert all("Priorit" not in i["expected_knowledge"] for i in items)
+
+
+@pytest.mark.parametrize(
+    ("label", "priority"),
+    [
+        ("1", 1),
+        ("Fondamentale", 1),
+        ("importante", 2),
+        ("utile", 3),
+        ("4", 4),
+        ("accessoria", 4),
+        ("Accessory", 4),
+        ("5", 5),
+        ("facoltativa", 5),
+    ],
+)
+def test_every_priority_level_can_be_written_in_the_file(client, bank_course, label, priority):  # noqa: F811
+    headers, course_id = bank_course
+    answer = "Il maggior valore dell'azienda."
+    bank = f"Domanda: Che cos'è l'avviamento?\nRisposta: {answer}\nPriorità: {label}\n"
+    document = _upload(client, headers, course_id, "Avviamento.md", bank.encode())
+    assert document["status"] == "READY", document["error_message"]
+    [chapter] = _outline(client, headers, course_id)
+    [made] = [c for t in chapter["topics"] for c in t["concepts"]]
+    [question] = client.get(f"/api/v1/concepts/{made['id']}/learning-items", headers=headers).json()
+    assert question["priority"] == priority
+    assert "Priorit" not in question["expected_knowledge"]

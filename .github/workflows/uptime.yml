@@ -1,0 +1,33 @@
+name: Uptime
+
+# Every 30 minutes: is the site answering? A failed run makes GitHub email the repository's
+# owner (Settings → Notifications → Actions), so nothing else has to be set up.
+# The address comes from the repository variable SITE_URL (Settings → Secrets and variables →
+# Actions → Variables), e.g. https://example.org. Without it the check is skipped.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: The site and its API answer
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$SITE_URL" ]; then echo "SITE_URL is not set: nothing to check."; exit 0; fi
+          for path in / /health; do
+            ok=""
+            for attempt in 1 2 3; do
+              if curl --silent --show-error --fail --max-time 20 --output /dev/null "$SITE_URL$path"; then ok=1; break; fi
+              sleep 20
+            done
+            [ -n "$ok" ] || { echo "::error::$path did not answer after 3 attempts"; exit 1; }
+            echo "$path ok"
+          done

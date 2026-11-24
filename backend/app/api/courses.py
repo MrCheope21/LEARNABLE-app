@@ -36,9 +36,11 @@ from app.schemas.courses import (
     TopicRead,
     TopicUpdate,
 )
+from app.schemas.progress import ExamDate
 from app.services.courses import service
 from app.services.documents.service import delete_course_files
 from app.services.learning import service as learning_service
+from app.services.quota import GENERATION, ai_quota
 from app.storage.documents import DocumentStorage, get_document_storage
 
 router = APIRouter(tags=["courses"])
@@ -70,6 +72,19 @@ def update_course(
     course_id: uuid.UUID, payload: CourseUpdate, db: Session = DB, user: User = CurrentUser
 ) -> Course:
     return service.update_course(db, user.id, course_id, payload)
+
+
+@router.put("/courses/{course_id}/exam-date", response_model=CourseRead)
+def set_exam_date(
+    course_id: uuid.UUID, payload: ExamDate, db: Session = DB, user: User = CurrentUser
+) -> Course:
+    """The day of the exam (null removes it): the progress page then says how many new
+    questions a day get there."""
+    course = service.get_owned_course(db, user.id, course_id)
+    course.exam_date = payload.date
+    db.commit()
+    db.refresh(course)
+    return course
 
 
 @router.delete("/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -243,7 +258,7 @@ def mark_concept_studied(
 @router.post(
     "/concepts/{concept_id}/activate",
     response_model=ConceptRead,
-    dependencies=[Depends(per_user("activate", 200, 3600))],
+    dependencies=[Depends(per_user("activate", 200, 3600)), Depends(ai_quota(GENERATION))],
 )
 def activate_concept(
     concept_id: uuid.UUID,

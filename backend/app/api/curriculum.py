@@ -22,6 +22,7 @@ from app.schemas.curriculum import (
 )
 from app.schemas.documents import ChunkRead
 from app.services.curriculum import service
+from app.services.quota import GENERATION, ai_quota
 
 router = APIRouter(tags=["curriculum"])
 
@@ -38,7 +39,7 @@ def get_max_context_chars() -> int:
     "/courses/{course_id}/curriculum-proposals",
     response_model=CurriculumProposalRead,
     status_code=status.HTTP_202_ACCEPTED,
-    dependencies=[Depends(per_user("generation", 30, 3600))],
+    dependencies=[Depends(per_user("generation", 30, 3600)), Depends(ai_quota(GENERATION))],
 )
 def generate_curriculum(
     course_id: uuid.UUID,

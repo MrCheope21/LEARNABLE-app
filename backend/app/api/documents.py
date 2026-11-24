@@ -66,6 +66,8 @@ def upload_document(
     QUESTION_BANK holds the user's own questions and expected answers, labelled "Domanda:" /
     "Risposta:" (or "Question:" / "Answer:"). Each pair becomes a NOT_STUDIED Concept with one
     Learning Item, under `chapter_id` or a new Chapter named after the file."""
+    if user.is_admin:
+        max_bytes = max(max_bytes, get_settings().admin_max_upload_mb * 1024 * 1024)
     data = file.file.read(max_bytes + 1)
     if len(data) > max_bytes:
         raise PayloadTooLargeError(

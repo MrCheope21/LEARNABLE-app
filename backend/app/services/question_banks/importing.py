@@ -14,17 +14,21 @@ from pathlib import PurePath
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.errors import AppError
 from app.db.types import utc_now
 from app.models.course import Chapter, Concept, Course, Topic
 from app.models.curriculum import ConceptSource
 from app.models.document import Document, DocumentChunk
 from app.models.enums import ItemGenerationStatus, LearningItemRole, QuestionType
 from app.models.learning import LearningItemSource
-from app.schemas.learning import LearningItemCreate, QuestionCreate
+from app.schemas.learning import Choice, LearningItemCreate, QuestionCreate
+from app.services import drawings
 from app.services.documents.blocks import Block
 from app.services.documents.sentences import split_sentences
+from app.services.learning import choices
 from app.services.learning.service import new_item
 from app.services.question_banks.parsing import MAX_PAIRS, QuestionAnswer, parse_question_bank
+from app.storage.documents import DocumentStorage
 
 NO_PAIRS = (
     'No questions were found. Start each question with "Domanda:" (or "Question:") and each '
@@ -49,9 +53,18 @@ class NoQuestionsFoundError(Exception):
     pass
 
 
-def import_question_bank(db: Session, document: Document, blocks: list[Block]) -> ImportResult:
-    """Adds chunks, hierarchy and items to the session; the caller commits."""
+def import_question_bank(
+    db: Session,
+    document: Document,
+    blocks: list[Block],
+    images: list[bytes] | None = None,
+    storage: DocumentStorage | None = None,
+) -> ImportResult:
+    """Adds chunks, hierarchy and items to the session; the caller commits. A picture under an
+    answer (`images`, from a Word file) makes the item a drawing question with that picture as
+    its reference drawing, saved in `storage`."""
     parsed = parse_question_bank(blocks)
+    skipped_pictures = 0
     if not parsed.pairs:
         raise NoQuestionsFoundError(NO_PAIRS)
     course = db.get(Course, document.course_id)
@@ -88,12 +101,14 @@ def import_question_bank(db: Session, document: Document, blocks: list[Block]) -
             order = 0 if last is None else last + 1
         next_concept_order[topic.id] = order + 1
 
+        # Its title is the question alone (a multiple-choice one without its options).
+        made = _item_for(pair, priority)
         concept = Concept(
             id=uuid.uuid4(),
             topic_id=topic.id,
             chapter_id=chapter.id,
             course_id=document.course_id,
-            title=_shorten(pair.question, _TITLE_CHARS),
+            title=made.title,
             order=order,
             # Items are already here: activation must not generate more over them.
             item_generation_status=ItemGenerationStatus.READY,
@@ -101,11 +116,36 @@ def import_question_bank(db: Session, document: Document, blocks: list[Block]) -
         db.add(concept)
         db.flush()
         db.add(ConceptSource(concept_id=concept.id, chunk_id=chunk.id, course_id=course.id))
-        item = new_item(db, concept, _item_for(pair, priority), order=0)
+        item = new_item(db, concept, made, order=0)
+        if pair.question_images and storage is not None:
+            picture = _picture(images, pair.question_images[0])
+            try:
+                media_type = drawings.image_type(picture)
+            except AppError:
+                skipped_pictures += 1
+            else:
+                storage.save(drawings.question_image_key(item), picture)
+                item.question_image_type = media_type
+        if pair.answer_images and storage is not None:
+            pictures = images or []
+            index = pair.answer_images[0]
+            picture = pictures[index] if index < len(pictures) else b""
+            try:
+                media_type = drawings.image_type(picture)
+            except AppError:
+                skipped_pictures += 1  # not PNG/JPEG/WebP, or over 3 MB: stays a text question
+            else:
+                storage.save(drawings.reference_key(item), picture)
+                item.answer_format = "DRAWING"
+                item.reference_drawing_type = media_type
         db.add(LearningItemSource(learning_item_id=item.id, chunk_id=chunk.id, course_id=course.id))
 
     document.analyzed_at = utc_now()
-    return ImportResult(len(parsed.pairs), _notice(parsed.unanswered_pages, parsed.truncated))
+    notice = _notice(parsed.unanswered_pages, parsed.truncated)
+    if skipped_pictures:
+        extra = f"{skipped_pictures} picture(s) couldn't be used (PNG, JPEG or WebP up to 3 MB)."
+        notice = f"{notice} {extra}" if notice else extra
+    return ImportResult(len(parsed.pairs), notice)
 
 
 def _chapter_for(db: Session, document: Document) -> Chapter:
@@ -150,31 +190,54 @@ def _topic_for(db: Session, chapter: Chapter, title: str) -> Topic:
     return topic
 
 
-# "Priorità: 1", "Priorità: alta" or "Priority: extra" at the end of a line of a question or its
-# answer sets the question's priority; the label itself is not part of the text.
+# "Priorità: 1" … "Priorità: 5", "Priorità: alta" or "Priority: accessory" at the end of a line
+# of a question or its answer sets the question's priority; the label is not part of the text.
 _PRIORITY_LINE = re.compile(
     # On its own line, or at the end of one (the parser joins a question's lines with spaces).
     r"(?:^|\s)(?i:priorit[aà]|priority)\s*[:.\-\u2013]\s*(?P<value>[^\s.,;]+)[.,;]?\s*$",
     re.MULTILINE,
 )
 _PRIORITY_WORDS = {
+    # 1 Essential: must be known.
     "1": 1,
     "alta": 1,
     "essenziale": 1,
+    "fondamentale": 1,
     "core": 1,
     "high": 1,
     "essential": 1,
+    # 2 Important.
     "2": 2,
     "media": 2,
     "importante": 2,
     "medium": 2,
     "important": 2,
+    # 3 Useful: completes the picture.
     "3": 3,
     "bassa": 3,
+    "utile": 3,
+    "complementare": 3,
     "extra": 3,
-    "approfondimento": 3,
     "low": 3,
-    "addendum": 3,
+    "useful": 3,
+    # 4 Accessory: a detail, not central.
+    "4": 4,
+    "accessoria": 4,
+    "accessorio": 4,
+    "secondaria": 4,
+    "dettaglio": 4,
+    "accessory": 4,
+    "minor": 4,
+    "detail": 4,
+    # 5 In depth: optional.
+    "5": 5,
+    "approfondimento": 5,
+    "facoltativa": 5,
+    "facoltativo": 5,
+    "curiosità": 5,
+    "addendum": 5,
+    "optional": 5,
+    "in-depth": 5,
 }
 
 
@@ -194,7 +257,38 @@ def _priority(pair: QuestionAnswer) -> tuple[QuestionAnswer, int | None]:
     return replace(pair, question=question, answer=answer), found
 
 
+def _picture(images: list[bytes] | None, index: int) -> bytes:
+    pictures = images or []
+    return pictures[index] if index < len(pictures) else b""
+
+
+def _multiple_choice(pair: QuestionAnswer) -> tuple[str, list[Choice]] | None:
+    """The stem and the options, when the question lists options and the answer names them
+    (services/learning/choices.py `detect`)."""
+    lines = [line for line in pair.question_lines if not _PRIORITY_LINE.search(line)]
+    found = choices.detect(lines or pair.question, pair.answer)
+    if found is None:
+        return None
+    stem, options = found
+    return stem, [Choice.model_construct(text=o["text"], correct=o["correct"]) for o in options]
+
+
 def _item_for(pair: QuestionAnswer, priority: int | None) -> LearningItemCreate:
+    found = _multiple_choice(pair)
+    if found is not None:
+        stem, options = found
+        question = QuestionCreate.model_construct(question_type=QuestionType.RECALL, text=stem)
+        return LearningItemCreate.model_construct(
+            title=_shorten(stem, _TITLE_CHARS),
+            objective=_shorten(stem, _OBJECTIVE_CHARS),
+            expected_knowledge="",
+            essential_points=[],
+            role=LearningItemRole.CORE_TRAINABLE,
+            difficulty=3,
+            priority=priority,
+            questions=[question],
+            choices=options,
+        )
     # model_construct: the user's full answer is kept even beyond the API's input limits, which
     # exist for hand-typed edits; only database column sizes are enforced, by cutting.
     sentences = [s for line in pair.answer.split("\n") for s in split_sentences(line)]
@@ -213,9 +307,11 @@ def _item_for(pair: QuestionAnswer, priority: int | None) -> LearningItemCreate:
 
 
 def _passage_text(pair: QuestionAnswer, language: str) -> str:
-    if language.split("-")[0].lower() == "it":
-        return f"Domanda: {pair.question}\n\nRisposta: {pair.answer}"
-    return f"Question: {pair.question}\n\nAnswer: {pair.answer}"
+    italian = language.split("-")[0].lower() == "it"
+    answer = pair.answer or ("[disegno]" if italian else "[drawing]")
+    if italian:
+        return f"Domanda: {pair.question}\n\nRisposta: {answer}"
+    return f"Question: {pair.question}\n\nAnswer: {answer}"
 
 
 def _shorten(text: str, limit: int) -> str:

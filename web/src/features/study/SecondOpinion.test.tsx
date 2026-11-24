@@ -37,7 +37,7 @@ async function answerAndDisagree() {
 }
 
 describe("second opinion", () => {
-  it("asks the AI again with the objection and keeps both evaluations visible", async () => {
+  it("asks the AI again with the objection and corrects the evaluation in place and folds the original away", async () => {
     const { requests } = backend(ok({ ...fixtures.answer_result, second_opinion: secondOpinion }));
     const user = await answerAndDisagree();
 
@@ -46,12 +46,17 @@ describe("second opinion", () => {
     await user.type(screen.getByLabelText("Why do you disagree?"), "I did mention the deposit.");
     await user.click(ask);
 
-    const second = await screen.findByRole("region", { name: "Second opinion" });
-    expect(within(second).getByText("Second look: only half of it.")).toBeInTheDocument();
-    expect(within(second).getByText(/I did mention the deposit\./)).toBeInTheDocument();
-    // The first evaluation is still there, and the grade buttons are still offered.
-    const first = screen.getByRole("region", { name: "First evaluation" });
-    expect(within(first).getByText(fixtures.answer_result.evaluation.feedback)).toBeInTheDocument();
+    // One evaluation, corrected in place: the new one is shown, flagged as a revision with the
+    // objection quoted, and the original is folded away rather than shown as a second table.
+    const evaluation = await screen.findByRole("region", { name: "Evaluation" });
+    expect(within(evaluation).getByText("Re-evaluated after your objection")).toBeInTheDocument();
+    expect(within(evaluation).getByText(/I did mention the deposit\./)).toBeInTheDocument();
+    expect(within(evaluation).getByText("Second look: only half of it.")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "First evaluation" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Second opinion" })).not.toBeInTheDocument();
+    const original = within(evaluation).getByText("See the original evaluation").closest("details")!;
+    expect(within(original).getByText(fixtures.answer_result.evaluation.feedback)).toBeInTheDocument();
+    // The grade buttons are still offered.
     expect(screen.getByRole("button", { name: /^Hard/ })).toBeEnabled();
     expect(requests.find((r) => r.path.endsWith("/dispute"))?.body).toEqual({ argument: "I did mention the deposit." });
     expect(requests.some((r) => r.path.endsWith("/override"))).toBe(false);

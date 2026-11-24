@@ -1,7 +1,12 @@
 """The XP rules (docs/XP_AND_ACTIVITY.md §1-3). Pure: no database, no clock.
 
-    base XP of the nth correct answer to a Learning Item = min(10 * n, 150)
+    base XP of a correct answer = 10 * (the item's level when it was asked + 1)
+                                  (level 0 → 10, level 1 → 20 … level 8 → 90)
     awarded XP = base, halved when a hint was revealed before answering
+
+xp_v2 (owner decision, 2026-11-10). xp_v1 paid by the count of correct answers (10n, capped at
+150), so the reward kept growing even after a failed review had sent the item back to level 0.
+Now a level has one reward: an item that falls back earns what that level earns.
 
 XP rewards effort and consistency; it is never read by the scheduler, the outcome resolver or
 mastery estimates. Changing a number here means a new XP_POLICY_VERSION, because every award
@@ -10,7 +15,7 @@ row records the version that produced it.
 
 from app.models.enums import EvaluationClassification, ReviewOutcome
 
-XP_POLICY_VERSION = "xp_v1"
+XP_POLICY_VERSION = "xp_v2"
 XP_STEP = 10
 XP_CAP = 150
 # An item's first three consolidation rounds are XP-eligible; later ones (a second batch that
@@ -21,15 +26,16 @@ ROUNDS_PER_ITEM = 3
 _SUCCESS = frozenset({ReviewOutcome.HARD, ReviewOutcome.GOOD, ReviewOutcome.EASY})
 
 
-def base_xp(ordinal: int) -> int:
-    if ordinal < 1:
-        raise ValueError("the first correct answer has ordinal 1")
-    return min(XP_STEP * ordinal, XP_CAP)
+def base_xp(level: int) -> int:
+    """The reward of a correct answer to an item asked at `level` (0 = new or relearning)."""
+    if level < 0:
+        raise ValueError("levels start at 0")
+    return min(XP_STEP * (level + 1), XP_CAP)
 
 
-def awarded_xp(ordinal: int, hint_used: bool) -> int:
+def awarded_xp(level: int, hint_used: bool) -> int:
     """Several hints don't compound: the penalty is one halving."""
-    base = base_xp(ordinal)
+    base = base_xp(level)
     return base // 2 if hint_used else base
 
 

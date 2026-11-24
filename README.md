@@ -1,5 +1,8 @@
 # Adaptive AI Learning Platform
 
+> The app is now called **Recallable** in its interface (2026-11-11). The repository, the
+> environment variables and the technical identifiers keep the earlier name, LEARNABLE.
+
 A structured knowledge curriculum combined with an adaptive memory engine, for iPhone. Not a
 chatbot, not a flashcard app — a Course → Chapter → Topic → Concept → Learning Item hierarchy
 paired with an AI-evaluated, spaced-repetition review engine.
@@ -27,6 +30,8 @@ end-to-end run against the real backend). Verified status:
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, service boundaries, isolation rules
 - [DATA_MODEL.md](docs/DATA_MODEL.md) — entity reference
 - [API.md](docs/API.md) — endpoint reference
+- [COMMUNITY.md](docs/COMMUNITY.md) — leaderboards, friends, messages, notifications
+- [MARKETPLACE.md](docs/MARKETPLACE.md) — publishing, reviews, updates, paid courses (Stripe)
 - [AI.md](docs/AI.md) — AIProvider contract, structured-output schemas, prompt versioning
 - [SCHEDULING.md](docs/SCHEDULING.md) — SchedulingPolicy contract, Chessable-style defaults
 - [XP_AND_ACTIVITY.md](docs/XP_AND_ACTIVITY.md) — consolidation rounds, progressive XP, hints,

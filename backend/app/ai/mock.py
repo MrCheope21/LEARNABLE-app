@@ -287,6 +287,7 @@ def _mechanical_evaluation(request: EvaluationRequest) -> EvaluationOutput:
         missing_points=missing[:20],
         context_sufficient=True,
         feedback="Mock evaluation (keyword overlap).",
+        gap=f"Missing: {missing[0]}" if missing else "",
     )
 
 

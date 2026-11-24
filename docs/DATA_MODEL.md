@@ -205,7 +205,7 @@ Beside the learning loop, never read by it (docs/XP_AND_ACTIVITY.md).
 ### XpAward (the XP ledger; one row per eligible finalized attempt, 0 XP included)
 - user_id, course_id, learning_item_id, answer_id (unique), session_id
 - reason (INITIAL | SCHEDULED_REVIEW), occasion_key ("initial:2", "review:<due date>")
-- correct, ordinal, base_xp, hint_used, xp, policy_version, awarded_at
+- correct, ordinal, level (since xp_v2), base_xp, hint_used, xp, policy_version, awarded_at
 - unique (learning_item_id, occasion_key) and (learning_item_id, ordinal): no duplicate awards
   even under concurrent requests
 

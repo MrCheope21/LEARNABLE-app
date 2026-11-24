@@ -1,3 +1,5 @@
+from datetime import date
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -72,8 +74,30 @@ class ReviewLoad(BaseModel):
     new_to_learn: int
 
 
+class ExamPlan(BaseModel):
+    """With an exam date on the course: what it takes to get there."""
+
+    date: date
+    # Whole days from the user's today to the exam (0: today; negative: it has passed).
+    days_left: int
+    # Questions not learned yet.
+    new_left: int
+    # New questions a day that finish them with the last days left for review only.
+    new_per_day: int
+    # New questions a day over the last 7 days.
+    pace: float
+    # "done": nothing new left; "past": the date has gone by.
+    status: Literal["on_track", "behind", "done", "past"]
+
+
+class ExamDate(BaseModel):
+    # Null removes it.
+    date: date | None
+
+
 class CourseProgress(BaseModel):
     course_id: UUID
+    exam: ExamPlan | None = None
     curriculum: CurriculumProgress
     memory: MemoryProgress
     review_load: ReviewLoad

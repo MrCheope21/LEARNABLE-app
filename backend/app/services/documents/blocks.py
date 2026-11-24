@@ -1,6 +1,6 @@
 """What extraction produces: paragraph-level blocks that remember where they came from."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 
@@ -16,8 +16,15 @@ class Block:
     page_end: int | None = None
 
 
+# A paragraph that is only a picture: its text is this marker, the picture is
+# Extraction.images[N]. Only question banks use pictures (a drawing as the expected answer).
+IMAGE_MARKER = "\u27e6img:{}\u27e7"
+
+
 @dataclass(frozen=True)
 class Extraction:
     blocks: list[Block]
     page_count: int | None
     source_created_at: datetime | None
+    # Pictures found in the document (DOCX), referenced by IMAGE_MARKER blocks.
+    images: list[bytes] = field(default_factory=list)

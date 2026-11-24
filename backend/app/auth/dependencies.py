@@ -3,7 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.auth.security import decode_access_token
-from app.core.errors import AuthenticationError
+from app.core.errors import AccountSuspendedError, AuthenticationError, ForbiddenError
 from app.db.session import get_db
 from app.models.user import User
 
@@ -24,4 +24,12 @@ def get_current_user(
     # A token from before the latest password change is no longer valid.
     if user is None or claims is None or claims[1] != user.token_version:
         raise AuthenticationError("Invalid or expired token")
+    if not user.is_active:
+        raise AccountSuspendedError("This account is suspended.")
+    return user
+
+
+def require_admin(user: User = Depends(get_current_user)) -> User:
+    if not user.is_admin:
+        raise ForbiddenError("Administrators only.")
     return user

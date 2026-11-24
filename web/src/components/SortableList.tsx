@@ -19,7 +19,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
-import { AUTHOR_ORDER, useReadOnlyCourse } from "./CourseAccess";
+import { useI18n } from "../i18n";
+import { useReadOnlyCourse } from "./CourseAccess";
 import { ErrorBanner } from "./QueryState";
 
 type Props<T extends { id: string }> = {
@@ -47,8 +48,9 @@ export function SortableList<T extends { id: string }>({
   disabledReason: reason,
   className = "",
 }: Props<T>) {
+  const { t } = useI18n();
   const readOnly = useReadOnlyCourse();
-  const disabledReason = readOnly ? AUTHOR_ORDER : reason;
+  const disabledReason = readOnly ? t("course.authorOrder") : reason;
   // The optimistic order, tied to the `items` it was made from: once the refetch delivers a new
   // list (or the save fails), the server's order shows again. No effect needed to reset it.
   const [pending, setPending] = useState<{ base: T[]; order: T[] } | null>(null);
@@ -65,16 +67,16 @@ export function SortableList<T extends { id: string }>({
 
   const labelOf = (id: UniqueIdentifier) => {
     const item = shown.find((i) => i.id === id);
-    return item ? itemLabel(item) : "Item";
+    return item ? itemLabel(item) : t("drag.item");
   };
   const positionOf = (id: UniqueIdentifier) => shown.findIndex((i) => i.id === id) + 1;
   const announcements: Announcements = {
-    onDragStart: ({ active }) => `Picked up ${labelOf(active.id)}, position ${positionOf(active.id)} of ${shown.length}.`,
+    onDragStart: ({ active }) => t("drag.pickedUp", { label: labelOf(active.id), pos: positionOf(active.id), total: shown.length }),
     onDragOver: ({ active, over }) =>
-      over ? `${labelOf(active.id)} is now at position ${positionOf(over.id)} of ${shown.length}.` : undefined,
+      over ? t("drag.over", { label: labelOf(active.id), pos: positionOf(over.id), total: shown.length }) : undefined,
     onDragEnd: ({ active, over }) =>
-      over ? `${labelOf(active.id)} dropped at position ${positionOf(over.id)} of ${shown.length}.` : `${labelOf(active.id)} dropped.`,
-    onDragCancel: ({ active }) => `Moving ${labelOf(active.id)} cancelled.`,
+      over ? t("drag.dropped", { label: labelOf(active.id), pos: positionOf(over.id), total: shown.length }) : t("drag.droppedPlain", { label: labelOf(active.id) }),
+    onDragCancel: ({ active }) => t("drag.cancelled", { label: labelOf(active.id) }),
   };
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
@@ -105,6 +107,7 @@ export function SortableList<T extends { id: string }>({
 }
 
 function SortableRow({ id, label, sortable, children }: { id: string; label: string; sortable: boolean; children: ReactNode }) {
+  const { t } = useI18n();
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
     <li
@@ -117,7 +120,7 @@ function SortableRow({ id, label, sortable, children }: { id: string; label: str
           type="button"
           ref={setActivatorNodeRef}
           className="drag-handle"
-          aria-label={`Reorder ${label}`}
+          aria-label={t("drag.reorder", { label })}
           {...attributes}
           {...listeners}
         >

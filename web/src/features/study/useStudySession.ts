@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, userMessage, type Schemas } from "../../api/client";
+import { useI18n } from "../../i18n";
 import { study } from "../../api/endpoints";
 import { drafts } from "./drafts";
 
@@ -22,6 +23,7 @@ export type Phase =
  * memory level, an outcome or a due date.
  */
 export function useStudySession(courseId: string, request: Schemas["SessionCreate"], resumeId: string | null = null) {
+  const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>({ kind: "starting" });
   const [session, setSession] = useState<Schemas["SessionRead"] | null>(null);
   const [draft, setDraftState] = useState("");
@@ -29,6 +31,8 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
   const [dictated, setDictated] = useState(false);
   // A drawing question's answer (a data URL), or null while nothing is drawn.
   const [drawing, setDrawing] = useState<string | null>(null);
+  // A multiple-choice question's picked options (positions in card.choices).
+  const [picked, setPicked] = useState<number[]>([]);
   const draftRef = useRef("");
   const [error, setError] = useState<unknown>(null);
   const [working, setWorking] = useState(false);
@@ -72,11 +76,12 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
       draftRef.current = saved;
       setDictated(false);
       setDrawing(null);
+      setPicked([]);
       setPhase(card.introduction ? { kind: "introduction", card } : { kind: "answering", card });
     } catch (e) {
-      setPhase({ kind: "failed", message: userMessage(e) });
+      setPhase({ kind: "failed", message: userMessage(e, t) });
     }
-  }, []);
+  }, [t]);
 
   const start = useCallback(async () => {
     setPhase({ kind: "starting" });
@@ -88,11 +93,11 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     } catch (e) {
       // The only conflict when starting: nothing qualifies right now (docs/API.md empty_pool).
       if (e instanceof ApiError && e.status === 409) setPhase({ kind: "empty" });
-      else setPhase({ kind: "failed", message: userMessage(e) });
+      else setPhase({ kind: "failed", message: userMessage(e, t) });
       return;
     }
     await loadNext();
-  }, [courseId, request, resumeId, loadNext]);
+  }, [courseId, request, resumeId, loadNext, t]);
 
   useEffect(() => {
     if (started.current) return;
@@ -126,7 +131,9 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
   }, [phase]);
 
   const drawn = phase.kind === "answering" && phase.card.answer_format === "DRAWING";
-  const canSubmit = phase.kind === "answering" && (drawn ? drawing !== null : draft.trim().length > 0);
+  const choosing = phase.kind === "answering" && phase.card.answer_format === "CHOICE";
+  const canSubmit =
+    phase.kind === "answering" && (choosing ? picked.length > 0 : drawn ? drawing !== null : draft.trim().length > 0);
 
   const submit = useCallback(async () => {
     const current = sessionRef.current;
@@ -141,6 +148,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
         draft.trim(),
         dictated ? "VOICE" : "TEXT",
         card.answer_format === "DRAWING" ? (drawing ?? undefined) : undefined,
+        card.answer_format === "CHOICE" ? picked : undefined,
       );
       // The backend has the answer: the local copy can go.
       drafts.clear(card.question.id);
@@ -148,6 +156,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
       draftRef.current = "";
       setDictated(false);
       setDrawing(null);
+      setPicked([]);
       record(result);
       setPhase({ kind: "result", card, result });
     } catch (e) {
@@ -160,7 +169,7 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
       setPhase({ kind: "answering", card });
       setError(e);
     }
-  }, [phase, draft, dictated, drawing, canSubmit, record, loadNext]);
+  }, [phase, draft, dictated, drawing, picked, canSubmit, record, loadNext]);
 
   const withResult = useCallback(
     async (action: (result: AnswerView) => Promise<AnswerView>) => {
@@ -185,6 +194,9 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     (outcome: Schemas["ReviewOutcome"]) => withResult((r) => study.override(r.answer_id, outcome)),
     [withResult],
   );
+
+  /** A mostly green answer, repeated after reviewing the reference: it counts as correct. */
+  const repeat = useCallback((text: string) => withResult((r) => study.repeat(r.answer_id, text)), [withResult]);
 
   /** Asks the evaluator again with the student's objection; no grade changes. */
   const dispute = useCallback(
@@ -228,6 +240,25 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     }
   }, [loadNext]);
 
+  /** Makes another question the next one, then shows it. */
+  const pick = useCallback(
+    async (learningItemId: string) => {
+      const current = sessionRef.current;
+      if (!current) return;
+      setWorking(true);
+      setError(null);
+      try {
+        await study.pick(current.id, learningItemId);
+        await loadNext();
+      } catch (e) {
+        setError(e);
+      } finally {
+        setWorking(false);
+      }
+    },
+    [loadNext],
+  );
+
   const end = useCallback(async () => {
     const current = sessionRef.current;
     if (!current || current.ended_at) return;
@@ -245,6 +276,8 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     setDraft,
     appendDictation,
     setDrawing,
+    picked,
+    setPicked,
     canSubmit,
     error,
     clearError: () => setError(null),
@@ -253,9 +286,11 @@ export function useStudySession(courseId: string, request: Schemas["SessionCreat
     results,
     start,
     loadNext,
+    pick,
     beginRecall,
     submit,
     override,
+    repeat,
     dispute,
     revealHint,
     retryEvaluation,

@@ -20,7 +20,7 @@ paragraphs and pages. Document headings group the questions into topics.
 import re
 from dataclasses import dataclass, field
 
-from app.services.documents.blocks import Block
+from app.services.documents.blocks import IMAGE_MARKER, Block
 from app.services.documents.cleaning import clean_text
 
 MAX_PAIRS = 2000
@@ -36,6 +36,18 @@ _ANSWER = re.compile(
     r"^\s*(?:[-*•]\s*)?"
     rf"(?:(?:(?i:risposta|soluzione|answer)){_NUMBER}\s*{_SEPARATOR}|[RA]{_NUMBER}\s*:)\s*"
 )
+
+
+def _md_line(line: str) -> str:
+    """Markdown a chatbot leaves on a line: "\\" at the end (a line break) and escapes."""
+    line = re.sub(r"\\+[ \t]*$", "", line)
+    line = re.sub(r"\\+(?=\s)", "", line)
+    line = re.sub(r"\\([\\`*_{}\[\]()#+\-.!|>~])", r"\1", line)
+    return re.sub(r"(\*\*|__)(.+?)\1", r"\2", line)
+
+
+_BOLD_LABEL = re.compile(r"^(\s*(?:[-*•]\s+)?)[*_]{1,3}([^*_\n]{1,30}?)[*_]{1,3}(?=\s|:|$)")
+_PICTURE = re.compile(IMAGE_MARKER.replace("{}", r"(\d+)"))
 _LIST_ITEM = re.compile(r"\s*(?:[-*•]|\d+[.)]|[a-z]\))\s")
 # An answer label later on the question's own line: full words only, after whitespace.
 _INLINE_ANSWER = re.compile(r"\s(?i:risposta|soluzione|answer)\s*:\s*")
@@ -49,6 +61,12 @@ class QuestionAnswer:
     heading: str | None
     page: int | None
     page_end: int | None = None
+    # The question's own lines as written (multiple-choice options are found in them).
+    question_lines: list[str] = field(default_factory=list)
+    # Pictures under "Risposta:" (Extraction.images indexes): a drawing as the expected answer.
+    answer_images: list[int] = field(default_factory=list)
+    # Pictures between "Domanda:" and "Risposta:": shown with the question.
+    question_images: list[int] = field(default_factory=list)
 
 
 @dataclass
@@ -66,6 +84,8 @@ class _Draft:
     question: list[str] = field(default_factory=list)
     answer: list[str] | None = None
     last_page: int | None = None
+    answer_images: list[int] = field(default_factory=list)
+    question_images: list[int] = field(default_factory=list)
 
 
 def parse_question_bank(blocks: list[Block]) -> ParseResult:
@@ -79,20 +99,41 @@ def parse_question_bank(blocks: list[Block]) -> ParseResult:
             return
         question = clean_text("\n".join(draft.question))
         answer = _paragraphs(draft.answer or [])
-        if question and answer:
+        if question and (answer or draft.answer_images):
             if len(result.pairs) >= MAX_PAIRS:
                 result.truncated = True
             else:
                 page_end = draft.last_page if draft.last_page != draft.page else None
                 result.pairs.append(
-                    QuestionAnswer(question, answer, draft.heading, draft.page, page_end)
+                    QuestionAnswer(
+                        question,
+                        answer,
+                        draft.heading,
+                        draft.page,
+                        page_end,
+                        [line for line in draft.question if line.strip()],
+                        list(draft.answer_images),
+                        list(draft.question_images),
+                    )
                 )
         elif question:
             result.unanswered_pages.append(draft.page)
         draft = None
 
     for block in blocks:
-        for line in block.text.split("\n"):
+        for raw_line in block.text.split("\n"):
+            picture = _PICTURE.fullmatch(raw_line.strip())
+            if picture:
+                # Under "Domanda:" it goes with the question; under "Risposta:" it is the
+                # expected drawing; before any question it is ignored.
+                if draft is not None:
+                    images = (
+                        draft.answer_images if draft.answer is not None else draft.question_images
+                    )
+                    images.append(int(picture.group(1)))
+                continue
+            # Chatbots often write labels in bold: "**Domanda:** …", "__Risposta__: …".
+            line = _BOLD_LABEL.sub(r"\1\2", _md_line(raw_line))
             question_label = _QUESTION.match(line)
             answer_label = _ANSWER.match(line)
             if question_label:
@@ -111,7 +152,7 @@ def parse_question_bank(blocks: list[Block]) -> ParseResult:
             elif block.is_heading:
                 # A heading closes the current pair and names the pairs that follow.
                 finish()
-                heading = clean_text(line) or heading
+                heading = clean_text(line).replace("**", "").strip("_ ") or heading
             elif draft is not None:
                 (draft.answer if draft.answer is not None else draft.question).append(line)
                 draft.last_page = block.page_end or block.page

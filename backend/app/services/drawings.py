@@ -62,6 +62,10 @@ def reference_key(item: LearningItem) -> str:
     return f"courses/{item.course_id}/drawings/items/{item.id}"
 
 
+def question_image_key(item: LearningItem) -> str:
+    return f"courses/{item.course_id}/drawings/question-items/{item.id}"
+
+
 def answer_key(answer: Answer) -> str:
     return f"courses/{answer.course_id}/drawings/answers/{answer.id}"
 
@@ -99,6 +103,45 @@ def remove_reference(
     return item
 
 
+# --- Pictures shown with the question ---
+
+
+def set_question_image(
+    db: Session, storage: DocumentStorage, user_id: uuid.UUID, item_id: uuid.UUID, data: bytes
+) -> LearningItem:
+    """Shows this picture with the question (replacing any earlier one)."""
+    item = get_owned_item(db, user_id, item_id)
+    managed_courses.ensure_editable(get_owned_course(db, user_id, item.course_id))
+    media_type = image_type(data)
+    storage.save(question_image_key(item), data)
+    item.question_image_type = media_type
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def remove_question_image(
+    db: Session, storage: DocumentStorage, user_id: uuid.UUID, item_id: uuid.UUID
+) -> LearningItem:
+    item = get_owned_item(db, user_id, item_id)
+    managed_courses.ensure_editable(get_owned_course(db, user_id, item.course_id))
+    if item.question_image_type is not None:
+        storage.delete(question_image_key(item))
+    item.question_image_type = None
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def load_question_image(
+    db: Session, storage: DocumentStorage, user_id: uuid.UUID, item_id: uuid.UUID
+) -> tuple[bytes, str]:
+    item = get_owned_item(db, user_id, item_id)
+    if item.question_image_type is None:
+        raise NotFoundError("This question has no picture.")
+    return _load(storage, question_image_key(item)), item.question_image_type
+
+
 def load_reference(
     db: Session, storage: DocumentStorage, user_id: uuid.UUID, item_id: uuid.UUID
 ) -> tuple[bytes, str]:
@@ -132,10 +175,19 @@ def course_drawing_keys(db: Session, course_id: uuid.UUID) -> list[str]:
             LearningItem.course_id == course_id, LearningItem.reference_drawing_type.is_not(None)
         )
     )
+    pictured = db.scalars(
+        select(LearningItem).where(
+            LearningItem.course_id == course_id, LearningItem.question_image_type.is_not(None)
+        )
+    )
     answers = db.scalars(
         select(Answer).where(Answer.course_id == course_id, Answer.drawing_type.is_not(None))
     )
-    return [*(reference_key(i) for i in items), *(answer_key(a) for a in answers)]
+    return [
+        *(reference_key(i) for i in items),
+        *(question_image_key(i) for i in pictured),
+        *(answer_key(a) for a in answers),
+    ]
 
 
 # --- Files left behind ---

@@ -22,7 +22,7 @@ from pypdf import PasswordType, PdfReader
 
 from app.models.enums import DocumentKind
 from app.services.documents import pdf_layout
-from app.services.documents.blocks import Block, Extraction
+from app.services.documents.blocks import IMAGE_MARKER, Block, Extraction
 
 MAX_PDF_PAGES = 3000
 # DOCX/PPTX are ZIP archives; these bound what a small upload may expand to (zip bombs).
@@ -37,9 +37,10 @@ class ExtractionError(Exception):
 __all__ = ["Block", "Extraction", "ExtractionError", "extract"]
 
 
-def extract(kind: DocumentKind, data: bytes) -> Extraction:
+def extract(kind: DocumentKind, data: bytes, with_images: bool = False) -> Extraction:
+    """`with_images` (question banks): also the pictures of a PDF, cut out where they sit."""
     if kind is DocumentKind.PDF:
-        return _extract_pdf(data)
+        return _extract_pdf(data, with_images)
     if kind is DocumentKind.TEXT:
         return Extraction(_plain_blocks(_decode_text(data)), None, None)
     if kind is DocumentKind.MARKDOWN:
@@ -98,7 +99,7 @@ def _check_archive(data: bytes) -> None:
 # --- PDF ---
 
 
-def _extract_pdf(data: bytes) -> Extraction:
+def _extract_pdf(data: bytes, with_images: bool = False) -> Extraction:
     try:
         reader = PdfReader(BytesIO(data))
         if reader.is_encrypted and reader.decrypt("") == PasswordType.NOT_DECRYPTED:
@@ -119,7 +120,8 @@ def _extract_pdf(data: bytes) -> Extraction:
 
     # Layout first (headings from font sizes, real paragraphs); plain text for any page, or the
     # whole file, the layout reader can't handle.
-    pages = pdf_layout.read_pages(data)
+    images: list[bytes] = []
+    pages = pdf_layout.read_pages(data, images if with_images else None)
     if pages is not None:
         blocks = pdf_layout.build_blocks(pages, plain_paragraphs)
     else:
@@ -142,7 +144,7 @@ def _extract_pdf(data: bytes) -> Extraction:
         created = _as_utc(reader.metadata.creation_date) if reader.metadata else None
     except Exception:
         created = None  # malformed metadata dates are common and not worth failing over
-    return Extraction(blocks, page_count, created)
+    return Extraction(blocks, page_count, created, images)
 
 
 def _pdf_sections(reader: PdfReader) -> list[tuple[int, str]]:
@@ -225,6 +227,7 @@ def _extract_docx(data: bytes) -> Extraction:
         raise ExtractionError("This Word document couldn't be read.") from exc
 
     blocks: list[Block] = []
+    images: list[bytes] = []
     heading: str | None = None
     # Walk the body in document order, so tables stay between the paragraphs around them.
     for child in document.element.body.iterchildren():
@@ -232,7 +235,13 @@ def _extract_docx(data: bytes) -> Extraction:
         if tag == "p":
             paragraph = Paragraph(child, document)
             text = paragraph.text.strip()
+            pictures = _paragraph_pictures(document, child)
+            if not text and not pictures:
+                continue
             if not text:
+                for picture in pictures:
+                    images.append(picture)
+                    blocks.append(Block(IMAGE_MARKER.format(len(images) - 1), heading=heading))
                 continue
             # Built-in heading styles keep their English names in the file, whatever the
             # Word UI language (e.g. Italian "Titolo 1" is stored as "Heading 1").
@@ -242,6 +251,9 @@ def _extract_docx(data: bytes) -> Extraction:
                 blocks.append(Block(text, heading=heading, is_heading=True))
             else:
                 blocks.append(Block(text, heading=heading))
+            for picture in pictures:
+                images.append(picture)
+                blocks.append(Block(IMAGE_MARKER.format(len(images) - 1), heading=heading))
         elif tag == "tbl":
             for row in Table(child, document).rows:
                 line = _table_row_text(cell.text for cell in row.cells)
@@ -249,7 +261,22 @@ def _extract_docx(data: bytes) -> Extraction:
                     blocks.append(Block(line, heading=heading))
 
     created = _as_utc(document.core_properties.created)
-    return Extraction(blocks, None, created)
+    return Extraction(blocks, None, created, images)
+
+
+_BLIP = "{http://schemas.openxmlformats.org/drawingml/2006/main}blip"
+_EMBED = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"
+
+
+def _paragraph_pictures(document: Any, element: Any) -> list[bytes]:
+    """The pictures placed in a paragraph (inline or floating), as their image bytes."""
+    found = []
+    for blip in element.iter(_BLIP):
+        part = document.part.related_parts.get(blip.get(_EMBED, ""))
+        blob = getattr(part, "blob", None)
+        if blob:
+            found.append(blob)
+    return found
 
 
 def _table_row_text(cells: Iterable[str]) -> str:

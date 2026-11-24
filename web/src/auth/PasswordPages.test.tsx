@@ -16,7 +16,8 @@ describe("passwords", () => {
     await user.type(screen.getByLabelText("Email"), "ada@example.com");
     await user.click(screen.getByRole("button", { name: "Send reset link" }));
 
-    expect(await screen.findByText(ACCEPTED.detail)).toBeInTheDocument();
+    // The screen words it in the interface language, the same whether or not the account exists.
+    expect(await screen.findByText(/If an account exists for this email, a link to reset its password is on its way\./)).toBeInTheDocument();
     expect(requests[0]?.body).toEqual({ email: "ada@example.com" });
     await user.click(screen.getByRole("button", { name: "Back to sign in" }));
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();

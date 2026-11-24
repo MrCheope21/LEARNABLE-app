@@ -12,6 +12,3 @@ export const ReadOnlyCourseProvider = ReadOnlyCourse.Provider;
 export function useReadOnlyCourse(): boolean {
   return useContext(ReadOnlyCourse);
 }
-
-/** Shown instead of drag handles in a read-only course. */
-export const AUTHOR_ORDER = "The author sets the order of this course.";

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -76,8 +77,8 @@ class PotentialXp(BaseModel):
     that isn't due, or an item past its three XP-eligible consolidation rounds."""
 
     eligible: bool
-    # The item's next success ordinal (n in min(10n, 150)).
-    ordinal: int
+    # The item's level now: a correct answer earns 10 * (level + 1).
+    level: int
     xp: int
     xp_with_hint: int
 
@@ -88,6 +89,9 @@ class HintState(BaseModel):
     # Revealed for this question slot: the answer earns half XP. Stored on the server.
     revealed: bool
     text: str | None
+    # What the hint shows once revealed: how many key points the answer covers and a few key terms.
+    point_count: int | None = None
+    terms: list[str] = []
 
 
 class Card(BaseModel):
@@ -105,7 +109,41 @@ class Card(BaseModel):
     potential_xp: PotentialXp | None = None
     hint: HintState | None = None
     # DRAWING: answered by drawing (GET /learning-items/{id}/reference-drawing after answering).
+    # CHOICE: pick among `choices` (send their positions as AnswerCreate.choices).
     answer_format: str = "TEXT"
+    # CHOICE only: the options, in stored order (the app shuffles them). Which are correct is
+    # never sent before answering.
+    choices: list[str] | None = None
+    # CHOICE: more than one option is correct (check boxes, not radio buttons).
+    multiple: bool = False
+    # A picture goes with the question (GET /learning-items/{id}/question-image).
+    question_image: bool = False
+
+
+class QueueItem(BaseModel):
+    learning_item_id: UUID
+    question: str
+    chapter_id: UUID
+    chapter_title: str
+    topic_id: UUID
+    topic_title: str
+    concept_id: UUID
+    concept_title: str
+    level: int
+    marked_hard: bool
+    # Whole days past its due time (0: due today).
+    overdue_days: int
+    # Only in a running session: this is the question on screen.
+    current: bool = False
+
+
+class ReviewQueue(BaseModel):
+    total: int
+    items: list[QueueItem]
+
+
+class PickCreate(InputModel):
+    learning_item_id: UUID
 
 
 class SessionCard(BaseModel):
@@ -121,6 +159,14 @@ class AnswerCreate(InputModel):
     method: AnswerMethod = AnswerMethod.TEXT
     # A drawing question's answer: the drawing as a data URL ("data:image/png;base64,...").
     drawing: Annotated[str, Field(max_length=5_000_000)] | None = None
+    # A multiple-choice answer: the positions (0-based, as in Card.choices) of the picked options.
+    choices: Annotated[list[Annotated[int, Field(ge=0, le=7)]], Field(max_length=8)] | None = None
+
+
+class RepeatCreate(InputModel):
+    """The answer written again after reviewing the reference."""
+
+    text: Annotated[str, Field(min_length=1, max_length=10_000)]
 
 
 class OverrideCreate(InputModel):
@@ -150,6 +196,8 @@ class EvaluationRead(BaseModel):
     source_corrections: list[str]
     context_sufficient: bool | None
     feedback: str
+    # What the answer lacked, in one sentence ("" when nothing, and on older evaluations).
+    gap: str = ""
     user_argument: str | None
     ai_provider: str | None
     ai_model: str | None
@@ -168,6 +216,11 @@ class ScheduleChange(BaseModel):
     lateness_seconds: int
 
 
+class ChoiceOption(BaseModel):
+    text: str
+    correct: bool
+
+
 class Reference(BaseModel):
     """The correct answer and where it comes from, shown with the feedback (spec §41, §66)."""
 
@@ -176,6 +229,10 @@ class Reference(BaseModel):
     sources: list[ProposalSource]
     # The answer is a reference drawing (GET /learning-items/{id}/reference-drawing).
     drawing: bool = False
+    # Multiple choice: the options in stored order with the right ones, and the positions the
+    # student picked (shown after answering).
+    choices: list[ChoiceOption] | None = None
+    picked: list[int] = []
 
 
 class XpResult(BaseModel):
@@ -184,6 +241,8 @@ class XpResult(BaseModel):
     reason: XpReason
     correct: bool
     ordinal: int | None
+    # The item's level when it was asked (null on awards from before the level rule).
+    level: int | None
     base_xp: int
     hint_used: bool
     xp: int
@@ -199,12 +258,17 @@ class AnswerResult(BaseModel):
     evaluation: EvaluationRead | None
     # The latest second opinion, asked for after the student disputed the grade; null if none.
     second_opinion: EvaluationRead | None = None
+    # The evaluation of the student's repeat (the "review and repeat" step), when they made one.
+    repeat: EvaluationRead | None = None
     resolved_outcome: ReviewOutcome | None
     resolver_version: str | None
     override_outcome: ReviewOutcome | None
     final_outcome: ReviewOutcome | None
     # No outcome yet: the user must grade it (POST /answers/{id}/override) or retry evaluation.
     needs_self_grade: bool
+    # Green on at least 3 of 4 scores: review the reference answer and repeat it
+    # (POST /answers/{id}/repeat); the attempt then counts as a correct first answer.
+    needs_repeat: bool = False
     # Null when the answer didn't move the schedule (practice, or no outcome yet).
     schedule: ScheduleChange | None
     reference: Reference
@@ -262,3 +326,49 @@ class ConsolidationPlan(BaseModel):
     answers_in_batch: int
     # Left for later batches after the next one.
     remaining_after_batch: int
+
+
+# --- Offline review (services/review/offline.py) ---
+
+
+class OfflineCard(BaseModel):
+    learning_item_id: UUID
+    question_formulation_id: UUID
+    question: str
+    expected_knowledge: str
+    essential_points: list[str]
+    due_at: UTCTimestamp
+    # Answered by drawing: offline the student compares with the reference in their head.
+    drawing: bool
+    # Multiple choice: options with which are correct (graded on the device offline).
+    choices: list[ChoiceOption] | None = None
+
+
+class OfflinePack(BaseModel):
+    course_id: UUID
+    title: str
+    created_at: UTCTimestamp
+    # Questions due until this moment are in the pack.
+    until: UTCTimestamp
+    cards: list[OfflineCard]
+
+
+class OfflineAnswer(InputModel):
+    # Made by the device, so sending the same answer twice applies it once.
+    client_id: Annotated[str, Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")]
+    learning_item_id: UUID
+    question_formulation_id: UUID
+    text: Annotated[str, Field(max_length=10_000)] = ""
+    outcome: ReviewOutcome
+    # When it was answered, on the device (with its time zone).
+    answered_at: datetime
+
+
+class OfflineSync(InputModel):
+    answers: Annotated[list[OfflineAnswer], Field(max_length=500)]
+
+
+class OfflineSyncResult(BaseModel):
+    applied: int
+    # Reviewed meanwhile on another device, removed, paused, or already sent.
+    skipped: int

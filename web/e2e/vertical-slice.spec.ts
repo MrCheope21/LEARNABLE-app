@@ -51,7 +51,7 @@ async function apiGet<T>(page: Page, path: string, expected = 200): Promise<T> {
 async function signIn(page: Page, email = EMAIL, password = PASSWORD) {
   await page.goto("/");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
 }
@@ -65,7 +65,7 @@ async function answerCurrent(page: Page): Promise<AnswerResult> {
   return result;
 }
 
-test("consolidation loop: concept → activate → I have studied it → 3 rounds with a hint → XP → dashboard", async ({ page }) => {
+test("consolidation loop: concept → activate → I have studied it → 3 good answers with a hint → XP → dashboard", async ({ page }) => {
   const startedAt = Date.now();
   await signIn(page);
 
@@ -86,8 +86,8 @@ test("consolidation loop: concept → activate → I have studied it → 3 round
   await expect(page.getByText(/answers/).filter({ hasText: "This batch" })).toBeVisible();
   await studied.click();
 
-  // Round 1 of 3, with the potential XP; a hint is confirmed before it is shown.
-  await expect(page.getByText("Round 1 of 3")).toBeVisible();
+  // Good answer 1 of 3, with the potential XP; a hint is confirmed before it is shown.
+  await expect(page.getByText("Good answer 1 of 3")).toBeVisible();
   await expect(page.getByText(/Correct answer: \+10 XP/)).toBeVisible();
   await page.getByRole("button", { name: "Show hint" }).click();
   await expect(page.getByText("Using a hint halves the XP for this answer.")).toBeVisible();
@@ -103,15 +103,15 @@ test("consolidation loop: concept → activate → I have studied it → 3 round
   await expect(page.getByText(/Correct · \+5 XP · Hint used/)).toBeVisible();
   expect(first.schedule).toBeNull(); // rounds seconds apart aren't reviews
 
-  // Rounds 2 and 3 of the same item: 20 and 30 XP.
+  // Rounds 2 and 3 of the same item: still level 0, so 10 XP each (xp_v2).
   await page.getByRole("button", { name: /Continue/ }).click();
-  await expect(page.getByText("Round 2 of 3")).toBeVisible();
+  await expect(page.getByText("Good answer 2 of 3")).toBeVisible();
   const second = await answerCurrent(page);
-  expect(second.xp?.xp).toBe(20);
+  expect(second.xp?.xp).toBe(10);
   await page.getByRole("button", { name: /Continue/ }).click();
-  await expect(page.getByText("Round 3 of 3")).toBeVisible();
+  await expect(page.getByText("Good answer 3 of 3")).toBeVisible();
   const third = await answerCurrent(page);
-  expect(third.xp?.xp).toBe(30);
+  expect(third.xp?.xp).toBe(10);
   // Only the last round is scheduled: an encoding, level 0 → 1.
   expect(third.schedule?.next_level).toBe(1);
 
@@ -121,7 +121,7 @@ test("consolidation loop: concept → activate → I have studied it → 3 round
   await page.getByRole("button", { name: /^Hard/ }).click();
   const override = (await (await overridden).json()) as AnswerResult;
   expect(override.final_outcome).toBe("HARD");
-  expect(override.xp?.xp).toBe(30);
+  expect(override.xp?.xp).toBe(10);
   await expect(page.getByText("Graded by you")).toBeVisible();
 
   // Finish the batch (other items, if the concept has several).
@@ -136,13 +136,13 @@ test("consolidation loop: concept → activate → I have studied it → 3 round
   await page.getByRole("button", { name: "Done" }).click();
 
   // The logo goes to the dashboard, which reflects the study immediately.
-  await page.getByRole("link", { name: "LEARNABLE home" }).click();
+  await page.getByRole("link", { name: "Recallable home" }).click();
   await expect(page.getByRole("region", { name: "Experience" })).toContainText("XP today");
   const dashboard = await apiGet<Dashboard>(page, "/api/v1/dashboard");
-  expect(dashboard.xp.today).toBeGreaterThanOrEqual(55);
+  expect(dashboard.xp.today).toBeGreaterThanOrEqual(25); // 5 (hint) + 10 + 10
   expect(dashboard.streak.current).toBeGreaterThanOrEqual(1);
   expect(dashboard.goal.done).toBeGreaterThanOrEqual(3);
-  await expect(page.getByLabel(`Total experience: ${dashboard.xp.total} XP`)).toBeVisible();
+  await expect(page.getByLabel(`XP earned today: ${dashboard.xp.today}`)).toBeVisible();
 
   await page.getByRole("link", { name: "Progress" }).click();
   await expect(page.getByRole("heading", { name: "Curriculum", exact: true })).toBeVisible();
@@ -169,7 +169,7 @@ test("two accounts: private material, private metrics, nothing cached across sig
   await page.goto("/");
   await page.getByRole("button", { name: "Create an account" }).click();
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText("Start your first course")).toBeVisible();
   await expect(page.getByText(COURSE)).toHaveCount(0);
@@ -224,7 +224,7 @@ test("curriculum loop: new course → chapter → upload → AI proposal → edi
         "# Il pegno\n\nIl pegno e una garanzia reale su beni mobili consegnati al creditore.\n",
     ),
   });
-  await expect(page.getByText("Ready")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Ready", { exact: true })).toBeVisible({ timeout: 30_000 });
 
   await page.getByRole("button", { name: "Analyze new material" }).click();
   const topicTitle = page.getByLabel("Topic title").first();

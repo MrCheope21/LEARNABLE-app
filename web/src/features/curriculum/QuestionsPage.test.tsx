@@ -110,13 +110,30 @@ describe("question manager", () => {
     confirm.mockRestore();
   });
 
+  it("deletes one question from its row, or leaves it out of reviews", async () => {
+    const user = userEvent.setup();
+    const { requests } = backend();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderApp(`/courses/${course}/questions`);
+
+    await user.click(await screen.findByRole("button", { name: "Delete: Che cos'è il deposito?" }));
+    await waitFor(() =>
+      expect(requests.find((r) => r.path.endsWith("/bulk-delete"))?.body).toMatchObject({ item_ids: ["i2"] }),
+    );
+    const [leaveOut] = screen.getAllByRole("button", { name: "Leave out" });
+    await user.click(leaveOut!);
+    await waitFor(() =>
+      expect(requests.find((r) => r.path.endsWith("/bulk"))?.body).toMatchObject({ item_ids: ["i1"], action: "pause" }),
+    );
+  });
+
   it("labels priorities, filters by them and sets them in bulk", async () => {
     const user = userEvent.setup();
     const { requests } = backend();
     renderApp(`/courses/${course}/questions`);
 
     expect(await screen.findByText("Essential")).toBeInTheDocument();
-    expect(screen.getByText("Extra")).toBeInTheDocument();
+    expect(screen.getByText("Useful")).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Priority"), "1");
     expect(screen.getByText("Che cos'è il mutuo?")).toBeInTheDocument();
     expect(screen.queryByText("Che cos'è il deposito?")).not.toBeInTheDocument();

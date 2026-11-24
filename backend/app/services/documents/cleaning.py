@@ -20,6 +20,9 @@ def clean_text(text: str) -> str:
     text = unicodedata.normalize("NFC", text)
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = text.replace("\u00ad", "")  # soft hyphen: invisible, splits words in search/AI input
+    text = text.replace(
+        "\u200b", ""
+    )  # zero-width space (also the guard in question_banks/converting.py)
     text = _CONTROL_CHARS.sub("", text)
     text = text.translate(_LIGATURES)
     text = _HYPHENATED_BREAK.sub(r"\1", text)
